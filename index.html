@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Web App Header Meta Tags for Chromeless Standalone Mode -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -27,7 +26,6 @@
             width: 100vw;
         }
         
-        /* TOP SECTION: 16:9 Presentation Layer */
         .presentation-view {
             width: 100vw;
             min-height: 100vh;
@@ -64,7 +62,6 @@
 
         .system-clock { position: absolute; top: 3%; right: 4%; background: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: clamp(0.75rem, 1.5vw, 0.9rem); font-weight: 700; color: #047857; border: 2px solid #059669; transition: background 0.3s, color 0.3s, border-color 0.3s; }
 
-        /* BOTTOM SECTION: Management Layer (Landscape Default) */
         .management-view { 
             width: 100vw;
             min-height: 100vh;
@@ -100,7 +97,6 @@
         .btn-danger:hover { background: #b91c1c; }
         .btn-secondary { background: #64748b; color: #ffffff; border: none; }
         .btn-secondary:hover { background: #475569; }
-        .override-badge { background: #ea580c !important; color: white; display: none; }
 
         .editor-box { background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; transition: background 0.3s, border-color 0.3s; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
@@ -110,7 +106,6 @@
         input:focus, textarea:focus { outline: none; border-color: #2563eb; }
         textarea { flex-grow: 1; resize: none; min-height: 80px; }
 
-        /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
         body.dark-mode .status-panel { border-right-color: #334155; }
@@ -137,7 +132,6 @@
         body.dark-mode .modal h3 { color: #f8fafc; }
         body.dark-mode .modal p { color: #94a3b8; }
 
-        /* PORTRAIT ADAPTIVE MEDIA QUERY FOR MANAGEMENT VIEW */
         @media (orientation: portrait), (max-width: 768px) {
             .management-view {
                 grid-template-columns: 1fr;
@@ -156,7 +150,6 @@
             }
         }
 
-        /* Modal Overlay */
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
         .modal { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; width: 90%; max-width: 550px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
         .modal h3 { font-size: 1.1rem; color: #0f172a; font-weight: 800; }
@@ -175,7 +168,6 @@
             <div>
                 <div class="current-meta">
                     <span>Now</span>
-                    <span id="manualBadge" class="btn override-badge">Manual Control Active</span>
                 </div>
                 <div id="presTitle" class="current-title">No Active Agenda Item</div>
                 <div id="presTime" class="current-time-box">--:--</div>
@@ -196,7 +188,7 @@
         </div>
     </div>
 
-    <!-- BOTTOM SECTION: MANAGEMENT VIEWPORT (PORTRAIT ADAPTIVE) -->
+    <!-- BOTTOM SECTION: MANAGEMENT VIEWPORT -->
     <div class="management-view">
         
         <div class="timeline-box">
@@ -259,7 +251,6 @@
         { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
     ];
 
-    // --- THEME & FULLSCREEN UTILITIES ---
     function initTheme() {
         const savedTheme = localStorage.getItem('boardTheme') || 'light';
         if (savedTheme === 'dark') {
@@ -279,16 +270,24 @@
     }
 
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                alert(`Error enabling fullscreen: ${err.message}`);
-            });
+        const docEl = document.documentElement;
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen().catch(err => alert("Fullscreen disabled by browser/iOS. Use 'Add to Home Screen' for chromeless view."));
+            } else if (docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            } else {
+                alert("Fullscreen API not supported on this browser. Tap Safari Share -> Add to Home Screen.");
+            }
         } else {
-            if (document.exitFullscreen) document.exitFullscreen();
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
         }
     }
 
-    // --- COMPRESSION & DECOMPRESSION UTILITIES ---
     async function encodeAgendaToURL(data) {
         const minified = data.map(item => ({
             t: item.time,
@@ -528,7 +527,6 @@
             document.getElementById('presNext').innerText = "Adjournment / Session Closed";
         }
 
-        document.getElementById('manualBadge').style.display = isManualOverride ? 'inline-block' : 'none';
         document.getElementById('resumeBtn').style.display = isManualOverride ? 'inline-block' : 'none';
 
         const rowsBox = document.getElementById('timelineRows');
