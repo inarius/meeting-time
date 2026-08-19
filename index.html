@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated 16:9 Board Agenda Screen</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body, html { height: 100%; background: #0f172a; color: #f8fafc; overflow: hidden; }
+        
+        .app-container { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* TOP HALF: 16:9 Presentation Layer */
+        .presentation-view {
+            height: 50vh;
+            background: #1e293b;
+            border-bottom: 4px solid #334155;
+            display: grid;
+            grid-template-columns: 2fr 3fr;
+            padding: 24px;
+            gap: 24px;
+            position: relative;
+        }
+        
+        .status-panel { display: flex; flex-direction: column; justify-content: space-between; border-right: 2px solid #334155; padding-right: 24px; }
+        .current-meta { display: flex; align-items: center; gap: 12px; color: #38bdf8; font-weight: 700; letter-spacing: 0.05em; font-size: 0.9rem; text-transform: uppercase; }
+        .current-title { font-size: 2.2rem; font-weight: 800; line-height: 1.2; color: #ffffff; margin-top: 8px; }
+        .current-time-box { font-size: 1.4rem; color: #94a3b8; margin-top: 4px; font-weight: 500; }
+        
+        .next-up-card { background: #0f172a; padding: 16px; border-radius: 8px; border-left: 4px solid #a855f7; }
+        .next-label { font-size: 0.8rem; color: #a855f7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .next-title { font-size: 1.2rem; font-weight: 600; color: #f1f5f9; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: 1.25rem; line-height: 1.6; color: #cbd5e1; }
+        .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none; }
+        .details-page.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        
+        .details-viewport ul { padding-left: 28px; margin-top: 8px; }
+        .details-viewport li { margin-bottom: 8px; }
+        .details-viewport p { margin-bottom: 12px; }
+
+        .system-clock { position: absolute; top: 16px; right: 24px; background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; color: #10b981; border: 1px solid #10b981; }
+
+        /* BOTTOM HALF: Agenda Management Layer */
+        .management-view { height: 50vh; background: #0f172a; display: grid; grid-template-columns: 3fr 4fr; padding: 20px; gap: 20px; }
+        
+        .timeline-box { display: flex; flex-direction: column; background: #1e293b; border-radius: 8px; border: 1px solid #334155; overflow: hidden; }
+        .timeline-header { padding: 12px 16px; background: #334155; font-weight: 700; font-size: 0.9rem; color: #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .timeline-rows { flex-grow: 1; overflow-y: auto; }
+        .timeline-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #334155; cursor: pointer; transition: background 0.2s; }
+        .timeline-item:hover { background: #475569; }
+        .timeline-item.active { background: #1e3a8a; border-left: 4px solid #38bdf8; }
+        .timeline-item.active-next { border-left: 4px solid #a855f7; }
+        .item-time { width: 90px; font-weight: 700; color: #38bdf8; font-size: 0.95rem; }
+        .item-text { flex-grow: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .control-bar { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn { background: #334155; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+        .btn:hover { background: #475569; }
+        .btn-primary { background: #2563eb; }
+        .btn-primary:hover { background: #3b82f6; }
+        .btn-success { background: #059669; }
+        .btn-success:hover { background: #10b981; }
+        .btn-danger { background: #991b1b; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #64748b; }
+        .override-badge { background: #ea580c !important; color: white; display: none; }
+
+        .editor-box { background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 0.8rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+        .form-inline { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+        input, textarea { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: white; padding: 10px; font-size: 0.95rem; }
+        input:focus, textarea:focus { outline: none; border-color: #2563eb; }
+        textarea { flex-grow: 1; resize: none; min-height: 120px; }
+
+        /* Modal Overlay */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; width: 90%; max-width: 600px; display: flex; flex-direction: column; gap: 16px; }
+        .modal h3 { font-size: 1.25rem; color: #f8fafc; }
+        .modal p { font-size: 0.85rem; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- TOP HALF: PROJECTED USER PRESENTATION INTERFACE -->
+    <div class="presentation-view">
+        <div class="system-clock" id="sysClock">--:--:-- --</div>
+        
+        <div class="status-panel">
+            <div>
+                <div class="current-meta">
+                    <span>Current Topic</span>
+                    <span id="manualBadge" class="btn override-badge">Manual Control Active</span>
+                </div>
+                <div id="presTitle" class="current-title">No Active Agenda Item</div>
+                <div id="presTime" class="current-time-box">--:--</div>
+            </div>
+            
+            <div class="next-up-card">
+                <div class="next-label">Next Up</div>
+                <div id="presNext" class="next-title">Adjournment</div>
+            </div>
+        </div>
+        
+        <div class="details-panel">
+            <div class="details-viewport" id="viewport">
+                <div class="details-page active" id="fallbackPage">
+                    <p>No item details loaded.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM HALF: DATA MANAGEMENT & CONTROL OVERRIDES -->
+    <div class="management-view">
+        
+        <div class="timeline-box">
+            <div class="timeline-header">
+                <span>Agenda Milestones Index</span>
+                <div class="control-bar">
+                    <button class="btn" onclick="shiftItem(-1)">◀ Prev</button>
+                    <button class="btn" onclick="shiftItem(1)">Next ▶</button>
+                    <button class="btn btn-primary" onclick="clearOverride()" id="resumeBtn" style="display:none;">Resume Auto</button>
+                </div>
+            </div>
+            <div class="timeline-rows" id="timelineRows"></div>
+        </div>
+        
+        <div class="editor-box">
+            <div class="form-inline">
+                <div class="form-group">
+                    <label>Time Index</label>
+                    <input type="text" id="editTime" placeholder="10:45 AM">
+                </div>
+                <div class="form-group">
+                    <label>Topic Title</label>
+                    <input type="text" id="editTitle" placeholder="Executive Review">
+                </div>
+            </div>
+            <div class="form-group" style="flex-grow: 1;">
+                <label>Detailed Descriptions / Notes (HTML & Lists Allowed)</label>
+                <textarea id="editDetails" placeholder="<p>Overview parameters:</p><ul><li>First point</li></ul>"></textarea>
+            </div>
+            <div class="control-bar" style="justify-content: flex-end;">
+                <button class="btn btn-success" onclick="shareAgendaURL()">🔗 Copy Share Link</button>
+                <button class="btn btn-secondary" onclick="openImportModal()">📥 Import Text</button>
+                <button class="btn btn-danger" onclick="deleteCurrentItem()">Delete Item</button>
+                <button class="btn btn-primary" onclick="saveEditorValues()">Update / Add Item</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- TEXT / MARKDOWN IMPORT MODAL -->
+<div class="modal-backdrop" id="importModal">
+    <div class="modal">
+        <h3>Bulk Import Agenda Text</h3>
+        <p>Paste time-indexed text below (e.g. <code>10:00 AM Call to Order</code> followed by bullet points starting with <code>-</code> or <code>*</code>):</p>
+        <textarea id="importText" style="height: 180px;" placeholder="10:00 AM Call to Order&#10;- Roll call&#10;- Approve minutes&#10;&#10;10:15 AM Financial Overview&#10;- Q3 review&#10;- Budget allocation"></textarea>
+        <div class="control-bar" style="justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="processImportText()">Import Agenda</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const defaultAgenda = [
+        { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
+        { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
+        { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
+    ];
+
+    // --- COMPRESSION & DECOMPRESSION UTILITIES (CompressionStream) ---
+    async function encodeAgendaToURL(data) {
+        const minified = data.map(item => ({
+            t: item.time,
+            i: item.title,
+            d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim()
+        }));
+
+        const jsonStr = JSON.stringify(minified);
+        const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+        const compressedBuffer = await new Response(stream).arrayBuffer();
+        
+        const bytes = new Uint8Array(compressedBuffer);
+        let binary = '';
+        bytes.forEach(b => binary += String.fromCharCode(b));
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function decodeAgendaFromURL(base64Str) {
+        let base64 = base64Str.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+        const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        const decompressedStr = await new Response(stream).text();
+        const minified = JSON.parse(decompressedStr);
+
+        return minified.map(item => {
+            let detailsHtml = item.d;
+            if (detailsHtml.includes('- ') || detailsHtml.includes('\n')) {
+                const lines = detailsHtml.split('\n');
+                let html = '';
+                let inList = false;
+                lines.forEach(l => {
+                    const line = l.trim();
+                    if (!line) return;
+                    if (line.startsWith('- ')) {
+                        if (!inList) { html += '<ul>'; inList = true; }
+                        html += `<li>${line.replace(/^-\s*/, '')}</li>`;
+                    } else {
+                        if (inList) { html += '</ul>'; inList = false; }
+                        html += `<p>${line}</p>`;
+                    }
+                });
+                if (inList) html += '</ul>';
+                detailsHtml = html;
+            } else if (detailsHtml) {
+                detailsHtml = `<p>${detailsHtml}</p>`;
+            }
+            return { time: item.t, title: item.i, details: detailsHtml };
+        });
+    }
+
+    async function loadInitialAgenda() {
+        if (window.location.hash.startsWith('#agenda=')) {
+            try {
+                const encodedData = window.location.hash.replace('#agenda=', '');
+                const decoded = await decodeAgendaFromURL(encodedData);
+                if (Array.isArray(decoded) && decoded.length > 0) {
+                    localStorage.setItem('boardAgenda', JSON.stringify(decoded));
+                    return decoded;
+                }
+            } catch (e) {
+                console.error("Failed to decompress URL payload", e);
+            }
+        }
+        
+        const stored = localStorage.getItem('boardAgenda');
+        if (stored) {
+            try { return JSON.parse(stored); } catch (e) {}
+        }
+        return defaultAgenda;
+    }
+
+    function saveAgendaToStorage() {
+        localStorage.setItem('boardAgenda', JSON.stringify(agenda));
+    }
+
+    let agenda = defaultAgenda;
+    let currentIndex = 0;
+    let isManualOverride = false;
+    let carouselInterval = null;
+    let lastCheckedMilestoneTime = "";
+
+    function parseToMinutes(timeStr) {
+        const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+        if (!match) return 0;
+        let [_, hrs, mins, period] = match;
+        hrs = parseInt(hrs);
+        mins = parseInt(mins);
+        if (period.toUpperCase() === "PM" && hrs !== 12) hrs += 12;
+        if (period.toUpperCase() === "AM" && hrs === 12) hrs = 0;
+        return hrs * 60 + mins;
+    }
+
+    function sortAgenda() {
+        agenda.sort((a, b) => parseToMinutes(a.time) - parseToMinutes(b.time));
+    }
+
+    function updateSystemClock() {
+        const now = new Date();
+        let hrs = now.getHours();
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        const ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12;
+        hrs = hrs ? hrs : 12;
+        const normalizedHours = String(hrs).padStart(2, '0');
+        const timeString = `${normalizedHours}:${mins}:${secs} ${ampm}`;
+        document.getElementById('sysClock').innerText = timeString;
+
+        const checkString = `${normalizedHours}:${mins} ${ampm}`;
+        if (checkString !== lastCheckedMilestoneTime) {
+            evaluateAutomatedTimeTrigger(checkString);
+        }
+    }
+
+    function evaluateAutomatedTimeTrigger(currentWallTime) {
+        let matchedIndex = -1;
+        const currentMins = parseToMinutes(currentWallTime);
+
+        for (let i = 0; i < agenda.length; i++) {
+            if (parseToMinutes(agenda[i].time) <= currentMins) {
+                matchedIndex = i;
+            }
+        }
+
+        if (matchedIndex !== -1 && matchedIndex !== currentIndex && !isManualOverride) {
+            lastCheckedMilestoneTime = currentWallTime;
+            currentIndex = matchedIndex;
+            renderState();
+        } else if (matchedIndex !== -1 && isManualOverride) {
+            const exactAgendaTime = agenda[matchedIndex].time.replace(/^0/, '');
+            const exactWallTime = currentWallTime.replace(/^0/, '');
+            if (exactAgendaTime === exactWallTime && lastCheckedMilestoneTime !== currentWallTime) {
+                lastCheckedMilestoneTime = currentWallTime;
+                isManualOverride = false;
+                currentIndex = matchedIndex;
+                renderState();
+            }
+        }
+    }
+
+    function renderPresentationTextPages() {
+        const container = document.getElementById('viewport');
+        clearInterval(carouselInterval);
+        container.innerHTML = "";
+
+        if (agenda.length === 0 || !agenda[currentIndex]) {
+            container.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
+            return;
+        }
+
+        const testDiv = document.createElement('div');
+        testDiv.style.width = `${container.clientWidth}px`;
+        testDiv.style.position = 'absolute';
+        testDiv.style.visibility = 'hidden';
+        testDiv.style.fontSize = '1.25rem';
+        testDiv.style.lineHeight = '1.6';
+        testDiv.innerHTML = agenda[currentIndex].details;
+        document.body.appendChild(testDiv);
+
+        const childElements = Array.from(testDiv.childNodes);
+        const pagesData = [];
+        let currentPageHTML = "";
+        let currentHeight = 0;
+        const maxHeight = container.clientHeight - 20;
+
+        childElements.forEach(node => {
+            const tempBox = document.createElement('div');
+            tempBox.style.width = `${container.clientWidth}px`;
+            tempBox.style.fontSize = '1.25rem';
+            tempBox.style.lineHeight = '1.6';
+            const clone = node.cloneNode(true);
+            tempBox.appendChild(clone);
+            document.body.appendChild(tempBox);
+
+            const nodeHeight = tempBox.clientHeight;
+            document.body.removeChild(tempBox);
+
+            if (currentHeight + nodeHeight > maxHeight && currentPageHTML !== "") {
+                pagesData.push(currentPageHTML);
+                currentPageHTML = "";
+                currentHeight = 0;
+            }
+
+            if (node.nodeType === Node.TEXT_NODE) {
+                currentPageHTML += node.textContent;
+            } else {
+                currentPageHTML += node.outerHTML;
+            }
+            currentHeight += nodeHeight;
+        });
+
+        if (currentPageHTML !== "") pagesData.push(currentPageHTML);
+        document.body.removeChild(testDiv);
+
+        pagesData.forEach((pageHTML, idx) => {
+            const pageDiv = document.createElement('div');
+            pageDiv.className = `details-page ${idx === 0 ? 'active' : ''}`;
+            pageDiv.innerHTML = pageHTML;
+            container.appendChild(pageDiv);
+        });
+
+        if (pagesData.length > 1) {
+            let activePageIdx = 0;
+            carouselInterval = setInterval(() => {
+                const pages = container.querySelectorAll('.details-page');
+                if (pages.length === 0) return;
+                pages[activePageIdx].classList.remove('active');
+                activePageIdx = (activePageIdx + 1) % pages.length;
+                pages[activePageIdx].classList.add('active');
+            }, 8000);
+        }
+    }
+
+    function renderState() {
+        sortAgenda();
+        if (currentIndex >= agenda.length) currentIndex = Math.max(0, agenda.length - 1);
+        
+        const activeItem = agenda[currentIndex];
+        const nextItem = agenda[currentIndex + 1];
+
+        if (activeItem) {
+            document.getElementById('presTitle').innerText = activeItem.title;
+            document.getElementById('presTime').innerText = `Scheduled: ${activeItem.time}`;
+        } else {
+            document.getElementById('presTitle').innerText = "End of Agenda";
+            document.getElementById('presTime').innerText = "--:--";
+        }
+
+        if (nextItem) {
+            document.getElementById('presNext').innerText = `${nextItem.time} - ${nextItem.title}`;
+        } else {
+            document.getElementById('presNext').innerText = "Adjournment / Session Closed";
+        }
+
+        document.getElementById('manualBadge').style.display = isManualOverride ? 'inline-block' : 'none';
+        document.getElementById('resumeBtn').style.display = isManualOverride ? 'inline-block' : 'none';
+
+        const rowsBox = document.getElementById('timelineRows');
+        rowsBox.innerHTML = "";
+        agenda.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = `timeline-item ${index === currentIndex ? 'active' : ''}`;
+            if (index === currentIndex + 1) row.className += ' active-next';
+            row.innerHTML = `<div class="item-time">${item.time}</div> <div class="item-text">${item.title}</div>`;
+            row.onclick = () => {
+                isManualOverride = true;
+                currentIndex = index;
+                renderState();
+            };
+            rowsBox.appendChild(row);
+        });
+
+        if (activeItem) {
+            document.getElementById('editTime').value = activeItem.time;
+            document.getElementById('editTitle').value = activeItem.title;
+            document.getElementById('editDetails').value = activeItem.details;
+        } else {
+            clearEditorInputs();
+        }
+
+        renderPresentationTextPages();
+    }
+
+    function shiftItem(direction) {
+        isManualOverride = true;
+        let targetIndex = currentIndex + direction;
+        if (targetIndex >= 0 && targetIndex < agenda.length) {
+            currentIndex = targetIndex;
+            renderState();
+        }
+    }
+
+    function clearOverride() {
+        isManualOverride = false;
+        lastCheckedMilestoneTime = "";
+        const now = new Date();
+        let hrs = now.getHours();
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12;
+        hrs = hrs ? hrs : 12;
+        evaluateAutomatedTimeTrigger(`${String(hrs).padStart(2, '0')}:${mins} ${ampm}`);
+        renderState();
+    }
+
+    function saveEditorValues() {
+        const timeInput = document.getElementById('editTime').value.trim();
+        const titleInput = document.getElementById('editTitle').value.trim();
+        const detailsInput = document.getElementById('editDetails').value.trim();
+
+        if (!timeInput || !titleInput) {
+            alert("Time index and topic title parameters are required.");
+            return;
+        }
+
+        const existingMatchIndex = agenda.findIndex(item => item.time.toLowerCase() === timeInput.toLowerCase());
+        const payload = { time: timeInput, title: titleInput, details: detailsInput || "" };
+
+        if (existingMatchIndex !== -1) {
+            agenda[existingMatchIndex] = payload;
+        } else {
+            agenda.push(payload);
+            currentIndex = agenda.length - 1;
+        }
+        
+        saveAgendaToStorage();
+        renderState();
+    }
+
+    function deleteCurrentItem() {
+        if (agenda.length <= 1) {
+            alert("At least one agenda topic is required.");
+            return;
+        }
+        agenda.splice(currentIndex, 1);
+        currentIndex = Math.max(0, currentIndex - 1);
+        saveAgendaToStorage();
+        renderState();
+    }
+
+    async function shareAgendaURL() {
+        try {
+            const compressedHash = await encodeAgendaToURL(agenda);
+            const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${compressedHash}`;
+            
+            await navigator.clipboard.writeText(shareURL);
+            alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
+        } catch (e) {
+            console.error("Compression error:", e);
+            alert("Failed to generate compressed share link.");
+        }
+    }
+
+    function openImportModal() { document.getElementById('importModal').style.display = 'flex'; }
+    function closeImportModal() { document.getElementById('importModal').style.display = 'none'; }
+
+    function processImportText() {
+        const rawText = document.getElementById('importText').value.trim();
+        if (!rawText) return;
+
+        const lines = rawText.split('\n');
+        const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i;
+        const newAgenda = [];
+        let currentItem = null;
+        let inList = false;
+
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+
+            const match = trimmed.match(timePattern);
+            if (match && (match[1].toUpperCase().includes('AM') || match[1].toUpperCase().includes('PM') || match[1].includes(':'))) {
+                if (currentItem) {
+                    if (inList) currentItem.details += '</ul>';
+                    newAgenda.push(currentItem);
+                }
+                let timeStr = match[1].trim();
+                if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
+                currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" };
+                inList = false;
+            } else if (currentItem) {
+                if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                    if (!inList) { currentItem.details += '<ul>'; inList = true; }
+                    currentItem.details += `<li>${trimmed.replace(/^[-*]\s*/, '')}</li>`;
+                } else {
+                    if (inList) { currentItem.details += '</ul>'; inList = false; }
+                    currentItem.details += `<p>${trimmed}</p>`;
+                }
+            }
+        });
+
+        if (currentItem) {
+            if (inList) currentItem.details += '</ul>';
+            newAgenda.push(currentItem);
+        }
+
+        if (newAgenda.length > 0) {
+            agenda = newAgenda;
+            currentIndex = 0;
+            saveAgendaToStorage();
+            renderState();
+            closeImportModal();
+        } else {
+            alert("Could not parse time indexes.");
+        }
+    }
+
+    function clearEditorInputs() {
+        document.getElementById('editTime').value = "";
+        document.getElementById('editTitle').value = "";
+        document.getElementById('editDetails').value = "";
+    }
+
+    window.addEventListener('resize', renderPresentationTextPages);
+    setInterval(updateSystemClock, 1000);
+
+    // Asynchronous boot setup
+    (async function init() {
+        agenda = await loadInitialAgenda();
+        const initialNow = new Date();
+        let initHrs = initialNow.getHours();
+        const initMins = String(initialNow.getMinutes()).padStart(2, '0');
+        const initAmpm = initHrs >= 12 ? 'PM' : 'AM';
+        initHrs = initHrs % 12;
+        initHrs = initHrs ? initHrs : 12;
+        evaluateAutomatedTimeTrigger(`${String(initHrs).padStart(2, '0')}:${initMins} ${initAmpm}`);
+        renderState();
+    })();
+</script>
+
+</body>
+</html>
