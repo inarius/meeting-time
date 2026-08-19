@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Automated 16:9 Board Agenda Screen</title>
+    <title>Meeting - Board Agenda</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
@@ -26,6 +26,7 @@
             width: 100vw;
         }
         
+        /* TOP SECTION: 16:9 Presentation Layer */
         .presentation-view {
             width: 100vw;
             min-height: 100vh;
@@ -36,7 +37,7 @@
             border-bottom: 4px solid #cbd5e1;
             display: grid;
             grid-template-columns: 2fr 3fr;
-            padding: 3% 4%;
+            padding: 4% 4% 3% 4%;
             gap: 24px;
             position: relative;
             transition: background 0.3s, border-color 0.3s;
@@ -60,8 +61,10 @@
         .details-viewport li { margin-bottom: 6px; }
         .details-viewport p { margin-bottom: 8px; }
 
-        .system-clock { position: absolute; top: 3%; right: 4%; background: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: clamp(0.75rem, 1.5vw, 0.9rem); font-weight: 700; color: #047857; border: 2px solid #059669; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        /* MOVED SYSTEM CLOCK TO TOP LEFT */
+        .system-clock { position: absolute; top: 3%; left: 4%; background: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: clamp(0.75rem, 1.5vw, 0.9rem); font-weight: 700; color: #047857; border: 2px solid #059669; transition: background 0.3s, color 0.3s, border-color 0.3s; z-index: 10; }
 
+        /* BOTTOM SECTION: Management Layer */
         .management-view { 
             width: 100vw;
             min-height: 100vh;
@@ -82,7 +85,6 @@
         .timeline-item { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.2s, color 0.2s; font-size: clamp(0.8rem, 1.5vw, 0.95rem); color: #334155; }
         .timeline-item:hover { background: #e2e8f0; }
         .timeline-item.active { background: #bae6fd; color: #0369a1; border-left: 5px solid #0284c7; font-weight: 700; }
-        .timeline-item.active-next { border-left: 5px solid #7e22ce; background: #f3e8ff; color: #6b21a8; }
         .item-time { width: 85px; font-weight: 700; color: #0284c7; }
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
@@ -106,6 +108,7 @@
         input:focus, textarea:focus { outline: none; border-color: #2563eb; }
         textarea { flex-grow: 1; resize: none; min-height: 80px; }
 
+        /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
         body.dark-mode .status-panel { border-right-color: #334155; }
@@ -123,7 +126,6 @@
         body.dark-mode .timeline-item { color: #cbd5e1; border-bottom-color: #334155; }
         body.dark-mode .timeline-item:hover { background: #334155; }
         body.dark-mode .timeline-item.active { background: #1e3a8a; color: #38bdf8; border-left-color: #38bdf8; }
-        body.dark-mode .timeline-item.active-next { background: #3b0764; color: #d8b4fe; border-left-color: #c084fc; }
         body.dark-mode input, body.dark-mode textarea { background: #0f172a; color: #ffffff; border-color: #334155; }
         body.dark-mode .form-group label { color: #94a3b8; }
         body.dark-mode .btn { background: #334155; color: #f8fafc; border-color: #475569; }
@@ -204,6 +206,10 @@
         </div>
         
         <div class="editor-box">
+            <div class="form-group">
+                <label>Meeting Title / Name</label>
+                <input type="text" id="editMeetingTitle" placeholder="Troop 402 Meeting" onchange="updateMeetingTitle(this.value)">
+            </div>
             <div class="form-inline">
                 <div class="form-group">
                     <label>Time Index</label>
@@ -245,11 +251,19 @@
 </div>
 
 <script>
+    let meetingTitle = "Troop 402 Agenda";
+
     const defaultAgenda = [
         { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
         { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
         { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
     ];
+
+    function updateMeetingTitle(newTitle) {
+        meetingTitle = newTitle.trim() || "Agenda";
+        document.title = `Meeting - ${meetingTitle}`;
+        localStorage.setItem('boardMeetingTitle', meetingTitle);
+    }
 
     function initTheme() {
         const savedTheme = localStorage.getItem('boardTheme') || 'light';
@@ -289,13 +303,16 @@
     }
 
     async function encodeAgendaToURL(data) {
-        const minified = data.map(item => ({
-            t: item.time,
-            i: item.title,
-            d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim()
-        }));
+        const minifiedPayload = {
+            m: meetingTitle,
+            items: data.map(item => ({
+                t: item.time,
+                i: item.title,
+                d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim()
+            }))
+        };
 
-        const jsonStr = JSON.stringify(minified);
+        const jsonStr = JSON.stringify(minifiedPayload);
         const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('deflate-raw'));
         const compressedBuffer = await new Response(stream).arrayBuffer();
         
@@ -315,9 +332,16 @@
 
         const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
         const decompressedStr = await new Response(stream).text();
-        const minified = JSON.parse(decompressedStr);
+        const minifiedPayload = JSON.parse(decompressedStr);
 
-        return minified.map(item => {
+        if (minifiedPayload.m) {
+            updateMeetingTitle(minifiedPayload.m);
+            document.getElementById('editMeetingTitle').value = minifiedPayload.m;
+        }
+
+        const rawItems = minifiedPayload.items || minifiedPayload;
+
+        return rawItems.map(item => {
             let detailsHtml = item.d;
             if (detailsHtml.includes('- ') || detailsHtml.includes('\n')) {
                 const lines = detailsHtml.split('\n');
@@ -344,6 +368,10 @@
     }
 
     async function loadInitialAgenda() {
+        const storedTitle = localStorage.getItem('boardMeetingTitle') || "Troop 402 Agenda";
+        updateMeetingTitle(storedTitle);
+        document.getElementById('editMeetingTitle').value = storedTitle;
+
         if (window.location.hash.startsWith('#agenda=')) {
             try {
                 const encodedData = window.location.hash.replace('#agenda=', '');
@@ -529,12 +557,12 @@
 
         document.getElementById('resumeBtn').style.display = isManualOverride ? 'inline-block' : 'none';
 
+        /* REMOVED DUAL HIGHLIGHTING (ACTIVE-NEXT) */
         const rowsBox = document.getElementById('timelineRows');
         rowsBox.innerHTML = "";
         agenda.forEach((item, index) => {
             const row = document.createElement('div');
             row.className = `timeline-item ${index === currentIndex ? 'active' : ''}`;
-            if (index === currentIndex + 1) row.className += ' active-next';
             row.innerHTML = `<div class="item-time">${item.time}</div> <div class="item-text">${item.title}</div>`;
             row.onclick = () => {
                 isManualOverride = true;
