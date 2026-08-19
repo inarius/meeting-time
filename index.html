@@ -61,7 +61,6 @@
         .details-viewport li { margin-bottom: 6px; }
         .details-viewport p { margin-bottom: 8px; }
 
-        /* MOVED SYSTEM CLOCK TO TOP LEFT */
         .system-clock { position: absolute; top: 3%; left: 4%; background: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: clamp(0.75rem, 1.5vw, 0.9rem); font-weight: 700; color: #047857; border: 2px solid #059669; transition: background 0.3s, color 0.3s, border-color 0.3s; z-index: 10; }
 
         /* BOTTOM SECTION: Management Layer */
@@ -108,7 +107,6 @@
         input:focus, textarea:focus { outline: none; border-color: #2563eb; }
         textarea { flex-grow: 1; resize: none; min-height: 80px; }
 
-        /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
         body.dark-mode .status-panel { border-right-color: #334155; }
@@ -208,7 +206,7 @@
         <div class="editor-box">
             <div class="form-group">
                 <label>Meeting Title / Name</label>
-                <input type="text" id="editMeetingTitle" placeholder="Troop 402 Meeting" onchange="updateMeetingTitle(this.value)">
+                <input type="text" id="editMeetingTitle" placeholder="Troop 402 Agenda" onchange="updateMeetingTitle(this.value)">
             </div>
             <div class="form-inline">
                 <div class="form-group">
@@ -241,8 +239,8 @@
 <div class="modal-backdrop" id="importModal">
     <div class="modal">
         <h3>Bulk Import Agenda Text</h3>
-        <p>Paste time-indexed text below (e.g. <code>10:00 AM Call to Order</code> followed by bullet points starting with <code>-</code> or <code>*</code>):</p>
-        <textarea id="importText" style="height: 140px;" placeholder="10:00 AM Call to Order&#10;- Roll call&#10;- Approve minutes&#10;&#10;10:15 AM Financial Overview&#10;- Q3 review&#10;- Budget allocation"></textarea>
+        <p>Paste time-indexed text below (Optional first line: <code>Title: Meeting Name</code>):</p>
+        <textarea id="importText" style="height: 140px;" placeholder="Title: Troop 402 Agenda - August 19, 2026&#10;&#10;10:00 AM Call to Order&#10;- Roll call&#10;- Approve minutes"></textarea>
         <div class="control-bar" style="justify-content: flex-end;">
             <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
             <button class="btn btn-primary" onclick="processImportText()">Import Agenda</button>
@@ -557,7 +555,6 @@
 
         document.getElementById('resumeBtn').style.display = isManualOverride ? 'inline-block' : 'none';
 
-        /* REMOVED DUAL HIGHLIGHTING (ACTIVE-NEXT) */
         const rowsBox = document.getElementById('timelineRows');
         rowsBox.innerHTML = "";
         agenda.forEach((item, index) => {
@@ -665,10 +662,19 @@
         const newAgenda = [];
         let currentItem = null;
         let inList = false;
+        let titleFound = false;
 
         lines.forEach(line => {
             const trimmed = line.trim();
             if (!trimmed) return;
+
+            if (!titleFound && newAgenda.length === 0 && !currentItem && !timePattern.test(trimmed)) {
+                const cleanTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, '');
+                updateMeetingTitle(cleanTitle);
+                document.getElementById('editMeetingTitle').value = cleanTitle;
+                titleFound = true;
+                return;
+            }
 
             const match = trimmed.match(timePattern);
             if (match && (match[1].toUpperCase().includes('AM') || match[1].toUpperCase().includes('PM') || match[1].includes(':'))) {
