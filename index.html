@@ -61,7 +61,37 @@
             letter-spacing: normal;
         }
 
-        .next-up-card { background: #f1f5f9; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; transition: background 0.3s, border-color 0.3s; }
+        /* NEXT UP NAV BAR */
+        .next-up-container { display: flex; align-items: center; gap: 8px; }
+        .prev-arrow-btn { 
+            background: #f1f5f9; 
+            border: 1px solid #cbd5e1; 
+            color: #64748b; 
+            border-radius: 8px; 
+            padding: 12px 14px; 
+            font-size: 1.1rem; 
+            cursor: pointer; 
+            transition: background 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        .prev-arrow-btn:hover { background: #e2e8f0; color: #0f172a; }
+
+        .next-up-card { 
+            flex-grow: 1;
+            background: #f1f5f9; 
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            border-left: 5px solid #7e22ce; 
+            border-top: 1px solid #e2e8f0; 
+            border-right: 1px solid #e2e8f0; 
+            border-bottom: 1px solid #e2e8f0; 
+            cursor: pointer;
+            transition: background 0.3s, border-color 0.3s; 
+        }
+        .next-up-card:hover { background: #e2e8f0; }
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; color: #1e293b; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.3s; }
         
@@ -125,7 +155,10 @@
         body.dark-mode .current-meta { color: #38bdf8; }
         body.dark-mode .current-title { color: #ffffff; }
         body.dark-mode .current-time-box { color: #94a3b8; }
+        body.dark-mode .prev-arrow-btn { background: #0f172a; border-color: #334155; color: #94a3b8; }
+        body.dark-mode .prev-arrow-btn:hover { background: #334155; color: #ffffff; }
         body.dark-mode .next-up-card { background: #0f172a; border-color: #334155; }
+        body.dark-mode .next-up-card:hover { background: #334155; }
         body.dark-mode .next-label { color: #c084fc; }
         body.dark-mode .next-title { color: #f1f5f9; }
         body.dark-mode .details-viewport { color: #cbd5e1; }
@@ -184,9 +217,12 @@
                 <div id="presTime" class="current-time-box">--:--</div>
             </div>
             
-            <div class="next-up-card">
-                <div class="next-label">Next Up</div>
-                <div id="presNext" class="next-title">Adjournment</div>
+            <div class="next-up-container">
+                <button class="prev-arrow-btn" onclick="shiftItem(-1)" title="Previous Topic">◀</button>
+                <div class="next-up-card" onclick="shiftItem(1)" title="Advance to Next Topic">
+                    <div class="next-label">Next Up</div>
+                    <div id="presNext" class="next-title">Adjournment</div>
+                </div>
             </div>
         </div>
         
@@ -204,7 +240,7 @@
         
         <div class="timeline-box">
             <div class="timeline-header">
-                <span>Agenda Milestones Index</span>
+                <span>Agenda</span>
                 <div class="control-bar">
                     <button class="btn" onclick="shiftItem(-1)">◀ Prev</button>
                     <button class="btn" onclick="shiftItem(1)">Next ▶</button>
@@ -216,12 +252,12 @@
         
         <div class="editor-box">
             <div class="form-group">
-                <label>Meeting Title / Name</label>
+                <label>Meeting Title</label>
                 <input type="text" id="editMeetingTitle" placeholder="August 19, 2026" oninput="updateMeetingTitle(this.value)">
             </div>
             <div class="form-inline">
                 <div class="form-group">
-                    <label>Time Index</label>
+                    <label>Time</label>
                     <input type="text" id="editTime" placeholder="10:45 AM">
                 </div>
                 <div class="form-group">
@@ -230,16 +266,17 @@
                 </div>
             </div>
             <div class="form-group" style="flex-grow: 1;">
-                <label>Detailed Descriptions / Notes (HTML & Lists Allowed)</label>
+                <label>Topic Detail</label>
                 <textarea id="editDetails" placeholder="<p>Overview parameters:</p><ul><li>First point</li></ul>"></textarea>
             </div>
             <div class="control-bar" style="justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="toggleTheme()" id="themeBtn">🌓 Dark Mode</button>
                 <button class="btn btn-secondary" onclick="toggleFullscreen()">📺 Fullscreen</button>
-                <button class="btn btn-success" onclick="shareAgendaURL()">🔗 Copy Share Link</button>
-                <button class="btn btn-secondary" onclick="openImportModal()">📥 Import Text</button>
-                <button class="btn btn-danger" onclick="deleteCurrentItem()">Delete Item</button>
-                <button class="btn btn-primary" onclick="saveEditorValues()">Update / Add Item</button>
+                <button class="btn btn-success" onclick="shareAgendaURL()">🔗 Share Link</button>
+                <button class="btn btn-secondary" onclick="openImportModal()">📥 Import</button>
+                <button class="btn btn-danger" onclick="deleteCurrentItem()">Delete</button>
+                <button class="btn btn-primary" onclick="saveEditorValues()">Save</button>
+                <button class="btn btn-success" onclick="addNewItemBelow()">+ Add</button>
             </div>
         </div>
 
@@ -269,7 +306,6 @@
         { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
     ];
 
-    // --- SCREEN WAKE LOCK UTILITY ---
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try {
@@ -645,19 +681,33 @@
         const detailsInput = document.getElementById('editDetails').value.trim();
 
         if (!timeInput || !titleInput) {
-            alert("Time index and topic title parameters are required.");
+            alert("Time and title parameters are required.");
             return;
         }
 
-        const existingMatchIndex = agenda.findIndex(item => item.time.toLowerCase() === timeInput.toLowerCase());
         const payload = { time: timeInput, title: titleInput, details: detailsInput || "" };
 
-        if (existingMatchIndex !== -1) {
-            agenda[existingMatchIndex] = payload;
+        if (agenda[currentIndex]) {
+            agenda[currentIndex] = payload;
         } else {
             agenda.push(payload);
             currentIndex = agenda.length - 1;
         }
+        
+        saveAgendaToStorage();
+        renderState();
+    }
+
+    function addNewItemBelow() {
+        const timeInput = document.getElementById('editTime').value.trim() || "12:00 PM";
+        const titleInput = document.getElementById('editTitle').value.trim() || "New Topic";
+        const detailsInput = document.getElementById('editDetails').value.trim() || "";
+
+        const newItem = { time: timeInput, title: titleInput, details: detailsInput };
+        
+        const insertAt = currentIndex + 1;
+        agenda.splice(insertAt, 0, newItem);
+        currentIndex = insertAt;
         
         saveAgendaToStorage();
         renderState();
