@@ -12,6 +12,7 @@
         
         body, html { 
             height: 100%; 
+            width: 100%;
             background: #e2e8f0; 
             color: #0f172a; 
             overflow-y: auto; 
@@ -23,12 +24,14 @@
         .app-container { 
             display: flex; 
             flex-direction: column; 
-            width: 100vw;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
         }
         
         /* TOP SECTION: 16:9 Presentation Layer */
         .presentation-view {
-            width: 100vw;
+            width: 100%;
             min-height: 100vh;
             aspect-ratio: 16 / 9;
             scroll-snap-align: start;
@@ -42,25 +45,39 @@
             transition: background 0.3s, border-color 0.3s;
         }
 
-        /* STRICT SPLIT: Left side maxes out at 38%, right side takes the rest */
+        /* STRICT SPLIT: Left side maxes out around 38%, right side takes the rest */
         .presentation-grid {
             display: grid;
-            grid-template-columns: minmax(280px, 38%) 1fr;
+            grid-template-columns: minmax(260px, 38%) 1fr;
             gap: 28px;
             flex-grow: 1;
             height: 100%;
             width: 100%;
+            position: relative;
+            min-width: 0;
         }
 
         .status-panel { 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            border-right: 2px solid #cbd5e1; 
-            padding-right: 28px; 
+            padding-right: 20px; 
             box-sizing: border-box;
-            overflow: hidden;
-            transition: border-color 0.3s; 
+            position: relative;
+            z-index: 2;
+            min-width: 0;
+        }
+
+        /* VERTICAL DIVIDER: Ends early so it doesn't intersect Next Up */
+        .status-panel::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: calc(100% - 75px);
+            width: 2px;
+            background-color: #cbd5e1;
+            transition: background-color 0.3s;
         }
 
         /* TABLE-HEADER STYLE MEETING TITLE */
@@ -99,13 +116,15 @@
             letter-spacing: normal;
         }
 
-        /* NEXT UP NAV BAR */
+        /* NEXT UP NAV BAR: Floats beyond left column width */
         .next-up-container { 
             display: flex; 
             align-items: center; 
             gap: 8px; 
-            width: 100%;
+            width: calc(100% + 30px);
             box-sizing: border-box;
+            position: relative;
+            z-index: 5;
         }
         .prev-arrow-btn { 
             background: #f1f5f9; 
@@ -130,17 +149,18 @@
             padding: 12px 16px; 
             border-radius: 8px; 
             border-left: 5px solid #7e22ce; 
-            border-top: 1px solid #e2e8f0; 
-            border-right: 1px solid #e2e8f0; 
-            border-bottom: 1px solid #e2e8f0; 
+            border-top: 1px solid #cbd5e1; 
+            border-right: 1px solid #cbd5e1; 
+            border-bottom: 1px solid #cbd5e1; 
             cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
             transition: background 0.3s, border-color 0.3s; 
         }
         .next-up-card:hover { background: #e2e8f0; }
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; color: #1e293b; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.3s; }
         
-        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-width: 0; }
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; color: #1e293b; font-weight: 500; transition: color 0.3s; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none; }
         .details-page.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
@@ -151,31 +171,32 @@
 
         /* BOTTOM SECTION: Management Layer */
         .management-view { 
-            width: 100vw;
+            width: 100%;
             min-height: 100vh;
             aspect-ratio: 16 / 9;
             scroll-snap-align: start;
             scroll-snap-stop: always;
             background: #cbd5e1; 
             display: grid; 
-            grid-template-columns: 3fr 4fr; 
-            padding: 3% 4%; 
-            gap: 20px; 
+            grid-template-columns: minmax(260px, 38%) 1fr; 
+            padding: 3% 3.5%; 
+            gap: 24px; 
+            box-sizing: border-box;
             transition: background 0.3s;
         }
         
-        .timeline-container { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+        .timeline-container { display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; }
         .timeline-box { display: flex; flex-direction: column; background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; overflow: hidden; flex-grow: 1; transition: background 0.3s, border-color 0.3s; }
         .timeline-header { padding: 10px 14px; background: #e2e8f0; font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.9rem); color: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; transition: background 0.3s, border-color 0.3s, color 0.3s; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; }
         .timeline-item { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.2s, color 0.2s; font-size: clamp(0.8rem, 1.5vw, 0.95rem); color: #334155; }
         .timeline-item:hover { background: #e2e8f0; }
         .timeline-item.active { background: #bae6fd; color: #0369a1; border-left: 5px solid #0284c7; font-weight: 700; }
-        .item-time { width: 85px; font-weight: 700; color: #0284c7; }
-        .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
+        .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
         
-        .control-bar { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn { background: #cbd5e1; color: #0f172a; border: 1px solid #94a3b8; padding: 6px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); transition: background 0.2s, color 0.2s, border-color 0.2s; }
+        .control-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn { background: #cbd5e1; color: #0f172a; border: 1px solid #94a3b8; padding: 6px 10px; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: clamp(0.68rem, 1.1vw, 0.82rem); transition: background 0.2s, color 0.2s, border-color 0.2s; white-space: nowrap; }
         .btn:hover { background: #94a3b8; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: #2563eb; color: #ffffff; border: none; }
@@ -187,11 +208,11 @@
         .btn-secondary { background: #64748b; color: #ffffff; border: none; }
         .btn-secondary:hover { background: #475569; }
 
-        .editor-box { background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; transition: background 0.3s, border-color 0.3s; }
+        .editor-box { background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; box-sizing: border-box; transition: background 0.3s, border-color 0.3s; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: clamp(0.65rem, 1vw, 0.8rem); font-weight: 800; color: #475569; text-transform: uppercase; transition: color 0.3s; }
         .form-inline { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
-        input, textarea { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; padding: 8px 10px; font-size: clamp(0.8rem, 1.4vw, 0.95rem); font-weight: 500; transition: background 0.3s, border-color 0.3s, color 0.3s; }
+        input, textarea { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; padding: 8px 10px; font-size: clamp(0.8rem, 1.4vw, 0.95rem); font-weight: 500; width: 100%; box-sizing: border-box; transition: background 0.3s, border-color 0.3s, color 0.3s; }
         input:focus, textarea:focus { outline: none; border-color: #2563eb; }
         textarea { flex-grow: 1; resize: none; min-height: 80px; }
 
@@ -199,7 +220,7 @@
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
         body.dark-mode .meeting-title-bar { background: #334155; color: #38bdf8; border: 1px solid #475569; }
-        body.dark-mode .status-panel { border-right-color: #334155; border-bottom-color: #334155; }
+        body.dark-mode .status-panel::after { background-color: #334155; }
         body.dark-mode .current-meta { color: #38bdf8; }
         body.dark-mode .current-title { color: #ffffff; }
         body.dark-mode .current-time-box { color: #94a3b8; }
@@ -233,18 +254,26 @@
                 padding: 16px;
             }
             .presentation-grid {
-                grid-template-columns: 1fr;
+                display: flex;
+                flex-direction: column;
                 gap: 16px;
             }
             .status-panel {
-                border-right: none;
-                border-bottom: 2px solid #cbd5e1;
                 padding-right: 0;
-                padding-bottom: 16px;
-                gap: 12px;
             }
+            .status-panel::after {
+                display: none;
+            }
+            /* Places Next Up at the absolute bottom of portrait frame */
             .details-panel {
-                min-height: 300px;
+                order: 1;
+                min-height: 280px;
+                flex-grow: 1;
+            }
+            .next-up-container {
+                order: 2;
+                width: 100%;
+                margin-top: 12px;
             }
             .management-view {
                 grid-template-columns: 1fr;
@@ -254,8 +283,8 @@
                 gap: 16px;
             }
             .timeline-box {
-                min-height: 220px;
-                max-height: 280px;
+                min-height: 200px;
+                max-height: 260px;
             }
             .editor-box {
                 height: auto;
