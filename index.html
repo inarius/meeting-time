@@ -37,7 +37,7 @@
         .next-up-container { display: flex; align-items: center; gap: 8px; width: calc(100% + 10vw); position: relative; z-index: 5; }
         .next-up-card { flex-grow: 1; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
         
-        /* ALERT STATE (APRICOT CREAM) */
+        /* ALERT STATE */
         .next-up-card.alert-active { background: #ffedd5 !important; border-color: #fed7aa !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
         .next-up-card.alert-active .next-label { color: #9a3412 !important; }
         .next-up-card.alert-active .next-title { color: #0f172a !important; }
@@ -56,7 +56,7 @@
         .details-viewport ul { padding-left: 24px; margin-top: 8px; }
         .details-viewport li { margin-bottom: 6px; }
 
-        /* MANAGEMENT VIEW OVERRIDES */
+        /* MANAGEMENT VIEW */
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
         .management-view article { margin-bottom: 0; padding: 10px 12px; display: flex; flex-direction: column; }
         .management-view label { font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; margin-bottom: 0; }
@@ -73,8 +73,9 @@
         .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .control-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; }
-        .control-bar button { padding: 4px 8px; font-size: clamp(0.68rem, 1vw, 0.8rem); margin-bottom: 0; width: auto; font-weight: 700; }
+        .control-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; justify-content: flex-end; }
+        .control-bar [role="group"] { margin-bottom: 0; }
+        .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
 
         @media (orientation: portrait), (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -93,9 +94,9 @@
     <!-- PRESENTATION LAYER -->
     <div class="presentation-view">
         <div class="presentation-grid">
-            <div class="status-panel">
+            <header class="status-panel">
                 <div>
-                    <div class="meeting-title-bar" x-show="meetingTitle" x-text="meetingTitle"></div>
+                    <h1 class="meeting-title-bar" x-show="meetingTitle" x-text="meetingTitle"></h1>
                     <div class="current-meta">
                         <span>Now</span>
                         <span class="system-clock" x-text="sysClockText">--:--:-- --</span>
@@ -104,20 +105,20 @@
                     <div class="current-time-box" x-text="currentItem ? `Scheduled: ${currentItem.time}` : '--:--'"></div>
                 </div>
                 
-                <div class="next-up-container">
+                <nav class="next-up-container">
                     <button class="outline secondary" style="padding:12px 14px; margin-bottom:0;" @click="shiftItem(-1)" title="Previous Topic">◀</button>
                     <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click="shiftItem(1)" title="Advance to Next Topic">
                         <div class="next-label">Next Up</div>
                         <div class="next-title" x-text="nextItem ? `${nextItem.time} - ${nextItem.title}` : 'Adjournment / Session Closed'"></div>
                     </article>
-                </div>
-            </div>
+                </nav>
+            </header>
             
-            <div class="details-panel">
+            <section class="details-panel">
                 <div class="details-viewport" id="viewport">
                     <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 
@@ -131,14 +132,14 @@
             </article>
             
             <article class="timeline-box">
-                <div class="timeline-header">
+                <header class="timeline-header">
                     <span>Agenda</span>
-                    <div style="display:flex; gap:4px;">
-                        <button class="outline secondary" style="padding:2px 8px; margin-bottom:0;" @click="shiftItem(-1)">◀ Prev</button>
-                        <button class="outline secondary" style="padding:2px 8px; margin-bottom:0;" @click="shiftItem(1)">Next ▶</button>
-                        <button class="primary" style="padding:2px 8px; margin-bottom:0;" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
+                    <div role="group">
+                        <button class="secondary outline" @click="shiftItem(-1)">◀</button>
+                        <button class="secondary outline" @click="shiftItem(1)">▶</button>
+                        <button class="primary" x-show="isManualOverride" @click="clearOverride()">Auto</button>
                     </div>
-                </div>
+                </header>
                 <div class="timeline-rows">
                     <template x-for="(item, idx) in agenda" :key="idx">
                         <div class="timeline-item" :class="{ 'active': idx === currentIndex }" @click="selectItem(idx)">
@@ -158,30 +159,37 @@
             <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Topic Detail
                 <textarea x-model="editDetails" placeholder="<p>Overview details...</p>"></textarea>
             </label>
-            <div class="control-bar" style="justify-content: flex-end;">
-                <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light Mode' : '🌓 Dark Mode'"></button>
-                <button class="secondary" @click="toggleFullscreen()">📺 Fullscreen</button>
-                <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
-                <button class="contrast" @click="shareAgendaURL()">🔗 Share</button>
-                <button class="secondary" @click="showImportModal = true">📥 Import</button>
-                <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
-                <button class="outline" style="color:var(--pico-del-color); border-color:var(--pico-del-color);" @click="deleteCurrentItem()">Delete</button>
-                <button class="primary" @click="saveEditorValues()">Save</button>
-                <button class="contrast" @click="addNewItemBelow()">+ Add</button>
-            </div>
+            
+            <nav class="control-bar">
+                <div role="group">
+                    <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
+                    <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
+                    <button class="secondary" @click="window.location.reload(true)">🔄</button>
+                </div>
+                <div role="group">
+                    <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
+                    <button class="secondary" @click="$refs.importModal.showModal()">📥 Import</button>
+                </div>
+                <div role="group">
+                    <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
+                    <button class="secondary outline" @click="deleteCurrentItem()">Delete</button>
+                    <button class="primary" @click="saveEditorValues()">Save</button>
+                    <button class="contrast" @click="addNewItemBelow()">+ Add</button>
+                </div>
+            </nav>
         </article>
     </div>
 </div>
 
-<!-- BULK IMPORT MODAL -->
-<dialog :open="showImportModal">
+<!-- NATIVE HTML5 DIALOG -->
+<dialog x-ref="importModal">
     <article>
-        <h3>Bulk Import Agenda Text</h3>
-        <p>Paste time-indexed text below (Optional first line: <code>Title: Meeting Name</code>):</p>
-        <textarea x-model="importText" style="height: 140px;" placeholder="Title: August 19, 2026&#10;&#10;10:00 AM Call to Order&#10;- Roll call"></textarea>
+        <h3>Bulk Import Agenda</h3>
+        <p>Paste time-indexed text below:</p>
+        <textarea x-model="importText" style="height: 140px;" placeholder="10:00 AM Call to Order"></textarea>
         <footer>
-            <button class="secondary" @click="showImportModal = false">Cancel</button>
-            <button class="primary" @click="processImportText()">Import Agenda</button>
+            <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
+            <button class="primary" @click="processImportText(); $refs.importModal.close()">Import</button>
         </footer>
     </article>
 </dialog>
@@ -191,7 +199,7 @@ function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isManualOverride: false, isAlertActive: false,
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
-        editTime: '', editTitle: '', editDetails: '', showImportModal: false, importText: '',
+        editTime: '', editTitle: '', editDetails: '', importText: '',
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
@@ -393,7 +401,7 @@ function meetingApp() {
             if (currentItem) { if (inList) currentItem.details += '</ul>'; newAgenda.push(currentItem); }
             if (newAgenda.length) {
                 this.historyStack = []; this.agenda = newAgenda; this.currentIndex = 0;
-                localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.showImportModal = false; this.importText = '';
+                localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.importText = '';
             } else alert("Could not parse time indexes.");
         },
 
