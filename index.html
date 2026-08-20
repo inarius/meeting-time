@@ -59,12 +59,13 @@
         /* MANAGEMENT VIEW */
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
         .management-view article { margin-bottom: 0; padding: 10px 12px; display: flex; flex-direction: column; }
-        .management-view label { font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; margin-bottom: 0; }
+        .management-view label { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; margin-bottom: 0; }
         .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
         .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; }
 
-        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; }
-        .timeline-header { padding: 6px 12px; background: var(--pico-table-row-stripped-background-color); font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.85rem); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); }
+        .timeline-header { padding: 10px 12px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-header span { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
         .timeline-item { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
@@ -93,8 +94,8 @@
 <div class="app-container">
     <!-- PRESENTATION LAYER -->
     <div class="presentation-view">
-        <!-- DISCREET UPDATE INDICATOR MOVED TO TOP -->
-        <div x-show="lastUpdatedText" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--pico-muted-color); opacity: 0.6; pointer-events: none; z-index: 10;">
+        <!-- DISCREET UPDATE INDICATOR -->
+        <div x-show="lastUpdatedText" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: var(--pico-muted-color); font-weight: 600; pointer-events: none; z-index: 100;">
             Updated: <span x-text="lastUpdatedText"></span>
         </div>
 
@@ -139,8 +140,7 @@
             <article class="timeline-box">
                 <header class="timeline-header">
                     <span>Agenda</span>
-                    <!-- REMOVED PREV/NEXT BUTTONS, KEPT RESUME AUTO -->
-                    <button class="primary" style="padding: 4px 8px; margin-bottom: 0; font-size: clamp(0.68rem, 1vw, 0.8rem);" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
+                    <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
                 </header>
                 <div class="timeline-rows">
                     <template x-for="(item, idx) in agenda" :key="idx">
@@ -166,7 +166,6 @@
                 <div role="group">
                     <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
                     <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
-                    <!-- RESTORED REFRESH TEXT -->
                     <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
                 </div>
                 <div role="group">
@@ -214,10 +213,9 @@ function meetingApp() {
             this.agenda = await this.loadInitialAgenda();
             if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
             
-            // Check Document Last Modified Date
+            // Check Document Last Modified Date (Removed local test overriding condition)
             const modDate = new Date(document.lastModified);
-            const now = new Date();
-            if (!isNaN(modDate) && modDate.getFullYear() > 1970 && Math.abs(now - modDate) > 5000) {
+            if (!isNaN(modDate) && modDate.getFullYear() > 1970) {
                 this.lastUpdatedText = modDate.toLocaleString();
             }
 
