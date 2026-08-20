@@ -156,22 +156,13 @@
             border-bottom: 1px solid #cbd5e1; 
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s; 
+            transition: all 0.3s ease; 
         }
         .next-up-card:hover { background: #e2e8f0; }
         
-        /* UPDATED VIBRANT SATURATED YELLOW ALERT STATE */
         .next-up-card.alert-active {
-            background: #fde047 !important;
-            border-left-color: #ca8a04 !important;
-            border-top-color: #eab308 !important;
-            border-right-color: #eab308 !important;
-            border-bottom-color: #eab308 !important;
-            box-shadow: 0 0 14px rgba(234, 179, 8, 0.45) !important;
             animation: alertPulse 1.5s infinite ease-in-out;
         }
-        .next-up-card.alert-active .next-label { color: #854d0e !important; }
-        .next-up-card.alert-active .next-title { color: #0f172a !important; }
 
         @keyframes alertPulse {
             0% { transform: scale(1); }
@@ -250,9 +241,6 @@
         body.dark-mode .prev-arrow-btn:hover { background: #334155; color: #ffffff; }
         body.dark-mode .next-up-card { background: #0f172a; border-color: #334155; }
         body.dark-mode .next-up-card:hover { background: #334155; }
-        body.dark-mode .next-up-card.alert-active { background: #854d0e !important; border-left-color: #facc15 !important; border-top-color: #ca8a04 !important; border-right-color: #ca8a04 !important; border-bottom-color: #ca8a04 !important; }
-        body.dark-mode .next-up-card.alert-active .next-label { color: #fef08a !important; }
-        body.dark-mode .next-up-card.alert-active .next-title { color: #f8fafc !important; }
         body.dark-mode .next-label { color: #c084fc; }
         body.dark-mode .next-title { color: #f1f5f9; }
         body.dark-mode .details-viewport { color: #cbd5e1; }
@@ -270,6 +258,56 @@
         body.dark-mode .modal { background: #1e293b; border-color: #334155; }
         body.dark-mode .modal h3 { color: #f8fafc; }
         body.dark-mode .modal p { color: #94a3b8; }
+
+        /* PROTOTYPING OVERLAY DIALOG */
+        .color-prototype-dialog {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            background: #ffffff;
+            border: 2px solid #0284c7;
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        body.dark-mode .color-prototype-dialog { background: #1e293b; border-color: #38bdf8; color: #f8fafc; }
+        .color-prototype-dialog h4 { font-size: 0.95rem; font-weight: 800; color: #0284c7; }
+        body.dark-mode .color-prototype-dialog h4 { color: #38bdf8; }
+        .color-prototype-dialog p { font-size: 0.75rem; color: #475569; }
+        body.dark-mode .color-prototype-dialog p { color: #94a3b8; }
+        
+        .proto-options { display: flex; flex-direction: column; gap: 6px; }
+        .proto-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        body.dark-mode .proto-btn { background: #0f172a; border-color: #334155; color: #f8fafc; }
+        .proto-btn:hover { border-color: #0284c7; transform: translateX(2px); }
+        .proto-btn.selected { border: 2px solid #0284c7; background: #e0f2fe; }
+        body.dark-mode .proto-btn.selected { border-color: #38bdf8; background: #0369a1; }
+        
+        .proto-swatch {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
 
         @media (orientation: portrait), (max-width: 768px) {
             .presentation-view {
@@ -334,6 +372,35 @@
 
 <div class="app-container">
     <div class="presentation-view">
+        <!-- COLOR PROTOTYPING DIALOG OVERLAY -->
+        <div class="color-prototype-dialog">
+            <h4>🎨 Next Up Alert Palettes</h4>
+            <p>Select a palette to test colors on the Next Up card:</p>
+            <div class="proto-options">
+                <button class="proto-btn selected" onclick="selectPalette(0, this)">
+                    <span class="proto-swatch" style="background:#fef08a; border-color:#eab308;"></span>
+                    <span>1. Soft Cream (Subtle Yellow)</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(1, this)">
+                    <span class="proto-swatch" style="background:#fef9c3; border-color:#fde047;"></span>
+                    <span>2. Pastel Canary (Ultra Light)</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(2, this)">
+                    <span class="proto-swatch" style="background:#fef3c7; border-color:#f59e0b;"></span>
+                    <span>3. Muted Warm Gold</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(3, this)">
+                    <span class="proto-swatch" style="background:#e0f2fe; border-color:#0284c7;"></span>
+                    <span>4. Soft Sky Blue</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(4, this)">
+                    <span class="proto-swatch" style="background:#f3e8ff; border-color:#9333ea;"></span>
+                    <span>5. Soft Lavender Purple</span>
+                </button>
+            </div>
+            <button class="btn btn-primary" onclick="toggleTestAlert()" style="justify-content:center; margin-top:2px;">🚨 Toggle Alert Visual</button>
+        </div>
+
         <div class="presentation-grid">
             <div class="status-panel">
                 <div>
@@ -349,7 +416,7 @@
                 <div class="next-up-container">
                     <button class="prev-arrow-btn" onclick="shiftItem(-1)" title="Previous Topic">◀</button>
                     <div class="next-up-card" id="nextUpCard" onclick="shiftItem(1)" title="Advance to Next Topic">
-                        <div class="next-label">Next Up</div>
+                        <div class="next-label" id="nextLabel">Next Up</div>
                         <div id="presNext" class="next-title">Adjournment</div>
                     </div>
                 </div>
@@ -440,6 +507,81 @@
     let historyStack = [];
     const MAX_HISTORY = 20;
 
+    /* PALETTE PROTOTYPING DATA */
+    const alertPalettes = [
+        {
+            name: "Soft Cream (Subtle Yellow)",
+            light: { bg: "#fef08a", borderLeft: "#ca8a04", borderOther: "#eab308", label: "#a16207", title: "#0f172a", shadow: "rgba(234, 179, 8, 0.3)" },
+            dark: { bg: "#713f12", borderLeft: "#facc15", borderOther: "#ca8a04", label: "#fef08a", title: "#f8fafc", shadow: "rgba(250, 204, 21, 0.25)" }
+        },
+        {
+            name: "Pastel Canary (Ultra Light)",
+            light: { bg: "#fef9c3", borderLeft: "#eab308", borderOther: "#fde047", label: "#854d0e", title: "#0f172a", shadow: "rgba(250, 204, 21, 0.25)" },
+            dark: { bg: "#854d0e", borderLeft: "#fef08a", borderOther: "#eab308", label: "#fef9c3", title: "#f8fafc", shadow: "rgba(254, 240, 138, 0.2)" }
+        },
+        {
+            name: "Muted Warm Gold",
+            light: { bg: "#fef3c7", borderLeft: "#d97706", borderOther: "#f59e0b", label: "#92400e", title: "#0f172a", shadow: "rgba(245, 158, 11, 0.3)" },
+            dark: { bg: "#78350f", borderLeft: "#fbbf24", borderOther: "#d97706", label: "#fde68a", title: "#f8fafc", shadow: "rgba(251, 191, 36, 0.25)" }
+        },
+        {
+            name: "Soft Sky Blue",
+            light: { bg: "#e0f2fe", borderLeft: "#0284c7", borderOther: "#38bdf8", label: "#0369a1", title: "#0f172a", shadow: "rgba(2, 132, 199, 0.3)" },
+            dark: { bg: "#0c4a6e", borderLeft: "#38bdf8", borderOther: "#0284c7", label: "#bae6fd", title: "#f8fafc", shadow: "rgba(56, 189, 248, 0.25)" }
+        },
+        {
+            name: "Soft Lavender Purple",
+            light: { bg: "#f3e8ff", borderLeft: "#7e22ce", borderOther: "#c084fc", label: "#6b21a8", title: "#0f172a", shadow: "rgba(126, 34, 206, 0.3)" },
+            dark: { bg: "#581c87", borderLeft: "#c084fc", borderOther: "#9333ea", label: "#e9d5ff", title: "#f8fafc", shadow: "rgba(192, 132, 252, 0.25)" }
+        }
+    ];
+
+    let selectedPaletteIndex = 0;
+    let isTestAlertActive = true;
+
+    function selectPalette(index, btnEl) {
+        selectedPaletteIndex = index;
+        if (btnEl) {
+            document.querySelectorAll('.proto-btn').forEach(b => b.classList.remove('selected'));
+            btnEl.classList.add('selected');
+        }
+        applyPaletteStyles();
+    }
+
+    function toggleTestAlert() {
+        isTestAlertActive = !isTestAlertActive;
+        const card = document.getElementById('nextUpCard');
+        if (isTestAlertActive) {
+            card.classList.add('alert-active');
+            applyPaletteStyles();
+        } else {
+            card.classList.remove('alert-active');
+            card.style = "";
+            document.getElementById('nextLabel').style = "";
+            document.getElementById('presNext').style = "";
+        }
+    }
+
+    function applyPaletteStyles() {
+        if (!isTestAlertActive) return;
+        const isDark = document.body.classList.contains('dark-mode');
+        const p = isDark ? alertPalettes[selectedPaletteIndex].dark : alertPalettes[selectedPaletteIndex].light;
+        const card = document.getElementById('nextUpCard');
+        const label = document.getElementById('nextLabel');
+        const title = document.getElementById('presNext');
+
+        card.classList.add('alert-active');
+        card.style.backgroundColor = p.bg;
+        card.style.borderLeftColor = p.borderLeft;
+        card.style.borderTopColor = p.borderOther;
+        card.style.borderRightColor = p.borderOther;
+        card.style.borderBottomColor = p.borderOther;
+        card.style.boxShadow = `0 0 14px ${p.shadow}`;
+        
+        label.style.color = p.label;
+        title.style.color = p.title;
+    }
+
     function reloadApp() { window.location.reload(true); }
 
     function pushHistoryState() {
@@ -499,6 +641,7 @@
             document.body.classList.remove('dark-mode');
             document.getElementById('themeBtn').innerText = '🌓 Dark Mode';
         }
+        applyPaletteStyles();
     }
 
     function toggleTheme() {
@@ -506,6 +649,7 @@
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('boardTheme', isDark ? 'dark' : 'light');
         document.getElementById('themeBtn').innerText = isDark ? '☀️ Light Mode' : '🌓 Dark Mode';
+        applyPaletteStyles();
     }
 
     function toggleFullscreen() {
@@ -643,14 +787,6 @@
         if (checkString !== lastCheckedMilestoneTime) evaluateAutomatedTimeTrigger(checkString);
     }
 
-    /* PERSISTENT ALERT STATE: Stays active until next item transition occurs */
-    function setNextUpAlert(active) {
-        const card = document.getElementById('nextUpCard');
-        if (!card) return;
-        if (active) card.classList.add('alert-active');
-        else card.classList.remove('alert-active');
-    }
-
     function evaluateAutomatedTimeTrigger(currentWallTime) {
         let matchedIndex = -1;
         const currentMins = parseToMinutes(currentWallTime);
@@ -662,7 +798,6 @@
         if (matchedIndex !== -1 && matchedIndex !== currentIndex && !isManualOverride) {
             lastCheckedMilestoneTime = currentWallTime;
             currentIndex = matchedIndex;
-            setNextUpAlert(false);
             renderState();
         } else if (matchedIndex !== -1 && isManualOverride) {
             const exactAgendaTime = agenda[matchedIndex].time.replace(/^0/, '');
@@ -671,7 +806,6 @@
                 lastCheckedMilestoneTime = currentWallTime;
                 isManualOverride = false;
                 currentIndex = matchedIndex;
-                setNextUpAlert(false);
                 renderState();
             }
         }
@@ -776,7 +910,6 @@
             row.onclick = () => {
                 isManualOverride = true;
                 currentIndex = index;
-                setNextUpAlert(false);
                 renderState();
             };
             rowsBox.appendChild(row);
@@ -791,11 +924,12 @@
         }
 
         renderPresentationTextPages();
+        applyPaletteStyles();
     }
 
     function shiftItem(direction) {
         if (direction < 0 && currentIndex === 0) {
-            setNextUpAlert(true);
+            toggleTestAlert();
             return;
         }
 
@@ -803,7 +937,6 @@
         let targetIndex = currentIndex + direction;
         if (targetIndex >= 0 && targetIndex < agenda.length) {
             currentIndex = targetIndex;
-            setNextUpAlert(false);
             renderState();
         }
     }
@@ -817,7 +950,6 @@
         const ampm = hrs >= 12 ? 'PM' : 'AM';
         hrs = hrs % 12;
         hrs = hrs ? hrs : 12;
-        setNextUpAlert(false);
         evaluateAutomatedTimeTrigger(`${String(hrs).padStart(2, '0')}:${mins} ${ampm}`);
         renderState();
     }
@@ -960,6 +1092,7 @@
         evaluateAutomatedTimeTrigger(`${String(initHrs).padStart(2, '0')}:${initMins} ${initAmpm}`);
         renderState();
         updateUndoButtonState();
+        applyPaletteStyles();
     })();
 </script>
 
