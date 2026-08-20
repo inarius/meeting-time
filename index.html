@@ -28,7 +28,7 @@
             max-width: 100vw;
         }
         
-        /* TOP SECTION: 16:9 Presentation Layer */
+        /* PRESENTATION LAYER */
         .presentation-view {
             width: 100%;
             height: 100vh;
@@ -41,12 +41,10 @@
             flex-direction: column;
             padding: 3% 3.5%;
             position: relative;
-            box-sizing: border-box;
             overflow: hidden;
             transition: background 0.3s, border-color 0.3s;
         }
 
-        /* STRICT SPLIT: Left column 43% max width */
         .presentation-grid {
             display: grid;
             grid-template-columns: minmax(260px, 43%) 1fr;
@@ -64,13 +62,11 @@
             flex-direction: column; 
             justify-content: space-between; 
             padding-right: 20px; 
-            box-sizing: border-box;
             position: relative;
             z-index: 2;
             min-width: 0;
         }
 
-        /* VERTICAL DIVIDER */
         .status-panel::after {
             content: "";
             position: absolute;
@@ -82,7 +78,6 @@
             transition: background-color 0.3s;
         }
 
-        /* TABLE-HEADER STYLE MEETING TITLE */
         .meeting-title-bar {
             background: #1e293b;
             color: #f8fafc;
@@ -90,10 +85,8 @@
             border-radius: 6px;
             font-size: clamp(0.95rem, 1.5vw, 1.2rem);
             font-weight: 800;
-            letter-spacing: 0.01em;
             margin-bottom: 16px;
             width: 100%;
-            box-sizing: border-box;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -114,17 +107,13 @@
             color: #047857; 
             border: 1.5px solid #059669; 
             transition: background 0.3s, color 0.3s, border-color 0.3s; 
-            text-transform: none;
-            letter-spacing: normal;
         }
 
-        /* NEXT UP NAV BAR: Expanded float width */
         .next-up-container { 
             display: flex; 
             align-items: center; 
             gap: 8px; 
             width: calc(100% + 10vw);
-            box-sizing: border-box;
             position: relative;
             z-index: 5;
         }
@@ -159,10 +148,19 @@
             transition: all 0.3s ease; 
         }
         .next-up-card:hover { background: #e2e8f0; }
-        
+
+        /* PERMANENT OPTION 5 ALERT STYLING (APRICOT CREAM & SOFT PEACH) */
         .next-up-card.alert-active {
+            background: #ffedd5 !important;
+            border-left-color: #fed7aa !important;
+            border-top-color: #ffedd5 !important;
+            border-right-color: #ffedd5 !important;
+            border-bottom-color: #ffedd5 !important;
+            box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important;
             animation: alertPulse 1.5s infinite ease-in-out;
         }
+        .next-up-card.alert-active .next-label { color: #9a3412 !important; }
+        .next-up-card.alert-active .next-title { color: #0f172a !important; }
 
         @keyframes alertPulse {
             0% { transform: scale(1); }
@@ -182,7 +180,7 @@
         .details-viewport li { margin-bottom: 6px; }
         .details-viewport p { margin-bottom: 8px; }
 
-        /* BOTTOM SECTION: Management Layer (Left column 43% max width) */
+        /* MANAGEMENT LAYER */
         .management-view { 
             width: 100%;
             height: 100vh;
@@ -194,7 +192,6 @@
             grid-template-columns: minmax(260px, 43%) 1fr; 
             padding: 3% 3.5%; 
             gap: 24px; 
-            box-sizing: border-box;
             overflow: hidden;
             transition: background 0.3s;
         }
@@ -222,14 +219,15 @@
         .btn-secondary { background: #64748b; color: #ffffff; border: none; }
         .btn-secondary:hover { background: #475569; }
 
-        .editor-box { background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; min-height: 0; box-sizing: border-box; transition: background 0.3s, border-color 0.3s; }
+        .editor-box { background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; min-height: 0; transition: background 0.3s, border-color 0.3s; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: clamp(0.65rem, 1vw, 0.8rem); font-weight: 800; color: #475569; text-transform: uppercase; transition: color 0.3s; }
         .form-inline { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
-        input, textarea { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; padding: 8px 10px; font-size: clamp(0.8rem, 1.4vw, 0.95rem); font-weight: 500; width: 100%; box-sizing: border-box; transition: background 0.3s, border-color 0.3s, color 0.3s; }
+        input, textarea { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; padding: 8px 10px; font-size: clamp(0.8rem, 1.4vw, 0.95rem); font-weight: 500; width: 100%; transition: background 0.3s, border-color 0.3s, color 0.3s; }
         input:focus, textarea:focus { outline: none; border-color: #2563eb; }
         textarea { flex-grow: 1; resize: none; min-height: 80px; }
 
+        /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
         body.dark-mode .meeting-title-bar { background: #334155; color: #38bdf8; border: 1px solid #475569; }
@@ -241,6 +239,9 @@
         body.dark-mode .prev-arrow-btn:hover { background: #334155; color: #ffffff; }
         body.dark-mode .next-up-card { background: #0f172a; border-color: #334155; }
         body.dark-mode .next-up-card:hover { background: #334155; }
+        body.dark-mode .next-up-card.alert-active { background: #431407 !important; border-left-color: #f97316 !important; border-top-color: #c2410c !important; border-right-color: #c2410c !important; border-bottom-color: #c2410c !important; box-shadow: 0 0 12px rgba(251, 146, 60, 0.15) !important; }
+        body.dark-mode .next-up-card.alert-active .next-label { color: #fed7aa !important; }
+        body.dark-mode .next-up-card.alert-active .next-title { color: #f8fafc !important; }
         body.dark-mode .next-label { color: #c084fc; }
         body.dark-mode .next-title { color: #f1f5f9; }
         body.dark-mode .details-viewport { color: #cbd5e1; }
@@ -259,109 +260,17 @@
         body.dark-mode .modal h3 { color: #f8fafc; }
         body.dark-mode .modal p { color: #94a3b8; }
 
-        /* PROTOTYPING OVERLAY DIALOG */
-        .color-prototype-dialog {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 999;
-            background: #ffffff;
-            border: 2px solid #0284c7;
-            border-radius: 12px;
-            padding: 14px 18px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 350px;
-            max-height: 90vh;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        body.dark-mode .color-prototype-dialog { background: #1e293b; border-color: #38bdf8; color: #f8fafc; }
-        .color-prototype-dialog h4 { font-size: 0.95rem; font-weight: 800; color: #0284c7; }
-        body.dark-mode .color-prototype-dialog h4 { color: #38bdf8; }
-        .color-prototype-dialog p { font-size: 0.75rem; color: #475569; }
-        body.dark-mode .color-prototype-dialog p { color: #94a3b8; }
-        
-        .proto-options { display: flex; flex-direction: column; gap: 5px; }
-        .proto-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 8px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            cursor: pointer;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-align: left;
-            transition: all 0.2s;
-        }
-        body.dark-mode .proto-btn { background: #0f172a; border-color: #334155; color: #f8fafc; }
-        .proto-btn:hover { border-color: #0284c7; transform: translateX(2px); }
-        .proto-btn.selected { border: 2px solid #0284c7; background: #e0f2fe; }
-        body.dark-mode .proto-btn.selected { border-color: #38bdf8; background: #0369a1; }
-        
-        .proto-swatch {
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            border: 1px solid rgba(0,0,0,0.2);
-            flex-shrink: 0;
-        }
-
         @media (orientation: portrait), (max-width: 768px) {
-            .presentation-view {
-                height: 100vh;
-                padding: 16px;
-            }
-            .presentation-grid {
-                display: flex;
-                flex-direction: column;
-                gap: 12px;
-                height: 100%;
-            }
-            
-            .status-panel {
-                display: contents;
-            }
-            .status-panel::after {
-                display: none;
-            }
-            
-            .status-panel > div:first-child {
-                order: 1;
-            }
-            .details-panel {
-                order: 2;
-                flex-grow: 1;
-                min-height: 0;
-            }
-            .next-up-container {
-                order: 3;
-                width: 100%;
-                margin-top: auto;
-            }
-
-            .management-view {
-                display: flex;
-                flex-direction: column;
-                height: 100vh;
-                padding: 16px;
-                gap: 12px;
-            }
-            .timeline-container {
-                height: auto;
-                max-height: 35vh;
-            }
-            .timeline-box {
-                min-height: 140px;
-            }
-            .editor-box {
-                flex-grow: 1;
-                min-height: 0;
-            }
+            .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+            .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+            .status-panel { display: contents; }
+            .status-panel::after { display: none; }
+            .status-panel > div:first-child { order: 1; }
+            .details-panel { order: 2; flex-grow: 1; min-height: 0; }
+            .next-up-container { order: 3; width: 100%; margin-top: auto; }
+            .timeline-container { height: auto; max-height: 35vh; }
+            .timeline-box { min-height: 140px; }
+            .editor-box { flex-grow: 1; min-height: 0; }
         }
 
         .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
@@ -374,47 +283,6 @@
 
 <div class="app-container">
     <div class="presentation-view">
-        <!-- COLOR PROTOTYPING DIALOG OVERLAY (SOFTENED BORDERS ON 1, 6, 7) -->
-        <div class="color-prototype-dialog">
-            <h4>🎨 Softened Border Riffs</h4>
-            <p>Testing softened, muted border tones derived from #1, #6, and #7:</p>
-            <div class="proto-options">
-                <button class="proto-btn selected" onclick="selectPalette(0, this)">
-                    <span class="proto-swatch" style="background:#fef9c3; border-color:#fef08a;"></span>
-                    <span>1. Canary + Soft Golden Yellow Border (#fef08a)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(1, this)">
-                    <span class="proto-swatch" style="background:#fef9c3; border-color:#e2e8f0;"></span>
-                    <span>2. Canary + Neutral Slate Border (#e2e8f0)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(2, this)">
-                    <span class="proto-swatch" style="background:#ecfccb; border-color:#bef264;"></span>
-                    <span>3. Lime Tint + Muted Sage Border (#bef264)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(3, this)">
-                    <span class="proto-swatch" style="background:#ecfccb; border-color:#cbd5e1;"></span>
-                    <span>4. Lime Tint + Neutral Mist Border (#cbd5e1)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(4, this)">
-                    <span class="proto-swatch" style="background:#ffedd5; border-color:#fed7aa;"></span>
-                    <span>5. Apricot + Soft Peach Border (#fed7aa)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(5, this)">
-                    <span class="proto-swatch" style="background:#ffedd5; border-color:#e2e8f0;"></span>
-                    <span>6. Apricot + Soft Neutral Border (#e2e8f0)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(6, this)">
-                    <span class="proto-swatch" style="background:#fef2f2; border-color:#fecaca;"></span>
-                    <span>7. Rose Tint + Soft Blush Border (#fecaca)</span>
-                </button>
-                <button class="proto-btn" onclick="selectPalette(7, this)">
-                    <span class="proto-swatch" style="background:#fefce8; border-color:#fef08a;"></span>
-                    <span>8. Whisper Yellow + Soft Glow Border (#fef08a)</span>
-                </button>
-            </div>
-            <button class="btn btn-primary" onclick="toggleTestAlert()" style="justify-content:center; margin-top:2px;">🚨 Toggle Alert Visual</button>
-        </div>
-
         <div class="presentation-grid">
             <div class="status-panel">
                 <div>
@@ -430,7 +298,7 @@
                 <div class="next-up-container">
                     <button class="prev-arrow-btn" onclick="shiftItem(-1)" title="Previous Topic">◀</button>
                     <div class="next-up-card" id="nextUpCard" onclick="shiftItem(1)" title="Advance to Next Topic">
-                        <div class="next-label" id="nextLabel">Next Up</div>
+                        <div class="next-label">Next Up</div>
                         <div id="presNext" class="next-title">Adjournment</div>
                     </div>
                 </div>
@@ -511,6 +379,13 @@
 <script>
     let meetingTitle = "";
     let wakeLock = null;
+    let agenda = [];
+    let currentIndex = 0;
+    let isManualOverride = false;
+    let carouselInterval = null;
+    let lastCheckedMilestoneTime = "";
+    let historyStack = [];
+    const MAX_HISTORY = 20;
 
     const defaultAgenda = [
         { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
@@ -518,113 +393,35 @@
         { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
     ];
 
-    let historyStack = [];
-    const MAX_HISTORY = 20;
-
-    /* PALETTES WITH SOFTENED, MUTED BORDERS */
-    const alertPalettes = [
-        {
-            name: "Canary + Soft Golden Yellow Border",
-            light: { bg: "#fef9c3", borderLeft: "#fef08a", borderOther: "#fef08a", label: "#854d0e", title: "#0f172a", shadow: "rgba(250, 204, 21, 0.15)" },
-            dark: { bg: "#713f12", borderLeft: "#eab308", borderOther: "#a16207", label: "#fef9c3", title: "#f8fafc", shadow: "rgba(254, 240, 138, 0.15)" }
-        },
-        {
-            name: "Canary + Neutral Slate Border",
-            light: { bg: "#fef9c3", borderLeft: "#cbd5e1", borderOther: "#e2e8f0", label: "#854d0e", title: "#0f172a", shadow: "rgba(250, 204, 21, 0.12)" },
-            dark: { bg: "#713f12", borderLeft: "#475569", borderOther: "#334155", label: "#fef9c3", title: "#f8fafc", shadow: "rgba(254, 240, 138, 0.12)" }
-        },
-        {
-            name: "Lime Tint + Muted Sage Border",
-            light: { bg: "#ecfccb", borderLeft: "#bef264", borderOther: "#d9f99d", label: "#3f6212", title: "#0f172a", shadow: "rgba(132, 204, 22, 0.15)" },
-            dark: { bg: "#1a2e05", borderLeft: "#84cc16", borderOther: "#4d7c0f", label: "#d9f99d", title: "#f8fafc", shadow: "rgba(163, 230, 53, 0.15)" }
-        },
-        {
-            name: "Lime Tint + Neutral Mist Border",
-            light: { bg: "#ecfccb", borderLeft: "#cbd5e1", borderOther: "#e2e8f0", label: "#3f6212", title: "#0f172a", shadow: "rgba(132, 204, 22, 0.12)" },
-            dark: { bg: "#1a2e05", borderLeft: "#475569", borderOther: "#334155", label: "#d9f99d", title: "#f8fafc", shadow: "rgba(163, 230, 53, 0.12)" }
-        },
-        {
-            name: "Apricot + Soft Peach Border",
-            light: { bg: "#ffedd5", borderLeft: "#fed7aa", borderOther: "#ffedd5", label: "#9a3412", title: "#0f172a", shadow: "rgba(249, 115, 22, 0.15)" },
-            dark: { bg: "#431407", borderLeft: "#f97316", borderOther: "#c2410c", label: "#fed7aa", title: "#f8fafc", shadow: "rgba(251, 146, 60, 0.15)" }
-        },
-        {
-            name: "Apricot + Soft Neutral Border",
-            light: { bg: "#ffedd5", borderLeft: "#cbd5e1", borderOther: "#e2e8f0", label: "#9a3412", title: "#0f172a", shadow: "rgba(249, 115, 22, 0.12)" },
-            dark: { bg: "#431407", borderLeft: "#475569", borderOther: "#334155", label: "#fed7aa", title: "#f8fafc", shadow: "rgba(251, 146, 60, 0.12)" }
-        },
-        {
-            name: "Rose Tint + Soft Blush Border",
-            light: { bg: "#fef2f2", borderLeft: "#fecaca", borderOther: "#fee2e2", label: "#991b1b", title: "#0f172a", shadow: "rgba(239, 68, 68, 0.12)" },
-            dark: { bg: "#450a0a", borderLeft: "#ef4444", borderOther: "#b91c1c", label: "#fecaca", title: "#f8fafc", shadow: "rgba(248, 113, 113, 0.12)" }
-        },
-        {
-            name: "Whisper Yellow + Soft Glow Border",
-            light: { bg: "#fefce8", borderLeft: "#fef08a", borderOther: "#fef08a", label: "#a16207", title: "#0f172a", shadow: "rgba(250, 204, 21, 0.1)" },
-            dark: { bg: "#422006", borderLeft: "#eab308", borderOther: "#ca8a04", label: "#fefce8", title: "#f8fafc", shadow: "rgba(253, 224, 71, 0.1)" }
-        }
-    ];
-
-    let selectedPaletteIndex = 0;
-    let isTestAlertActive = true;
-
-    function selectPalette(index, btnEl) {
-        selectedPaletteIndex = index;
-        if (btnEl) {
-            document.querySelectorAll('.proto-btn').forEach(b => b.classList.remove('selected'));
-            btnEl.classList.add('selected');
-        }
-        applyPaletteStyles();
-    }
-
-    function toggleTestAlert() {
-        isTestAlertActive = !isTestAlertActive;
-        const card = document.getElementById('nextUpCard');
-        if (isTestAlertActive) {
-            card.classList.add('alert-active');
-            applyPaletteStyles();
-        } else {
-            card.classList.remove('alert-active');
-            card.style = "";
-            document.getElementById('nextLabel').style = "";
-            document.getElementById('presNext').style = "";
-        }
-    }
-
-    function applyPaletteStyles() {
-        if (!isTestAlertActive) return;
-        const isDark = document.body.classList.contains('dark-mode');
-        const p = isDark ? alertPalettes[selectedPaletteIndex].dark : alertPalettes[selectedPaletteIndex].light;
-        const card = document.getElementById('nextUpCard');
-        const label = document.getElementById('nextLabel');
-        const title = document.getElementById('presNext');
-
-        card.classList.add('alert-active');
-        card.style.backgroundColor = p.bg;
-        card.style.borderLeftColor = p.borderLeft;
-        card.style.borderTopColor = p.borderOther;
-        card.style.borderRightColor = p.borderOther;
-        card.style.borderBottomColor = p.borderOther;
-        card.style.boxShadow = `0 0 12px ${p.shadow}`;
-        
-        label.style.color = p.label;
-        title.style.color = p.title;
-    }
-
     function reloadApp() { window.location.reload(true); }
 
+    function getTimeString(date = new Date(), includeSeconds = false) {
+        let hrs = date.getHours();
+        const mins = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12 || 12;
+        const normHrs = String(hrs).padStart(2, '0');
+        return includeSeconds 
+            ? `${normHrs}:${mins}:${String(date.getSeconds()).padStart(2, '0')} ${ampm}`
+            : `${normHrs}:${mins} ${ampm}`;
+    }
+
+    function setNextUpAlert(active) {
+        const card = document.getElementById('nextUpCard');
+        if (card) card.classList.toggle('alert-active', active);
+    }
+
     function pushHistoryState() {
-        const snapshot = { agenda: JSON.parse(JSON.stringify(agenda)), currentIndex: currentIndex };
-        historyStack.push(snapshot);
+        historyStack.push({ agenda: JSON.parse(JSON.stringify(agenda)), currentIndex });
         if (historyStack.length > MAX_HISTORY) historyStack.shift();
         updateUndoButtonState();
     }
 
     function undoLastAction() {
-        if (historyStack.length === 0) return;
-        const previousState = historyStack.pop();
-        agenda = previousState.agenda;
-        currentIndex = previousState.currentIndex;
+        if (!historyStack.length) return;
+        const prev = historyStack.pop();
+        agenda = prev.agenda;
+        currentIndex = prev.currentIndex;
         saveAgendaToStorage();
         renderState();
         updateUndoButtonState();
@@ -632,85 +429,62 @@
 
     function updateUndoButtonState() {
         const btn = document.getElementById('undoBtn');
-        if (btn) btn.disabled = historyStack.length === 0;
+        if (btn) btn.disabled = !historyStack.length;
     }
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
-            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
         }
     }
 
     document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
+        if (wakeLock && document.visibilityState === 'visible') await requestWakeLock();
     });
-
     document.addEventListener('click', () => { if (!wakeLock) requestWakeLock(); }, { once: true });
 
     function updateMeetingTitle(newTitle) {
         meetingTitle = newTitle ? newTitle.trim() : "";
         const titleBar = document.getElementById('presMeetingTitle');
-        if (meetingTitle) {
-            document.title = `Meeting - ${meetingTitle}`;
-            titleBar.innerText = meetingTitle;
-            titleBar.style.display = 'block';
-        } else {
-            document.title = "Meeting";
-            titleBar.style.display = 'none';
-        }
+        document.title = meetingTitle ? `Meeting - ${meetingTitle}` : "Meeting";
+        titleBar.innerText = meetingTitle;
+        titleBar.style.display = meetingTitle ? 'block' : 'none';
         localStorage.setItem('boardMeetingTitle', meetingTitle);
     }
 
     function initTheme() {
-        const savedTheme = localStorage.getItem('boardTheme') || 'light';
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('themeBtn').innerText = '☀️ Light Mode';
-        } else {
-            document.body.classList.remove('dark-mode');
-            document.getElementById('themeBtn').innerText = '🌓 Dark Mode';
-        }
-        applyPaletteStyles();
+        const isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
+        document.body.classList.toggle('dark-mode', isDark);
+        document.getElementById('themeBtn').innerText = isDark ? '☀️ Light Mode' : '🌓 Dark Mode';
     }
 
     function toggleTheme() {
-        document.body.classList.toggle('dark-mode');
-        const isDark = document.body.classList.contains('dark-mode');
+        const isDark = document.body.classList.toggle('dark-mode');
         localStorage.setItem('boardTheme', isDark ? 'dark' : 'light');
         document.getElementById('themeBtn').innerText = isDark ? '☀️ Light Mode' : '🌓 Dark Mode';
-        applyPaletteStyles();
     }
 
     function toggleFullscreen() {
-        const docEl = document.documentElement;
+        const doc = document.documentElement;
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-            if (docEl.requestFullscreen) {
-                docEl.requestFullscreen().catch(err => alert("Fullscreen disabled by browser/iOS."));
-            } else if (docEl.webkitRequestFullscreen) {
-                docEl.webkitRequestFullscreen();
-            }
+            (doc.requestFullscreen || doc.webkitRequestFullscreen).call(doc).catch(() => alert("Fullscreen disabled by browser."));
         } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
         }
     }
 
     async function encodeAgendaToURL(data) {
-        const minifiedPayload = {
+        const minified = {
             m: meetingTitle,
             items: data.map(item => ({
-                t: item.time,
-                i: item.title,
+                t: item.time, i: item.title,
                 d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim()
             }))
         };
-
-        const jsonStr = JSON.stringify(minifiedPayload);
-        const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-        const compressedBuffer = await new Response(stream).arrayBuffer();
-        const bytes = new Uint8Array(compressedBuffer);
+        const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+        const buffer = await new Response(stream).arrayBuffer();
         let binary = '';
-        bytes.forEach(b => binary += String.fromCharCode(b));
+        new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
         return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
@@ -721,23 +495,18 @@
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-        const decompressedStr = await new Response(stream).text();
-        const minifiedPayload = JSON.parse(decompressedStr);
+        const minified = JSON.parse(await new Response(stream).text());
 
-        if (minifiedPayload.m !== undefined) {
-            updateMeetingTitle(minifiedPayload.m);
-            document.getElementById('editMeetingTitle').value = minifiedPayload.m;
+        if (minified.m !== undefined) {
+            updateMeetingTitle(minified.m);
+            document.getElementById('editMeetingTitle').value = minified.m;
         }
 
-        const rawItems = minifiedPayload.items || minifiedPayload;
-
-        return rawItems.map(item => {
+        return (minified.items || minified).map(item => {
             let detailsHtml = item.d;
             if (detailsHtml.includes('- ') || detailsHtml.includes('\n')) {
-                const lines = detailsHtml.split('\n');
-                let html = '';
-                let inList = false;
-                lines.forEach(l => {
+                let html = '', inList = false;
+                detailsHtml.split('\n').forEach(l => {
                     const line = l.trim();
                     if (!line) return;
                     if (line.startsWith('- ')) {
@@ -750,9 +519,7 @@
                 });
                 if (inList) html += '</ul>';
                 detailsHtml = html;
-            } else if (detailsHtml) {
-                detailsHtml = `<p>${detailsHtml}</p>`;
-            }
+            } else if (detailsHtml) detailsHtml = `<p>${detailsHtml}</p>`;
             return { time: item.t, title: item.i, details: detailsHtml };
         });
     }
@@ -764,9 +531,8 @@
 
         if (window.location.hash.startsWith('#agenda=')) {
             try {
-                const encodedData = window.location.hash.replace('#agenda=', '');
-                const decoded = await decodeAgendaFromURL(encodedData);
-                if (Array.isArray(decoded) && decoded.length > 0) {
+                const decoded = await decodeAgendaFromURL(window.location.hash.replace('#agenda=', ''));
+                if (Array.isArray(decoded) && decoded.length) {
                     localStorage.setItem('boardAgenda', JSON.stringify(decoded));
                     return decoded;
                 }
@@ -782,18 +548,11 @@
 
     function saveAgendaToStorage() { localStorage.setItem('boardAgenda', JSON.stringify(agenda)); }
 
-    let agenda = defaultAgenda;
-    let currentIndex = 0;
-    let isManualOverride = false;
-    let carouselInterval = null;
-    let lastCheckedMilestoneTime = "";
-
     function parseToMinutes(timeStr) {
         const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
         if (!match) return 0;
         let [_, hrs, mins, period] = match;
-        hrs = parseInt(hrs);
-        mins = parseInt(mins);
+        hrs = parseInt(hrs); mins = parseInt(mins);
         if (period.toUpperCase() === "PM" && hrs !== 12) hrs += 12;
         if (period.toUpperCase() === "AM" && hrs === 12) hrs = 0;
         return hrs * 60 + mins;
@@ -802,17 +561,8 @@
     function sortAgenda() { agenda.sort((a, b) => parseToMinutes(a.time) - parseToMinutes(b.time)); }
 
     function updateSystemClock() {
-        const now = new Date();
-        let hrs = now.getHours();
-        const mins = String(now.getMinutes()).padStart(2, '0');
-        const secs = String(now.getSeconds()).padStart(2, '0');
-        const ampm = hrs >= 12 ? 'PM' : 'AM';
-        hrs = hrs % 12;
-        hrs = hrs ? hrs : 12;
-        const normalizedHours = String(hrs).padStart(2, '0');
-        document.getElementById('sysClock').innerText = `${normalizedHours}:${mins}:${secs} ${ampm}`;
-
-        const checkString = `${normalizedHours}:${mins} ${ampm}`;
+        document.getElementById('sysClock').innerText = getTimeString(new Date(), true);
+        const checkString = getTimeString(new Date(), false);
         if (checkString !== lastCheckedMilestoneTime) evaluateAutomatedTimeTrigger(checkString);
     }
 
@@ -820,21 +570,24 @@
         let matchedIndex = -1;
         const currentMins = parseToMinutes(currentWallTime);
 
-        for (let i = 0; i < agenda.length; i++) {
-            if (parseToMinutes(agenda[i].time) <= currentMins) matchedIndex = i;
-        }
+        agenda.forEach((item, i) => {
+            if (parseToMinutes(item.time) <= currentMins) matchedIndex = i;
+        });
 
-        if (matchedIndex !== -1 && matchedIndex !== currentIndex && !isManualOverride) {
-            lastCheckedMilestoneTime = currentWallTime;
-            currentIndex = matchedIndex;
-            renderState();
-        } else if (matchedIndex !== -1 && isManualOverride) {
+        if (matchedIndex !== -1) {
             const exactAgendaTime = agenda[matchedIndex].time.replace(/^0/, '');
             const exactWallTime = currentWallTime.replace(/^0/, '');
-            if (exactAgendaTime === exactWallTime && lastCheckedMilestoneTime !== currentWallTime) {
+            
+            if (!isManualOverride && matchedIndex !== currentIndex) {
+                lastCheckedMilestoneTime = currentWallTime;
+                currentIndex = matchedIndex;
+                setNextUpAlert(false);
+                renderState();
+            } else if (isManualOverride && exactAgendaTime === exactWallTime && lastCheckedMilestoneTime !== currentWallTime) {
                 lastCheckedMilestoneTime = currentWallTime;
                 isManualOverride = false;
                 currentIndex = matchedIndex;
+                setNextUpAlert(false);
                 renderState();
             }
         }
@@ -845,33 +598,24 @@
         clearInterval(carouselInterval);
         container.innerHTML = "";
 
-        if (agenda.length === 0 || !agenda[currentIndex]) {
+        if (!agenda.length || !agenda[currentIndex]) {
             container.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
             return;
         }
 
         const testDiv = document.createElement('div');
-        testDiv.style.width = `${container.clientWidth}px`;
-        testDiv.style.position = 'absolute';
-        testDiv.style.visibility = 'hidden';
-        testDiv.style.fontSize = '1.25rem';
-        testDiv.style.lineHeight = '1.6';
+        testDiv.style.cssText = `width:${container.clientWidth}px; position:absolute; visibility:hidden; font-size:1.25rem; line-height:1.6;`;
         testDiv.innerHTML = agenda[currentIndex].details;
         document.body.appendChild(testDiv);
 
-        const childElements = Array.from(testDiv.childNodes);
         const pagesData = [];
-        let currentPageHTML = "";
-        let currentHeight = 0;
+        let currentPageHTML = "", currentHeight = 0;
         const maxHeight = container.clientHeight - 20;
 
-        childElements.forEach(node => {
+        Array.from(testDiv.childNodes).forEach(node => {
             const tempBox = document.createElement('div');
-            tempBox.style.width = `${container.clientWidth}px`;
-            tempBox.style.fontSize = '1.25rem';
-            tempBox.style.lineHeight = '1.6';
-            const clone = node.cloneNode(true);
-            tempBox.appendChild(clone);
+            tempBox.style.cssText = `width:${container.clientWidth}px; font-size:1.25rem; line-height:1.6;`;
+            tempBox.appendChild(node.cloneNode(true));
             document.body.appendChild(tempBox);
 
             const nodeHeight = tempBox.clientHeight;
@@ -883,29 +627,28 @@
                 currentHeight = 0;
             }
 
-            if (node.nodeType === Node.TEXT_NODE) currentPageHTML += node.textContent;
-            else currentPageHTML += node.outerHTML;
+            currentPageHTML += (node.nodeType === Node.TEXT_NODE) ? node.textContent : node.outerHTML;
             currentHeight += nodeHeight;
         });
 
-        if (currentPageHTML !== "") pagesData.push(currentPageHTML);
+        if (currentPageHTML) pagesData.push(currentPageHTML);
         document.body.removeChild(testDiv);
 
-        pagesData.forEach((pageHTML, idx) => {
+        pagesData.forEach((html, idx) => {
             const pageDiv = document.createElement('div');
             pageDiv.className = `details-page ${idx === 0 ? 'active' : ''}`;
-            pageDiv.innerHTML = pageHTML;
+            pageDiv.innerHTML = html;
             container.appendChild(pageDiv);
         });
 
         if (pagesData.length > 1) {
-            let activePageIdx = 0;
+            let activeIdx = 0;
             carouselInterval = setInterval(() => {
                 const pages = container.querySelectorAll('.details-page');
-                if (pages.length === 0) return;
-                pages[activePageIdx].classList.remove('active');
-                activePageIdx = (activePageIdx + 1) % pages.length;
-                pages[activePageIdx].classList.add('active');
+                if (!pages.length) return;
+                pages[activeIdx].classList.remove('active');
+                activeIdx = (activeIdx + 1) % pages.length;
+                pages[activeIdx].classList.add('active');
             }, 8000);
         }
     }
@@ -917,28 +660,21 @@
         const activeItem = agenda[currentIndex];
         const nextItem = agenda[currentIndex + 1];
 
-        if (activeItem) {
-            document.getElementById('presTitle').innerText = activeItem.title;
-            document.getElementById('presTime').innerText = `Scheduled: ${activeItem.time}`;
-        } else {
-            document.getElementById('presTitle').innerText = "End of Agenda";
-            document.getElementById('presTime').innerText = "--:--";
-        }
-
-        if (nextItem) document.getElementById('presNext').innerText = `${nextItem.time} - ${nextItem.title}`;
-        else document.getElementById('presNext').innerText = "Adjournment / Session Closed";
-
+        document.getElementById('presTitle').innerText = activeItem ? activeItem.title : "End of Agenda";
+        document.getElementById('presTime').innerText = activeItem ? `Scheduled: ${activeItem.time}` : "--:--";
+        document.getElementById('presNext').innerText = nextItem ? `${nextItem.time} - ${nextItem.title}` : "Adjournment / Session Closed";
         document.getElementById('resumeBtn').style.display = isManualOverride ? 'inline-block' : 'none';
 
         const rowsBox = document.getElementById('timelineRows');
         rowsBox.innerHTML = "";
-        agenda.forEach((item, index) => {
+        agenda.forEach((item, idx) => {
             const row = document.createElement('div');
-            row.className = `timeline-item ${index === currentIndex ? 'active' : ''}`;
-            row.innerHTML = `<div class="item-time">${item.time}</div> <div class="item-text">${item.title}</div>`;
+            row.className = `timeline-item ${idx === currentIndex ? 'active' : ''}`;
+            row.innerHTML = `<div class="item-time">${item.time}</div><div class="item-text">${item.title}</div>`;
             row.onclick = () => {
                 isManualOverride = true;
-                currentIndex = index;
+                currentIndex = idx;
+                setNextUpAlert(false);
                 renderState();
             };
             rowsBox.appendChild(row);
@@ -948,24 +684,22 @@
             document.getElementById('editTime').value = activeItem.time;
             document.getElementById('editTitle').value = activeItem.title;
             document.getElementById('editDetails').value = activeItem.details;
-        } else {
-            clearEditorInputs();
-        }
+        } else clearEditorInputs();
 
         renderPresentationTextPages();
-        applyPaletteStyles();
     }
 
-    function shiftItem(direction) {
-        if (direction < 0 && currentIndex === 0) {
-            toggleTestAlert();
+    function shiftItem(dir) {
+        if (dir < 0 && currentIndex === 0) {
+            setNextUpAlert(!document.getElementById('nextUpCard').classList.contains('alert-active'));
             return;
         }
 
         isManualOverride = true;
-        let targetIndex = currentIndex + direction;
-        if (targetIndex >= 0 && targetIndex < agenda.length) {
-            currentIndex = targetIndex;
+        const target = currentIndex + dir;
+        if (target >= 0 && target < agenda.length) {
+            currentIndex = target;
+            setNextUpAlert(false);
             renderState();
         }
     }
@@ -973,13 +707,8 @@
     function clearOverride() {
         isManualOverride = false;
         lastCheckedMilestoneTime = "";
-        const now = new Date();
-        let hrs = now.getHours();
-        const mins = String(now.getMinutes()).padStart(2, '0');
-        const ampm = hrs >= 12 ? 'PM' : 'AM';
-        hrs = hrs % 12;
-        hrs = hrs ? hrs : 12;
-        evaluateAutomatedTimeTrigger(`${String(hrs).padStart(2, '0')}:${mins} ${ampm}`);
+        setNextUpAlert(false);
+        evaluateAutomatedTimeTrigger(getTimeString());
         renderState();
     }
 
@@ -988,11 +717,10 @@
         const titleInput = document.getElementById('editTitle').value.trim();
         const detailsInput = document.getElementById('editDetails').value.trim();
 
-        if (!timeInput || !titleInput) { alert("Time and title parameters are required."); return; }
+        if (!timeInput || !titleInput) return alert("Time and title parameters are required.");
 
         pushHistoryState();
-
-        const payload = { time: timeInput, title: titleInput, details: detailsInput || "" };
+        const payload = { time: timeInput, title: titleInput, details: detailsInput };
 
         if (agenda[currentIndex]) agenda[currentIndex] = payload;
         else { agenda.push(payload); currentIndex = agenda.length - 1; }
@@ -1002,23 +730,20 @@
     }
 
     function addNewItemBelow() {
-        const timeInput = document.getElementById('editTime').value.trim() || "12:00 PM";
-        const titleInput = document.getElementById('editTitle').value.trim() || "New Topic";
-        const detailsInput = document.getElementById('editDetails').value.trim() || "";
-
         pushHistoryState();
-
-        const newItem = { time: timeInput, title: titleInput, details: detailsInput };
-        const insertAt = currentIndex + 1;
-        agenda.splice(insertAt, 0, newItem);
-        currentIndex = insertAt;
-        
+        const newItem = {
+            time: document.getElementById('editTime').value.trim() || "12:00 PM",
+            title: document.getElementById('editTitle').value.trim() || "New Topic",
+            details: document.getElementById('editDetails').value.trim() || ""
+        };
+        currentIndex++;
+        agenda.splice(currentIndex, 0, newItem);
         saveAgendaToStorage();
         renderState();
     }
 
     function deleteCurrentItem() {
-        if (agenda.length <= 1) { alert("At least one agenda topic is required."); return; }
+        if (agenda.length <= 1) return alert("At least one agenda topic is required.");
         pushHistoryState();
         agenda.splice(currentIndex, 1);
         currentIndex = Math.max(0, currentIndex - 1);
@@ -1028,8 +753,8 @@
 
     async function shareAgendaURL() {
         try {
-            const compressedHash = await encodeAgendaToURL(agenda);
-            const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${compressedHash}`;
+            const compressed = await encodeAgendaToURL(agenda);
+            const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${compressed}`;
             await navigator.clipboard.writeText(shareURL);
             alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
         } catch (e) { alert("Failed to generate compressed share link."); }
@@ -1040,21 +765,17 @@
 
     function processImportText() {
         const rawText = document.getElementById('importText').value.trim();
-        if (!rawText) return;
-        if (!confirm("Warning: Importing text will replace all existing agenda items and reset your undo history. Continue?")) return;
+        if (!rawText || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
 
-        const lines = rawText.split('\n');
         const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i;
         const newAgenda = [];
-        let currentItem = null;
-        let inList = false;
-        let titleFound = false;
+        let currentItem = null, inList = false, titleFound = false;
 
-        lines.forEach(line => {
+        rawText.split('\n').forEach(line => {
             const trimmed = line.trim();
             if (!trimmed) return;
 
-            if (!titleFound && newAgenda.length === 0 && !currentItem && !timePattern.test(trimmed)) {
+            if (!titleFound && !newAgenda.length && !currentItem && !timePattern.test(trimmed)) {
                 const cleanTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, '');
                 updateMeetingTitle(cleanTitle);
                 document.getElementById('editMeetingTitle').value = cleanTitle;
@@ -1088,7 +809,7 @@
             newAgenda.push(currentItem);
         }
 
-        if (newAgenda.length > 0) {
+        if (newAgenda.length) {
             historyStack = [];
             updateUndoButtonState();
             agenda = newAgenda;
@@ -1112,16 +833,9 @@
         initTheme();
         await requestWakeLock();
         agenda = await loadInitialAgenda();
-        const initialNow = new Date();
-        let initHrs = initialNow.getHours();
-        const initMins = String(initialNow.getMinutes()).padStart(2, '0');
-        const initAmpm = initHrs >= 12 ? 'PM' : 'AM';
-        initHrs = initHrs % 12;
-        initHrs = initHrs ? initHrs : 12;
-        evaluateAutomatedTimeTrigger(`${String(initHrs).padStart(2, '0')}:${initMins} ${initAmpm}`);
+        evaluateAutomatedTimeTrigger(getTimeString());
         renderState();
         updateUndoButtonState();
-        applyPaletteStyles();
     })();
 </script>
 
