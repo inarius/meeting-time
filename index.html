@@ -102,10 +102,17 @@
         .management-view { 
             width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
             background: var(--pico-secondary-background); display: grid; grid-template-columns: minmax(260px, 43%) 1fr;
-            padding: 3% 3.5%; gap: 24px; overflow: hidden;
+            padding: 3% 3.5%; gap: 12px; overflow: hidden;
         }
         
         .timeline-container { display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; }
+        .title-card-box {
+            background: var(--pico-card-background-color); border-radius: 8px;
+            border: 1px solid var(--pico-muted-border-color); padding: 10px 14px;
+        }
+        .title-card-box label { margin-bottom: 0; }
+        .title-card-box input { margin-bottom: 0; }
+
         .timeline-box { display: flex; flex-direction: column; background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); overflow: hidden; flex-grow: 1; }
         .timeline-header { padding: 10px 14px; background: var(--pico-table-row-stripped-background-color); font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.9rem); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); }
         .timeline-rows { flex-grow: 1; overflow-y: auto; }
@@ -170,9 +177,11 @@
     <!-- MANAGEMENT LAYER -->
     <div class="management-view">
         <div class="timeline-container">
-            <label>Meeting Title
-                <input type="text" x-model="meetingTitle" @input="updateTitle()" placeholder="August 19, 2026">
-            </label>
+            <div class="title-card-box">
+                <label>Meeting Title
+                    <input type="text" x-model="meetingTitle" @input="updateTitle()" placeholder="August 19, 2026">
+                </label>
+            </div>
             
             <div class="timeline-box">
                 <div class="timeline-header">
@@ -225,7 +234,6 @@
         <textarea x-model="importText" style="height: 140px;" placeholder="Title: August 19, 2026&#10;&#10;10:00 AM Call to Order&#10;- Roll call"></textarea>
         <footer>
             <button class="secondary" @click="showImportModal = false">Cancel</button>
-
             <button class="primary" @click="processImportText()">Import Agenda</button>
         </footer>
     </article>
