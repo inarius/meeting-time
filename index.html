@@ -270,7 +270,9 @@
             border-radius: 12px;
             padding: 14px 18px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-            width: 320px;
+            width: 340px;
+            max-height: 90vh;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -281,17 +283,17 @@
         .color-prototype-dialog p { font-size: 0.75rem; color: #475569; }
         body.dark-mode .color-prototype-dialog p { color: #94a3b8; }
         
-        .proto-options { display: flex; flex-direction: column; gap: 6px; }
+        .proto-options { display: flex; flex-direction: column; gap: 5px; }
         .proto-btn {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
+            gap: 8px;
+            padding: 6px 8px;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
             background: #f8fafc;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 700;
             text-align: left;
             transition: all 0.2s;
@@ -302,8 +304,8 @@
         body.dark-mode .proto-btn.selected { border-color: #38bdf8; background: #0369a1; }
         
         .proto-swatch {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             border-radius: 4px;
             border: 1px solid rgba(0,0,0,0.2);
             flex-shrink: 0;
@@ -372,30 +374,42 @@
 
 <div class="app-container">
     <div class="presentation-view">
-        <!-- COLOR PROTOTYPING DIALOG OVERLAY -->
+        <!-- COLOR PROTOTYPING DIALOG OVERLAY (8 RIFFS ON OPTION 2) -->
         <div class="color-prototype-dialog">
-            <h4>🎨 Next Up Alert Palettes</h4>
-            <p>Select a palette to test colors on the Next Up card:</p>
+            <h4>🎨 Pastel Canary Riffs (8 Options)</h4>
+            <p>Riffing on Option 2's light pastel aesthetic:</p>
             <div class="proto-options">
                 <button class="proto-btn selected" onclick="selectPalette(0, this)">
-                    <span class="proto-swatch" style="background:#fef08a; border-color:#eab308;"></span>
-                    <span>1. Soft Cream (Subtle Yellow)</span>
+                    <span class="proto-swatch" style="background:#fef9c3; border-color:#fde047;"></span>
+                    <span>1. Original Pastel Canary (#fef9c3)</span>
                 </button>
                 <button class="proto-btn" onclick="selectPalette(1, this)">
-                    <span class="proto-swatch" style="background:#fef9c3; border-color:#fde047;"></span>
-                    <span>2. Pastel Canary (Ultra Light)</span>
+                    <span class="proto-swatch" style="background:#fefce8; border-color:#fef08a;"></span>
+                    <span>2. Ultra-Light Whisper Yellow (#fefce8)</span>
                 </button>
                 <button class="proto-btn" onclick="selectPalette(2, this)">
-                    <span class="proto-swatch" style="background:#fef3c7; border-color:#f59e0b;"></span>
-                    <span>3. Muted Warm Gold</span>
+                    <span class="proto-swatch" style="background:#fffbe2; border-color:#eab308;"></span>
+                    <span>3. Bright Warm Cream (#fffbe2)</span>
                 </button>
                 <button class="proto-btn" onclick="selectPalette(3, this)">
-                    <span class="proto-swatch" style="background:#e0f2fe; border-color:#0284c7;"></span>
-                    <span>4. Soft Sky Blue</span>
+                    <span class="proto-swatch" style="background:#fef3c7; border-color:#f59e0b;"></span>
+                    <span>4. Soft Vanilla Amber (#fef3c7)</span>
                 </button>
                 <button class="proto-btn" onclick="selectPalette(4, this)">
-                    <span class="proto-swatch" style="background:#f3e8ff; border-color:#9333ea;"></span>
-                    <span>5. Soft Lavender Purple</span>
+                    <span class="proto-swatch" style="background:#fef08a; border-color:#eab308;"></span>
+                    <span>5. Saturated Soft Lemon (#fef08a)</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(5, this)">
+                    <span class="proto-swatch" style="background:#ecfccb; border-color:#84cc16;"></span>
+                    <span>6. Pastel Lime Tint (#ecfccb)</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(6, this)">
+                    <span class="proto-swatch" style="background:#ffedd5; border-color:#f97316;"></span>
+                    <span>7. Pastel Apricot Cream (#ffedd5)</span>
+                </button>
+                <button class="proto-btn" onclick="selectPalette(7, this)">
+                    <span class="proto-swatch" style="background:#fef2f2; border-color:#ef4444;"></span>
+                    <span>8. Pastel Rose Tint (#fef2f2)</span>
                 </button>
             </div>
             <button class="btn btn-primary" onclick="toggleTestAlert()" style="justify-content:center; margin-top:2px;">🚨 Toggle Alert Visual</button>
@@ -507,32 +521,47 @@
     let historyStack = [];
     const MAX_HISTORY = 20;
 
-    /* PALETTE PROTOTYPING DATA */
+    /* 8 PALETTE RIFFS BASED ON PASTEL CANARY (#fef9c3) */
     const alertPalettes = [
         {
-            name: "Soft Cream (Subtle Yellow)",
-            light: { bg: "#fef08a", borderLeft: "#ca8a04", borderOther: "#eab308", label: "#a16207", title: "#0f172a", shadow: "rgba(234, 179, 8, 0.3)" },
-            dark: { bg: "#713f12", borderLeft: "#facc15", borderOther: "#ca8a04", label: "#fef08a", title: "#f8fafc", shadow: "rgba(250, 204, 21, 0.25)" }
-        },
-        {
-            name: "Pastel Canary (Ultra Light)",
+            name: "Original Pastel Canary",
             light: { bg: "#fef9c3", borderLeft: "#eab308", borderOther: "#fde047", label: "#854d0e", title: "#0f172a", shadow: "rgba(250, 204, 21, 0.25)" },
-            dark: { bg: "#854d0e", borderLeft: "#fef08a", borderOther: "#eab308", label: "#fef9c3", title: "#f8fafc", shadow: "rgba(254, 240, 138, 0.2)" }
+            dark: { bg: "#713f12", borderLeft: "#fef08a", borderOther: "#eab308", label: "#fef9c3", title: "#f8fafc", shadow: "rgba(254, 240, 138, 0.2)" }
         },
         {
-            name: "Muted Warm Gold",
-            light: { bg: "#fef3c7", borderLeft: "#d97706", borderOther: "#f59e0b", label: "#92400e", title: "#0f172a", shadow: "rgba(245, 158, 11, 0.3)" },
-            dark: { bg: "#78350f", borderLeft: "#fbbf24", borderOther: "#d97706", label: "#fde68a", title: "#f8fafc", shadow: "rgba(251, 191, 36, 0.25)" }
+            name: "Ultra-Light Whisper Yellow",
+            light: { bg: "#fefce8", borderLeft: "#ca8a04", borderOther: "#fef08a", label: "#a16207", title: "#0f172a", shadow: "rgba(250, 204, 21, 0.15)" },
+            dark: { bg: "#422006", borderLeft: "#fde047", borderOther: "#ca8a04", label: "#fefce8", title: "#f8fafc", shadow: "rgba(253, 224, 71, 0.15)" }
         },
         {
-            name: "Soft Sky Blue",
-            light: { bg: "#e0f2fe", borderLeft: "#0284c7", borderOther: "#38bdf8", label: "#0369a1", title: "#0f172a", shadow: "rgba(2, 132, 199, 0.3)" },
-            dark: { bg: "#0c4a6e", borderLeft: "#38bdf8", borderOther: "#0284c7", label: "#bae6fd", title: "#f8fafc", shadow: "rgba(56, 189, 248, 0.25)" }
+            name: "Bright Warm Cream",
+            light: { bg: "#fffbe2", borderLeft: "#eab308", borderOther: "#fde047", label: "#854d0e", title: "#0f172a", shadow: "rgba(234, 179, 8, 0.2)" },
+            dark: { bg: "#542d0c", borderLeft: "#facc15", borderOther: "#eab308", label: "#fffbe2", title: "#f8fafc", shadow: "rgba(250, 204, 21, 0.2)" }
         },
         {
-            name: "Soft Lavender Purple",
-            light: { bg: "#f3e8ff", borderLeft: "#7e22ce", borderOther: "#c084fc", label: "#6b21a8", title: "#0f172a", shadow: "rgba(126, 34, 206, 0.3)" },
-            dark: { bg: "#581c87", borderLeft: "#c084fc", borderOther: "#9333ea", label: "#e9d5ff", title: "#f8fafc", shadow: "rgba(192, 132, 252, 0.25)" }
+            name: "Soft Vanilla Amber",
+            light: { bg: "#fef3c7", borderLeft: "#d97706", borderOther: "#f59e0b", label: "#92400e", title: "#0f172a", shadow: "rgba(245, 158, 11, 0.25)" },
+            dark: { bg: "#78350f", borderLeft: "#fbbf24", borderOther: "#d97706", label: "#fde68a", title: "#f8fafc", shadow: "rgba(251, 191, 36, 0.2)" }
+        },
+        {
+            name: "Saturated Soft Lemon",
+            light: { bg: "#fef08a", borderLeft: "#ca8a04", borderOther: "#eab308", label: "#854d0e", title: "#0f172a", shadow: "rgba(234, 179, 8, 0.3)" },
+            dark: { bg: "#854d0e", borderLeft: "#facc15", borderOther: "#ca8a04", label: "#fef08a", title: "#f8fafc", shadow: "rgba(250, 204, 21, 0.25)" }
+        },
+        {
+            name: "Pastel Lime Tint",
+            light: { bg: "#ecfccb", borderLeft: "#65a30d", borderOther: "#84cc16", label: "#3f6212", title: "#0f172a", shadow: "rgba(132, 204, 22, 0.25)" },
+            dark: { bg: "#1a2e05", borderLeft: "#a3e635", borderOther: "#65a30d", label: "#d9f99d", title: "#f8fafc", shadow: "rgba(163, 230, 53, 0.2)" }
+        },
+        {
+            name: "Pastel Apricot Cream",
+            light: { bg: "#ffedd5", borderLeft: "#ea580c", borderOther: "#f97316", label: "#9a3412", title: "#0f172a", shadow: "rgba(249, 115, 22, 0.25)" },
+            dark: { bg: "#431407", borderLeft: "#fb923c", borderOther: "#ea580c", label: "#fed7aa", title: "#f8fafc", shadow: "rgba(251, 146, 60, 0.2)" }
+        },
+        {
+            name: "Pastel Rose Tint",
+            light: { bg: "#fef2f2", borderLeft: "#dc2626", borderOther: "#ef4444", label: "#991b1b", title: "#0f172a", shadow: "rgba(239, 68, 68, 0.2)" },
+            dark: { bg: "#450a0a", borderLeft: "#f87171", borderOther: "#dc2626", label: "#fecaca", title: "#f8fafc", shadow: "rgba(248, 113, 113, 0.2)" }
         }
     ];
 
