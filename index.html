@@ -46,10 +46,10 @@
             transition: background 0.3s, border-color 0.3s;
         }
 
-        /* STRICT SPLIT: Left side maxes out around 38%, right side takes the rest */
+        /* STRICT SPLIT: Left column updated to 43% max width */
         .presentation-grid {
             display: grid;
-            grid-template-columns: minmax(260px, 38%) 1fr;
+            grid-template-columns: minmax(260px, 43%) 1fr;
             gap: 28px;
             flex-grow: 1;
             height: 100%;
@@ -70,7 +70,7 @@
             min-width: 0;
         }
 
-        /* VERTICAL DIVIDER: Ends early so it doesn't intersect Next Up */
+        /* VERTICAL DIVIDER */
         .status-panel::after {
             content: "";
             position: absolute;
@@ -118,12 +118,12 @@
             letter-spacing: normal;
         }
 
-        /* NEXT UP NAV BAR: Floats beyond left column width in landscape */
+        /* NEXT UP NAV BAR: Expanded float width (+10% screen width offset) */
         .next-up-container { 
             display: flex; 
             align-items: center; 
             gap: 8px; 
-            width: calc(100% + 30px);
+            width: calc(100% + 10vw);
             box-sizing: border-box;
             position: relative;
             z-index: 5;
@@ -171,7 +171,7 @@
         .details-viewport li { margin-bottom: 6px; }
         .details-viewport p { margin-bottom: 8px; }
 
-        /* BOTTOM SECTION: Management Layer */
+        /* BOTTOM SECTION: Management Layer (Left column updated to 43% max width) */
         .management-view { 
             width: 100%;
             height: 100vh;
@@ -180,7 +180,7 @@
             scroll-snap-stop: always;
             background: #cbd5e1; 
             display: grid; 
-            grid-template-columns: minmax(260px, 38%) 1fr; 
+            grid-template-columns: minmax(260px, 43%) 1fr; 
             padding: 3% 3.5%; 
             gap: 24px; 
             box-sizing: border-box;
@@ -262,7 +262,6 @@
                 height: 100%;
             }
             
-            /* Unwraps status panel so children are direct flex items of presentation-grid */
             .status-panel {
                 display: contents;
             }
@@ -270,17 +269,14 @@
                 display: none;
             }
             
-            /* Order 1: Status info at top */
             .status-panel > div:first-child {
                 order: 1;
             }
-            /* Order 2: Details panel in the middle */
             .details-panel {
                 order: 2;
                 flex-grow: 1;
                 min-height: 0;
             }
-            /* Order 3: Next Up at the absolute bottom */
             .next-up-container {
                 order: 3;
                 width: 100%;
