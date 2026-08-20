@@ -46,7 +46,7 @@
             transition: background 0.3s, border-color 0.3s;
         }
 
-        /* STRICT SPLIT: Left column updated to 43% max width */
+        /* STRICT SPLIT: Left column 43% max width */
         .presentation-grid {
             display: grid;
             grid-template-columns: minmax(260px, 43%) 1fr;
@@ -118,7 +118,7 @@
             letter-spacing: normal;
         }
 
-        /* NEXT UP NAV BAR: Expanded float width (+10% screen width offset) */
+        /* NEXT UP NAV BAR: Expanded float width */
         .next-up-container { 
             display: flex; 
             align-items: center; 
@@ -171,7 +171,7 @@
         .details-viewport li { margin-bottom: 6px; }
         .details-viewport p { margin-bottom: 8px; }
 
-        /* BOTTOM SECTION: Management Layer (Left column updated to 43% max width) */
+        /* BOTTOM SECTION: Management Layer (Left column 43% max width) */
         .management-view { 
             width: 100%;
             height: 100vh;
@@ -219,7 +219,6 @@
         input:focus, textarea:focus { outline: none; border-color: #2563eb; }
         textarea { flex-grow: 1; resize: none; min-height: 80px; }
 
-        /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
         body.dark-mode .meeting-title-bar { background: #334155; color: #38bdf8; border: 1px solid #475569; }
@@ -249,7 +248,6 @@
         body.dark-mode .modal h3 { color: #f8fafc; }
         body.dark-mode .modal p { color: #94a3b8; }
 
-        /* PORTRAIT RESPONSIVE BREAKPOINT */
         @media (orientation: portrait), (max-width: 768px) {
             .presentation-view {
                 height: 100vh;
@@ -312,15 +310,11 @@
 <body>
 
 <div class="app-container">
-    
-    <!-- TOP SECTION: PROJECTED 16:9 VIEWPORT -->
     <div class="presentation-view">
         <div class="presentation-grid">
             <div class="status-panel">
                 <div>
-                    <!-- MEETING TITLE HEADER INSIDE LEFT PANEL -->
                     <div class="meeting-title-bar" id="presMeetingTitle">August 19, 2026</div>
-
                     <div class="current-meta">
                         <span>Now</span>
                         <span class="system-clock" id="sysClock">--:--:-- --</span>
@@ -348,9 +342,7 @@
         </div>
     </div>
 
-    <!-- BOTTOM SECTION: MANAGEMENT VIEWPORT -->
     <div class="management-view">
-        
         <div class="timeline-container">
             <div class="form-group">
                 <label>Meeting Title</label>
@@ -397,11 +389,9 @@
                 <button class="btn btn-success" onclick="addNewItemBelow()">+ Add</button>
             </div>
         </div>
-
     </div>
 </div>
 
-<!-- TEXT / MARKDOWN IMPORT MODAL -->
 <div class="modal-backdrop" id="importModal">
     <div class="modal">
         <h3>Bulk Import Agenda Text</h3>
@@ -427,19 +417,12 @@
     let historyStack = [];
     const MAX_HISTORY = 20;
 
-    function reloadApp() {
-        window.location.reload(true);
-    }
+    function reloadApp() { window.location.reload(true); }
 
     function pushHistoryState() {
-        const snapshot = {
-            agenda: JSON.parse(JSON.stringify(agenda)),
-            currentIndex: currentIndex
-        };
+        const snapshot = { agenda: JSON.parse(JSON.stringify(agenda)), currentIndex: currentIndex };
         historyStack.push(snapshot);
-        if (historyStack.length > MAX_HISTORY) {
-            historyStack.shift();
-        }
+        if (historyStack.length > MAX_HISTORY) historyStack.shift();
         updateUndoButtonState();
     }
 
@@ -460,28 +443,19 @@
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-            } catch (err) {
-                console.log(`Wake Lock Error: ${err.name}, ${err.message}`);
-            }
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
     }
 
     document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
-            await requestWakeLock();
-        }
+        if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
     });
 
-    document.addEventListener('click', () => {
-        if (!wakeLock) requestWakeLock();
-    }, { once: true });
+    document.addEventListener('click', () => { if (!wakeLock) requestWakeLock(); }, { once: true });
 
     function updateMeetingTitle(newTitle) {
         meetingTitle = newTitle ? newTitle.trim() : "";
         const titleBar = document.getElementById('presMeetingTitle');
-        
         if (meetingTitle) {
             document.title = `Meeting - ${meetingTitle}`;
             titleBar.innerText = meetingTitle;
@@ -515,18 +489,13 @@
         const docEl = document.documentElement;
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
             if (docEl.requestFullscreen) {
-                docEl.requestFullscreen().catch(err => alert("Fullscreen disabled by browser/iOS. Use 'Add to Home Screen' for chromeless view."));
+                docEl.requestFullscreen().catch(err => alert("Fullscreen disabled by browser/iOS."));
             } else if (docEl.webkitRequestFullscreen) {
                 docEl.webkitRequestFullscreen();
-            } else {
-                alert("Fullscreen API not supported on this browser. Tap Safari Share -> Add to Home Screen.");
             }
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            }
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         }
     }
 
@@ -543,7 +512,6 @@
         const jsonStr = JSON.stringify(minifiedPayload);
         const stream = new Blob([jsonStr]).stream().pipeThrough(new CompressionStream('deflate-raw'));
         const compressedBuffer = await new Response(stream).arrayBuffer();
-        
         const bytes = new Uint8Array(compressedBuffer);
         let binary = '';
         bytes.forEach(b => binary += String.fromCharCode(b));
@@ -553,11 +521,9 @@
     async function decodeAgendaFromURL(base64Str) {
         let base64 = base64Str.replace(/-/g, '+').replace(/_/g, '/');
         while (base64.length % 4) base64 += '=';
-
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
         const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
         const decompressedStr = await new Response(stream).text();
         const minifiedPayload = JSON.parse(decompressedStr);
@@ -608,9 +574,7 @@
                     localStorage.setItem('boardAgenda', JSON.stringify(decoded));
                     return decoded;
                 }
-            } catch (e) {
-                console.error("Failed to decompress URL payload", e);
-            }
+            } catch (e) {}
         }
         
         const stored = localStorage.getItem('boardAgenda');
@@ -620,9 +584,7 @@
         return defaultAgenda;
     }
 
-    function saveAgendaToStorage() {
-        localStorage.setItem('boardAgenda', JSON.stringify(agenda));
-    }
+    function saveAgendaToStorage() { localStorage.setItem('boardAgenda', JSON.stringify(agenda)); }
 
     let agenda = defaultAgenda;
     let currentIndex = 0;
@@ -641,9 +603,7 @@
         return hrs * 60 + mins;
     }
 
-    function sortAgenda() {
-        agenda.sort((a, b) => parseToMinutes(a.time) - parseToMinutes(b.time));
-    }
+    function sortAgenda() { agenda.sort((a, b) => parseToMinutes(a.time) - parseToMinutes(b.time)); }
 
     function updateSystemClock() {
         const now = new Date();
@@ -654,13 +614,10 @@
         hrs = hrs % 12;
         hrs = hrs ? hrs : 12;
         const normalizedHours = String(hrs).padStart(2, '0');
-        const timeString = `${normalizedHours}:${mins}:${secs} ${ampm}`;
-        document.getElementById('sysClock').innerText = timeString;
+        document.getElementById('sysClock').innerText = `${normalizedHours}:${mins}:${secs} ${ampm}`;
 
         const checkString = `${normalizedHours}:${mins} ${ampm}`;
-        if (checkString !== lastCheckedMilestoneTime) {
-            evaluateAutomatedTimeTrigger(checkString);
-        }
+        if (checkString !== lastCheckedMilestoneTime) evaluateAutomatedTimeTrigger(checkString);
     }
 
     function evaluateAutomatedTimeTrigger(currentWallTime) {
@@ -668,9 +625,7 @@
         const currentMins = parseToMinutes(currentWallTime);
 
         for (let i = 0; i < agenda.length; i++) {
-            if (parseToMinutes(agenda[i].time) <= currentMins) {
-                matchedIndex = i;
-            }
+            if (parseToMinutes(agenda[i].time) <= currentMins) matchedIndex = i;
         }
 
         if (matchedIndex !== -1 && matchedIndex !== currentIndex && !isManualOverride) {
@@ -732,11 +687,8 @@
                 currentHeight = 0;
             }
 
-            if (node.nodeType === Node.TEXT_NODE) {
-                currentPageHTML += node.textContent;
-            } else {
-                currentPageHTML += node.outerHTML;
-            }
+            if (node.nodeType === Node.TEXT_NODE) currentPageHTML += node.textContent;
+            else currentPageHTML += node.outerHTML;
             currentHeight += nodeHeight;
         });
 
@@ -777,11 +729,8 @@
             document.getElementById('presTime').innerText = "--:--";
         }
 
-        if (nextItem) {
-            document.getElementById('presNext').innerText = `${nextItem.time} - ${nextItem.title}`;
-        } else {
-            document.getElementById('presNext').innerText = "Adjournment / Session Closed";
-        }
+        if (nextItem) document.getElementById('presNext').innerText = `${nextItem.time} - ${nextItem.title}`;
+        else document.getElementById('presNext').innerText = "Adjournment / Session Closed";
 
         document.getElementById('resumeBtn').style.display = isManualOverride ? 'inline-block' : 'none';
 
@@ -837,21 +786,14 @@
         const titleInput = document.getElementById('editTitle').value.trim();
         const detailsInput = document.getElementById('editDetails').value.trim();
 
-        if (!timeInput || !titleInput) {
-            alert("Time and title parameters are required.");
-            return;
-        }
+        if (!timeInput || !titleInput) { alert("Time and title parameters are required."); return; }
 
         pushHistoryState();
 
         const payload = { time: timeInput, title: titleInput, details: detailsInput || "" };
 
-        if (agenda[currentIndex]) {
-            agenda[currentIndex] = payload;
-        } else {
-            agenda.push(payload);
-            currentIndex = agenda.length - 1;
-        }
+        if (agenda[currentIndex]) agenda[currentIndex] = payload;
+        else { agenda.push(payload); currentIndex = agenda.length - 1; }
         
         saveAgendaToStorage();
         renderState();
@@ -865,7 +807,6 @@
         pushHistoryState();
 
         const newItem = { time: timeInput, title: titleInput, details: detailsInput };
-        
         const insertAt = currentIndex + 1;
         agenda.splice(insertAt, 0, newItem);
         currentIndex = insertAt;
@@ -875,13 +816,8 @@
     }
 
     function deleteCurrentItem() {
-        if (agenda.length <= 1) {
-            alert("At least one agenda topic is required.");
-            return;
-        }
-
+        if (agenda.length <= 1) { alert("At least one agenda topic is required."); return; }
         pushHistoryState();
-
         agenda.splice(currentIndex, 1);
         currentIndex = Math.max(0, currentIndex - 1);
         saveAgendaToStorage();
@@ -892,13 +828,9 @@
         try {
             const compressedHash = await encodeAgendaToURL(agenda);
             const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${compressedHash}`;
-            
             await navigator.clipboard.writeText(shareURL);
             alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
-        } catch (e) {
-            console.error("Compression error:", e);
-            alert("Failed to generate compressed share link.");
-        }
+        } catch (e) { alert("Failed to generate compressed share link."); }
     }
 
     function openImportModal() { document.getElementById('importModal').style.display = 'flex'; }
@@ -907,10 +839,7 @@
     function processImportText() {
         const rawText = document.getElementById('importText').value.trim();
         if (!rawText) return;
-
-        if (!confirm("Warning: Importing text will replace all existing agenda items and reset your undo history. Continue?")) {
-            return;
-        }
+        if (!confirm("Warning: Importing text will replace all existing agenda items and reset your undo history. Continue?")) return;
 
         const lines = rawText.split('\n');
         const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i;
@@ -960,15 +889,12 @@
         if (newAgenda.length > 0) {
             historyStack = [];
             updateUndoButtonState();
-
             agenda = newAgenda;
             currentIndex = 0;
             saveAgendaToStorage();
             renderState();
             closeImportModal();
-        } else {
-            alert("Could not parse time indexes.");
-        }
+        } else alert("Could not parse time indexes.");
     }
 
     function clearEditorInputs() {
