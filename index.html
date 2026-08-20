@@ -377,6 +377,7 @@
             <div class="control-bar" style="justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="toggleTheme()" id="themeBtn">🌓 Dark Mode</button>
                 <button class="btn btn-secondary" onclick="toggleFullscreen()">📺 Fullscreen</button>
+                <button class="btn btn-secondary" onclick="reloadApp()" title="Reload App Codebase">🔄 Refresh</button>
                 <button class="btn btn-success" onclick="shareAgendaURL()">🔗 Share</button>
                 <button class="btn btn-secondary" onclick="openImportModal()">📥 Import</button>
                 <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled title="Undo last action">↩ Undo</button>
@@ -414,6 +415,10 @@
 
     let historyStack = [];
     const MAX_HISTORY = 20;
+
+    function reloadApp() {
+        window.location.reload(true);
+    }
 
     function pushHistoryState() {
         const snapshot = {
