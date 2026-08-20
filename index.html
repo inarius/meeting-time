@@ -120,6 +120,11 @@
                 </div>
             </section>
         </div>
+
+        <!-- DISCREET UPDATE INDICATOR -->
+        <div x-show="lastUpdatedText" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--pico-muted-color); opacity: 0.6; pointer-events: none;">
+            Updated: <span x-text="lastUpdatedText"></span>
+        </div>
     </div>
 
     <!-- MANAGEMENT LAYER -->
@@ -199,7 +204,7 @@ function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isManualOverride: false, isAlertActive: false,
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
-        editTime: '', editTitle: '', editDetails: '', importText: '',
+        editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '',
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
@@ -210,6 +215,14 @@ function meetingApp() {
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             this.agenda = await this.loadInitialAgenda();
             if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
+            
+            // Check Document Last Modified Date
+            const modDate = new Date(document.lastModified);
+            const now = new Date();
+            if (!isNaN(modDate) && modDate.getFullYear() > 1970 && Math.abs(now - modDate) > 5000) {
+                this.lastUpdatedText = modDate.toLocaleString();
+            }
+
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
             this.renderPresentationTextPages();
