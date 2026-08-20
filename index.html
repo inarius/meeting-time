@@ -48,7 +48,6 @@
         .current-title { font-size: clamp(1.4rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.2; color: #0f172a; margin-top: 8px; transition: color 0.3s; }
         .current-time-box { font-size: clamp(1rem, 2vw, 1.4rem); color: #475569; margin-top: 4px; font-weight: 600; transition: color 0.3s; }
         
-        /* INLINE SYSTEM CLOCK STYLING */
         .system-clock { 
             background: #ffffff; 
             padding: 2px 10px; 
@@ -262,12 +261,34 @@
 
 <script>
     let meetingTitle = "";
+    let wakeLock = null;
 
     const defaultAgenda = [
         { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
         { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
         { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
     ];
+
+    // --- SCREEN WAKE LOCK UTILITY ---
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) {
+                console.log(`Wake Lock Error: ${err.name}, ${err.message}`);
+            }
+        }
+    }
+
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            await requestWakeLock();
+        }
+    });
+
+    document.addEventListener('click', () => {
+        if (!wakeLock) requestWakeLock();
+    }, { once: true });
 
     function updateMeetingTitle(newTitle) {
         meetingTitle = newTitle ? newTitle.trim() : "";
@@ -740,6 +761,7 @@
 
     (async function init() {
         initTheme();
+        await requestWakeLock();
         agenda = await loadInitialAgenda();
         const initialNow = new Date();
         let initHrs = initialNow.getHours();
