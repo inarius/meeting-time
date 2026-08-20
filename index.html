@@ -102,30 +102,33 @@
         .management-view { 
             width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
             background: var(--pico-secondary-background); display: grid; grid-template-columns: minmax(260px, 43%) 1fr;
-            padding: 3% 3.5%; gap: 12px; overflow: hidden;
+            padding: 2% 3.5%; gap: 12px; overflow: hidden; box-sizing: border-box;
         }
         
-        .timeline-container { display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; }
+        .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-width: 0; min-height: 0; }
         .title-card-box {
             background: var(--pico-card-background-color); border-radius: 8px;
-            border: 1px solid var(--pico-muted-border-color); padding: 10px 14px;
+            border: 1px solid var(--pico-muted-border-color); padding: 8px 12px; flex-shrink: 0;
         }
-        .title-card-box label { margin-bottom: 0; }
-        .title-card-box input { margin-bottom: 0; }
+        .title-card-box label { margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; }
+        .title-card-box input { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
 
-        .timeline-box { display: flex; flex-direction: column; background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); overflow: hidden; flex-grow: 1; }
-        .timeline-header { padding: 10px 14px; background: var(--pico-table-row-stripped-background-color); font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.9rem); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); }
-        .timeline-rows { flex-grow: 1; overflow-y: auto; }
-        .timeline-item { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.5vw, 0.95rem); }
+        .timeline-box { display: flex; flex-direction: column; background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); overflow: hidden; flex-grow: 1; min-height: 0; }
+        .timeline-header { padding: 6px 12px; background: var(--pico-table-row-stripped-background-color); font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.85rem); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
+        .timeline-item { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
         .timeline-item.active { background: #bae6fd; color: #0369a1; border-left: 5px solid #0284c7; font-weight: 700; }
         [data-theme="dark"] .timeline-item.active { background: #1e3a8a; color: #38bdf8; border-left-color: #38bdf8; }
         .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .editor-box { background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); padding: 14px; display: flex; flex-direction: column; gap: 10px; height: 100%; min-width: 0; }
-        .control-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
-        .control-bar button { padding: 6px 10px; font-size: clamp(0.68rem, 1.1vw, 0.82rem); margin-bottom: 0; width: auto; font-weight: 700; }
+        .editor-box { background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; height: 100%; min-width: 0; min-height: 0; box-sizing: border-box; }
+        .editor-box label { font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; margin-bottom: 0; }
+        .editor-box input { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
+        .editor-box textarea { margin-bottom: 0; padding: 6px 8px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); flex-grow: 1; min-height: 60px; resize: none; }
+        .control-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; }
+        .control-bar button { padding: 4px 8px; font-size: clamp(0.68rem, 1vw, 0.8rem); margin-bottom: 0; width: auto; font-weight: 700; }
 
         @media (orientation: portrait), (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -204,12 +207,12 @@
         </div>
         
         <div class="editor-box">
-            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:10px;">
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:8px;">
                 <label>Time <input type="text" x-model="editTime" placeholder="10:45 AM"></label>
                 <label>Topic Title <input type="text" x-model="editTitle" placeholder="Executive Review"></label>
             </div>
-            <label style="flex-grow:1; display:flex; flex-direction:column;">Topic Detail
-                <textarea x-model="editDetails" style="flex-grow:1; resize:none;" placeholder="<p>Overview details...</p>"></textarea>
+            <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Topic Detail
+                <textarea x-model="editDetails" placeholder="<p>Overview details...</p>"></textarea>
             </label>
             <div class="control-bar" style="justify-content: flex-end;">
                 <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light Mode' : '🌓 Dark Mode'"></button>
