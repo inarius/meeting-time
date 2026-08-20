@@ -156,10 +156,30 @@
             border-bottom: 1px solid #cbd5e1; 
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            transition: background 0.3s, border-color 0.3s; 
+            transition: background 0.3s, border-color 0.3s, box-shadow 0.3s; 
         }
         .next-up-card:hover { background: #e2e8f0; }
-        .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* ALERT VISUAL STATES FOR TEST/UPCOMING NOTIFICATION */
+        .next-up-card.alert-active {
+            background: #fef2f2 !important;
+            border-left-color: #dc2626 !important;
+            border-top-color: #fca5a5 !important;
+            border-right-color: #fca5a5 !important;
+            border-bottom-color: #fca5a5 !important;
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.3) !important;
+            animation: alertPulse 1.5s infinite ease-in-out;
+        }
+        .next-up-card.alert-active .next-label { color: #dc2626 !important; }
+        .next-up-card.alert-active .next-title { color: #991b1b !important; }
+
+        @keyframes alertPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.015); }
+            100% { transform: scale(1); }
+        }
+
+        .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.3s; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; color: #1e293b; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.3s; }
         
         .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-width: 0; min-height: 0; }
@@ -230,6 +250,9 @@
         body.dark-mode .prev-arrow-btn:hover { background: #334155; color: #ffffff; }
         body.dark-mode .next-up-card { background: #0f172a; border-color: #334155; }
         body.dark-mode .next-up-card:hover { background: #334155; }
+        body.dark-mode .next-up-card.alert-active { background: #450a0a !important; border-left-color: #ef4444 !important; border-top-color: #7f1d1d !important; border-right-color: #7f1d1d !important; border-bottom-color: #7f1d1d !important; }
+        body.dark-mode .next-up-card.alert-active .next-label { color: #fca5a5 !important; }
+        body.dark-mode .next-up-card.alert-active .next-title { color: #fef2f2 !important; }
         body.dark-mode .next-label { color: #c084fc; }
         body.dark-mode .next-title { color: #f1f5f9; }
         body.dark-mode .details-viewport { color: #cbd5e1; }
@@ -325,7 +348,7 @@
                 
                 <div class="next-up-container">
                     <button class="prev-arrow-btn" onclick="shiftItem(-1)" title="Previous Topic">◀</button>
-                    <div class="next-up-card" onclick="shiftItem(1)" title="Advance to Next Topic">
+                    <div class="next-up-card" id="nextUpCard" onclick="shiftItem(1)" title="Advance to Next Topic">
                         <div class="next-label">Next Up</div>
                         <div id="presNext" class="next-title">Adjournment</div>
                     </div>
@@ -407,6 +430,7 @@
 <script>
     let meetingTitle = "";
     let wakeLock = null;
+    let alertTimeout = null;
 
     const defaultAgenda = [
         { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
@@ -620,6 +644,18 @@
         if (checkString !== lastCheckedMilestoneTime) evaluateAutomatedTimeTrigger(checkString);
     }
 
+    function triggerNextUpAlert() {
+        const card = document.getElementById('nextUpCard');
+        if (!card) return;
+        
+        card.classList.add('alert-active');
+        if (alertTimeout) clearTimeout(alertTimeout);
+        
+        alertTimeout = setTimeout(() => {
+            card.classList.remove('alert-active');
+        }, 3500);
+    }
+
     function evaluateAutomatedTimeTrigger(currentWallTime) {
         let matchedIndex = -1;
         const currentMins = parseToMinutes(currentWallTime);
@@ -631,6 +667,7 @@
         if (matchedIndex !== -1 && matchedIndex !== currentIndex && !isManualOverride) {
             lastCheckedMilestoneTime = currentWallTime;
             currentIndex = matchedIndex;
+            triggerNextUpAlert();
             renderState();
         } else if (matchedIndex !== -1 && isManualOverride) {
             const exactAgendaTime = agenda[matchedIndex].time.replace(/^0/, '');
@@ -639,6 +676,7 @@
                 lastCheckedMilestoneTime = currentWallTime;
                 isManualOverride = false;
                 currentIndex = matchedIndex;
+                triggerNextUpAlert();
                 renderState();
             }
         }
@@ -760,6 +798,11 @@
     }
 
     function shiftItem(direction) {
+        if (direction < 0 && currentIndex === 0) {
+            triggerNextUpAlert();
+            return;
+        }
+
         isManualOverride = true;
         let targetIndex = currentIndex + direction;
         if (targetIndex >= 0 && targetIndex < agenda.length) {
