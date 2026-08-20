@@ -160,18 +160,18 @@
         }
         .next-up-card:hover { background: #e2e8f0; }
         
-        /* ALERT VISUAL STATES FOR TEST/UPCOMING NOTIFICATION */
+        /* UPDATED VIBRANT SATURATED YELLOW ALERT STATE */
         .next-up-card.alert-active {
-            background: #fef2f2 !important;
-            border-left-color: #dc2626 !important;
-            border-top-color: #fca5a5 !important;
-            border-right-color: #fca5a5 !important;
-            border-bottom-color: #fca5a5 !important;
-            box-shadow: 0 0 12px rgba(220, 38, 38, 0.3) !important;
+            background: #fde047 !important;
+            border-left-color: #ca8a04 !important;
+            border-top-color: #eab308 !important;
+            border-right-color: #eab308 !important;
+            border-bottom-color: #eab308 !important;
+            box-shadow: 0 0 14px rgba(234, 179, 8, 0.45) !important;
             animation: alertPulse 1.5s infinite ease-in-out;
         }
-        .next-up-card.alert-active .next-label { color: #dc2626 !important; }
-        .next-up-card.alert-active .next-title { color: #991b1b !important; }
+        .next-up-card.alert-active .next-label { color: #854d0e !important; }
+        .next-up-card.alert-active .next-title { color: #0f172a !important; }
 
         @keyframes alertPulse {
             0% { transform: scale(1); }
@@ -250,9 +250,9 @@
         body.dark-mode .prev-arrow-btn:hover { background: #334155; color: #ffffff; }
         body.dark-mode .next-up-card { background: #0f172a; border-color: #334155; }
         body.dark-mode .next-up-card:hover { background: #334155; }
-        body.dark-mode .next-up-card.alert-active { background: #450a0a !important; border-left-color: #ef4444 !important; border-top-color: #7f1d1d !important; border-right-color: #7f1d1d !important; border-bottom-color: #7f1d1d !important; }
-        body.dark-mode .next-up-card.alert-active .next-label { color: #fca5a5 !important; }
-        body.dark-mode .next-up-card.alert-active .next-title { color: #fef2f2 !important; }
+        body.dark-mode .next-up-card.alert-active { background: #854d0e !important; border-left-color: #facc15 !important; border-top-color: #ca8a04 !important; border-right-color: #ca8a04 !important; border-bottom-color: #ca8a04 !important; }
+        body.dark-mode .next-up-card.alert-active .next-label { color: #fef08a !important; }
+        body.dark-mode .next-up-card.alert-active .next-title { color: #f8fafc !important; }
         body.dark-mode .next-label { color: #c084fc; }
         body.dark-mode .next-title { color: #f1f5f9; }
         body.dark-mode .details-viewport { color: #cbd5e1; }
@@ -430,7 +430,6 @@
 <script>
     let meetingTitle = "";
     let wakeLock = null;
-    let alertTimeout = null;
 
     const defaultAgenda = [
         { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
@@ -644,16 +643,12 @@
         if (checkString !== lastCheckedMilestoneTime) evaluateAutomatedTimeTrigger(checkString);
     }
 
-    function triggerNextUpAlert() {
+    /* PERSISTENT ALERT STATE: Stays active until next item transition occurs */
+    function setNextUpAlert(active) {
         const card = document.getElementById('nextUpCard');
         if (!card) return;
-        
-        card.classList.add('alert-active');
-        if (alertTimeout) clearTimeout(alertTimeout);
-        
-        alertTimeout = setTimeout(() => {
-            card.classList.remove('alert-active');
-        }, 3500);
+        if (active) card.classList.add('alert-active');
+        else card.classList.remove('alert-active');
     }
 
     function evaluateAutomatedTimeTrigger(currentWallTime) {
@@ -667,7 +662,7 @@
         if (matchedIndex !== -1 && matchedIndex !== currentIndex && !isManualOverride) {
             lastCheckedMilestoneTime = currentWallTime;
             currentIndex = matchedIndex;
-            triggerNextUpAlert();
+            setNextUpAlert(false);
             renderState();
         } else if (matchedIndex !== -1 && isManualOverride) {
             const exactAgendaTime = agenda[matchedIndex].time.replace(/^0/, '');
@@ -676,7 +671,7 @@
                 lastCheckedMilestoneTime = currentWallTime;
                 isManualOverride = false;
                 currentIndex = matchedIndex;
-                triggerNextUpAlert();
+                setNextUpAlert(false);
                 renderState();
             }
         }
@@ -781,6 +776,7 @@
             row.onclick = () => {
                 isManualOverride = true;
                 currentIndex = index;
+                setNextUpAlert(false);
                 renderState();
             };
             rowsBox.appendChild(row);
@@ -799,7 +795,7 @@
 
     function shiftItem(direction) {
         if (direction < 0 && currentIndex === 0) {
-            triggerNextUpAlert();
+            setNextUpAlert(true);
             return;
         }
 
@@ -807,6 +803,7 @@
         let targetIndex = currentIndex + direction;
         if (targetIndex >= 0 && targetIndex < agenda.length) {
             currentIndex = targetIndex;
+            setNextUpAlert(false);
             renderState();
         }
     }
@@ -820,6 +817,7 @@
         const ampm = hrs >= 12 ? 'PM' : 'AM';
         hrs = hrs % 12;
         hrs = hrs ? hrs : 12;
+        setNextUpAlert(false);
         evaluateAutomatedTimeTrigger(`${String(hrs).padStart(2, '0')}:${mins} ${ampm}`);
         renderState();
     }
