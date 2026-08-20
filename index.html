@@ -37,39 +37,51 @@
             border-bottom: 4px solid #cbd5e1;
             display: flex;
             flex-direction: column;
-            padding: 2.5% 3.5%;
-            gap: 16px;
+            padding: 3% 3.5%;
             position: relative;
             transition: background 0.3s, border-color 0.3s;
         }
-        
-        /* MEETING TITLE HEADER BAR */
+
+        /* STRICT SPLIT: Left side maxes out at 38%, right side takes the rest */
+        .presentation-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 38%) 1fr;
+            gap: 28px;
+            flex-grow: 1;
+            height: 100%;
+            width: 100%;
+        }
+
+        .status-panel { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            border-right: 2px solid #cbd5e1; 
+            padding-right: 28px; 
+            box-sizing: border-box;
+            overflow: hidden;
+            transition: border-color 0.3s; 
+        }
+
+        /* TABLE-HEADER STYLE MEETING TITLE */
         .meeting-title-bar {
-            background: #e2e8f0;
-            border-left: 5px solid #2563eb;
-            padding: 8px 16px;
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 10px 14px;
             border-radius: 6px;
-            font-size: clamp(0.9rem, 1.8vw, 1.25rem);
+            font-size: clamp(0.95rem, 1.5vw, 1.2rem);
             font-weight: 800;
-            color: #1e293b;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
+            letter-spacing: 0.01em;
+            margin-bottom: 16px;
+            width: 100%;
+            box-sizing: border-box;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            transition: background 0.3s, color 0.3s, border-color 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            transition: background 0.3s, color 0.3s;
         }
 
-        /* STRICT SPLIT: Left side maxes out at 40%, right side takes the rest */
-        .presentation-grid {
-            display: grid;
-            grid-template-columns: minmax(280px, 40%) 1fr;
-            gap: 24px;
-            flex-grow: 1;
-            height: calc(100% - 50px);
-        }
-
-        .status-panel { display: flex; flex-direction: column; justify-content: space-between; border-right: 2px solid #cbd5e1; padding-right: 24px; transition: border-color 0.3s; }
         .current-meta { display: flex; align-items: center; gap: 12px; color: #0284c7; font-weight: 800; letter-spacing: 0.05em; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
         .current-title { font-size: clamp(1.4rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.2; color: #0f172a; margin-top: 8px; transition: color 0.3s; }
         .current-time-box { font-size: clamp(1rem, 2vw, 1.4rem); color: #475569; margin-top: 4px; font-weight: 600; transition: color 0.3s; }
@@ -88,7 +100,13 @@
         }
 
         /* NEXT UP NAV BAR */
-        .next-up-container { display: flex; align-items: center; gap: 8px; }
+        .next-up-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            width: 100%;
+            box-sizing: border-box;
+        }
         .prev-arrow-btn { 
             background: #f1f5f9; 
             border: 1px solid #cbd5e1; 
@@ -101,12 +119,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%;
+            flex-shrink: 0;
         }
         .prev-arrow-btn:hover { background: #e2e8f0; color: #0f172a; }
 
         .next-up-card { 
             flex-grow: 1;
+            min-width: 0;
             background: #f1f5f9; 
             padding: 12px 16px; 
             border-radius: 8px; 
@@ -145,7 +164,8 @@
             transition: background 0.3s;
         }
         
-        .timeline-box { display: flex; flex-direction: column; background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; overflow: hidden; height: 100%; transition: background 0.3s, border-color 0.3s; }
+        .timeline-container { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+        .timeline-box { display: flex; flex-direction: column; background: #f1f5f9; border-radius: 8px; border: 1px solid #94a3b8; overflow: hidden; flex-grow: 1; transition: background 0.3s, border-color 0.3s; }
         .timeline-header { padding: 10px 14px; background: #e2e8f0; font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.9rem); color: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #cbd5e1; transition: background 0.3s, border-color 0.3s, color 0.3s; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; }
         .timeline-item { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.2s, color 0.2s; font-size: clamp(0.8rem, 1.5vw, 0.95rem); color: #334155; }
@@ -157,6 +177,7 @@
         .control-bar { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn { background: #cbd5e1; color: #0f172a; border: 1px solid #94a3b8; padding: 6px 12px; border-radius: 6px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); transition: background 0.2s, color 0.2s, border-color 0.2s; }
         .btn:hover { background: #94a3b8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-primary { background: #2563eb; color: #ffffff; border: none; }
         .btn-primary:hover { background: #1d4ed8; }
         .btn-success { background: #059669; color: #ffffff; border: none; }
@@ -177,8 +198,8 @@
         /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
-        body.dark-mode .meeting-title-bar { background: #0f172a; border-left-color: #38bdf8; color: #f8fafc; }
-        body.dark-mode .status-panel { border-right-color: #334155; }
+        body.dark-mode .meeting-title-bar { background: #334155; color: #38bdf8; border: 1px solid #475569; }
+        body.dark-mode .status-panel { border-right-color: #334155; border-bottom-color: #334155; }
         body.dark-mode .current-meta { color: #38bdf8; }
         body.dark-mode .current-title { color: #ffffff; }
         body.dark-mode .current-time-box { color: #94a3b8; }
@@ -204,7 +225,27 @@
         body.dark-mode .modal h3 { color: #f8fafc; }
         body.dark-mode .modal p { color: #94a3b8; }
 
+        /* PORTRAIT RESPONSIVE BREAKPOINT */
         @media (orientation: portrait), (max-width: 768px) {
+            .presentation-view {
+                aspect-ratio: auto;
+                min-height: 100vh;
+                padding: 16px;
+            }
+            .presentation-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            .status-panel {
+                border-right: none;
+                border-bottom: 2px solid #cbd5e1;
+                padding-right: 0;
+                padding-bottom: 16px;
+                gap: 12px;
+            }
+            .details-panel {
+                min-height: 300px;
+            }
             .management-view {
                 grid-template-columns: 1fr;
                 aspect-ratio: auto;
@@ -234,13 +275,12 @@
     
     <!-- TOP SECTION: PROJECTED 16:9 VIEWPORT -->
     <div class="presentation-view">
-        
-        <!-- HEADER TITLE BAR -->
-        <div class="meeting-title-bar" id="presMeetingTitle">August 19, 2026</div>
-
         <div class="presentation-grid">
             <div class="status-panel">
                 <div>
+                    <!-- MEETING TITLE HEADER INSIDE LEFT PANEL -->
+                    <div class="meeting-title-bar" id="presMeetingTitle">August 19, 2026</div>
+
                     <div class="current-meta">
                         <span>Now</span>
                         <span class="system-clock" id="sysClock">--:--:-- --</span>
@@ -266,29 +306,31 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <!-- BOTTOM SECTION: MANAGEMENT VIEWPORT -->
     <div class="management-view">
         
-        <div class="timeline-box">
-            <div class="timeline-header">
-                <span>Agenda</span>
-                <div class="control-bar">
-                    <button class="btn" onclick="shiftItem(-1)">◀ Prev</button>
-                    <button class="btn" onclick="shiftItem(1)">Next ▶</button>
-                    <button class="btn btn-primary" onclick="clearOverride()" id="resumeBtn" style="display:none;">Resume Auto</button>
-                </div>
-            </div>
-            <div class="timeline-rows" id="timelineRows"></div>
-        </div>
-        
-        <div class="editor-box">
+        <div class="timeline-container">
             <div class="form-group">
                 <label>Meeting Title</label>
                 <input type="text" id="editMeetingTitle" placeholder="August 19, 2026" oninput="updateMeetingTitle(this.value)">
             </div>
+            
+            <div class="timeline-box">
+                <div class="timeline-header">
+                    <span>Agenda</span>
+                    <div class="control-bar">
+                        <button class="btn" onclick="shiftItem(-1)">◀ Prev</button>
+                        <button class="btn" onclick="shiftItem(1)">Next ▶</button>
+                        <button class="btn btn-primary" onclick="clearOverride()" id="resumeBtn" style="display:none;">Resume Auto</button>
+                    </div>
+                </div>
+                <div class="timeline-rows" id="timelineRows"></div>
+            </div>
+        </div>
+        
+        <div class="editor-box">
             <div class="form-inline">
                 <div class="form-group">
                     <label>Time</label>
@@ -306,8 +348,9 @@
             <div class="control-bar" style="justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="toggleTheme()" id="themeBtn">🌓 Dark Mode</button>
                 <button class="btn btn-secondary" onclick="toggleFullscreen()">📺 Fullscreen</button>
-                <button class="btn btn-success" onclick="shareAgendaURL()">🔗 Share Link</button>
+                <button class="btn btn-success" onclick="shareAgendaURL()">🔗 Share</button>
                 <button class="btn btn-secondary" onclick="openImportModal()">📥 Import</button>
+                <button class="btn btn-secondary" onclick="undoLastAction()" id="undoBtn" disabled title="Undo last action">↩ Undo</button>
                 <button class="btn btn-danger" onclick="deleteCurrentItem()">Delete</button>
                 <button class="btn btn-primary" onclick="saveEditorValues()">Save</button>
                 <button class="btn btn-success" onclick="addNewItemBelow()">+ Add</button>
@@ -339,6 +382,36 @@
         { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
         { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
     ];
+
+    let historyStack = [];
+    const MAX_HISTORY = 20;
+
+    function pushHistoryState() {
+        const snapshot = {
+            agenda: JSON.parse(JSON.stringify(agenda)),
+            currentIndex: currentIndex
+        };
+        historyStack.push(snapshot);
+        if (historyStack.length > MAX_HISTORY) {
+            historyStack.shift();
+        }
+        updateUndoButtonState();
+    }
+
+    function undoLastAction() {
+        if (historyStack.length === 0) return;
+        const previousState = historyStack.pop();
+        agenda = previousState.agenda;
+        currentIndex = previousState.currentIndex;
+        saveAgendaToStorage();
+        renderState();
+        updateUndoButtonState();
+    }
+
+    function updateUndoButtonState() {
+        const btn = document.getElementById('undoBtn');
+        if (btn) btn.disabled = historyStack.length === 0;
+    }
 
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
@@ -724,6 +797,8 @@
             return;
         }
 
+        pushHistoryState();
+
         const payload = { time: timeInput, title: titleInput, details: detailsInput || "" };
 
         if (agenda[currentIndex]) {
@@ -742,6 +817,8 @@
         const titleInput = document.getElementById('editTitle').value.trim() || "New Topic";
         const detailsInput = document.getElementById('editDetails').value.trim() || "";
 
+        pushHistoryState();
+
         const newItem = { time: timeInput, title: titleInput, details: detailsInput };
         
         const insertAt = currentIndex + 1;
@@ -757,6 +834,9 @@
             alert("At least one agenda topic is required.");
             return;
         }
+
+        pushHistoryState();
+
         agenda.splice(currentIndex, 1);
         currentIndex = Math.max(0, currentIndex - 1);
         saveAgendaToStorage();
@@ -782,6 +862,10 @@
     function processImportText() {
         const rawText = document.getElementById('importText').value.trim();
         if (!rawText) return;
+
+        if (!confirm("Warning: Importing text will replace all existing agenda items and reset your undo history. Continue?")) {
+            return;
+        }
 
         const lines = rawText.split('\n');
         const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i;
@@ -829,6 +913,9 @@
         }
 
         if (newAgenda.length > 0) {
+            historyStack = [];
+            updateUndoButtonState();
+
             agenda = newAgenda;
             currentIndex = 0;
             saveAgendaToStorage();
@@ -860,6 +947,7 @@
         initHrs = initHrs ? initHrs : 12;
         evaluateAutomatedTimeTrigger(`${String(initHrs).padStart(2, '0')}:${initMins} ${initAmpm}`);
         renderState();
+        updateUndoButtonState();
     })();
 </script>
 
