@@ -93,6 +93,11 @@
 <div class="app-container">
     <!-- PRESENTATION LAYER -->
     <div class="presentation-view">
+        <!-- DISCREET UPDATE INDICATOR MOVED TO TOP -->
+        <div x-show="lastUpdatedText" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--pico-muted-color); opacity: 0.6; pointer-events: none; z-index: 10;">
+            Updated: <span x-text="lastUpdatedText"></span>
+        </div>
+
         <div class="presentation-grid">
             <header class="status-panel">
                 <div>
@@ -120,11 +125,6 @@
                 </div>
             </section>
         </div>
-
-        <!-- DISCREET UPDATE INDICATOR -->
-        <div x-show="lastUpdatedText" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--pico-muted-color); opacity: 0.6; pointer-events: none;">
-            Updated: <span x-text="lastUpdatedText"></span>
-        </div>
     </div>
 
     <!-- MANAGEMENT LAYER -->
@@ -139,11 +139,8 @@
             <article class="timeline-box">
                 <header class="timeline-header">
                     <span>Agenda</span>
-                    <div role="group">
-                        <button class="secondary outline" @click="shiftItem(-1)">◀</button>
-                        <button class="secondary outline" @click="shiftItem(1)">▶</button>
-                        <button class="primary" x-show="isManualOverride" @click="clearOverride()">Auto</button>
-                    </div>
+                    <!-- REMOVED PREV/NEXT BUTTONS, KEPT RESUME AUTO -->
+                    <button class="primary" style="padding: 4px 8px; margin-bottom: 0; font-size: clamp(0.68rem, 1vw, 0.8rem);" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
                 </header>
                 <div class="timeline-rows">
                     <template x-for="(item, idx) in agenda" :key="idx">
@@ -169,7 +166,8 @@
                 <div role="group">
                     <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
                     <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
-                    <button class="secondary" @click="window.location.reload(true)">🔄</button>
+                    <!-- RESTORED REFRESH TEXT -->
+                    <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
                 </div>
                 <div role="group">
                     <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
