@@ -8,112 +8,62 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Meeting</title>
     
-    <!-- Pico.css (v2 Minimal App Framework) & Alpine.js (v3 Reactive Engine) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        
-        body, html { 
-            height: 100%; width: 100%; 
-            overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth;
-        }
+        body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .app-container { display: flex; flex-direction: column; width: 100vw; }
 
-        .app-container { display: flex; flex-direction: column; width: 100%; max-width: 100vw; }
-
-        /* PRESENTATION VIEW (TOP 100VH FRAME) */
-        .presentation-view {
-            width: 100%; height: 100vh; max-height: 100vh;
-            scroll-snap-align: start; scroll-snap-stop: always;
-            background: var(--pico-background-color);
-            border-bottom: 4px solid var(--pico-muted-border-color);
-            display: flex; flex-direction: column; padding: 3% 3.5%;
-            position: relative; overflow: hidden;
+        /* VIEWPORT LAYOUT SHELLS */
+        .presentation-view, .management-view {
+            width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
+            padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
         }
+        .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; }
+        .management-view { background: var(--pico-secondary-background); gap: 12px; }
 
-        .presentation-grid {
-            display: grid; grid-template-columns: minmax(260px, 43%) 1fr;
-            gap: 28px; flex-grow: 1; height: 100%; width: 100%; position: relative;
-        }
+        .presentation-grid { display: grid; grid-template-columns: minmax(260px, 43%) 1fr; gap: 28px; height: 100%; }
+        .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 20px; position: relative; z-index: 2; }
+        .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
-        .status-panel { 
-            display: flex; flex-direction: column; justify-content: space-between; 
-            padding-right: 20px; position: relative; z-index: 2;
-        }
-        .status-panel::after {
-            content: ""; position: absolute; right: 0; top: 0;
-            height: calc(100% - 75px); width: 2px; background-color: var(--pico-muted-border-color);
-        }
-
-        .meeting-title-bar {
-            background: #1e293b; color: #f8fafc; padding: 10px 14px; border-radius: 6px;
-            font-size: clamp(0.95rem, 1.5vw, 1.2rem); font-weight: 800; margin-bottom: 16px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
+        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 10px 14px; border-radius: 6px; font-size: clamp(0.95rem, 1.5vw, 1.2rem); font-weight: 800; margin-bottom: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .current-meta { display: flex; align-items: center; gap: 12px; color: #0284c7; font-weight: 800; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
         .current-title { font-size: clamp(1.4rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.2; margin-top: 8px; }
         .current-time-box { font-size: clamp(1rem, 2vw, 1.4rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
-        
-        .system-clock { 
-            background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; 
-            font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; 
-        }
+        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
         .next-up-container { display: flex; align-items: center; gap: 8px; width: calc(100% + 10vw); position: relative; z-index: 5; }
-        .prev-btn { margin-bottom: 0; padding: 12px 14px; width: auto; }
-
-        .next-up-card { 
-            flex-grow: 1; min-width: 0; padding: 12px 16px; border-radius: 8px; 
-            border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color);
-            cursor: pointer; transition: all 0.3s ease; margin-bottom: 0;
-        }
-
-        /* OPTION 5 PERMANENT ALERT STATE (APRICOT CREAM / PEACH) */
-        .next-up-card.alert-active {
-            background: #ffedd5 !important; border-left-color: #fed7aa !important;
-            border-top-color: #ffedd5 !important; border-right-color: #ffedd5 !important; border-bottom-color: #ffedd5 !important;
-            box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out;
-        }
+        .next-up-card { flex-grow: 1; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
+        
+        /* ALERT STATE (APRICOT CREAM) */
+        .next-up-card.alert-active { background: #ffedd5 !important; border-color: #fed7aa !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
         .next-up-card.alert-active .next-label { color: #9a3412 !important; }
         .next-up-card.alert-active .next-title { color: #0f172a !important; }
-
-        [data-theme="dark"] .next-up-card.alert-active {
-            background: #431407 !important; border-left-color: #f97316 !important;
-            border-top-color: #c2410c !important; border-right-color: #c2410c !important; border-bottom-color: #c2410c !important;
-        }
+        [data-theme="dark"] .next-up-card.alert-active { background: #431407 !important; border-color: #f97316 !important; }
         [data-theme="dark"] .next-up-card.alert-active .next-label { color: #fed7aa !important; }
         [data-theme="dark"] .next-up-card.alert-active .next-title { color: #f8fafc !important; }
 
         @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
-
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-width: 0; }
+
+        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none; }
         .details-page.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
         .details-viewport ul { padding-left: 24px; margin-top: 8px; }
         .details-viewport li { margin-bottom: 6px; }
 
-        /* MANAGEMENT VIEW (BOTTOM 100VH FRAME) */
-        .management-view { 
-            width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
-            background: var(--pico-secondary-background); display: grid; grid-template-columns: minmax(260px, 43%) 1fr;
-            padding: 2% 3.5%; gap: 12px; overflow: hidden; box-sizing: border-box;
-        }
-        
-        .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-width: 0; min-height: 0; }
-        .title-card-box {
-            background: var(--pico-card-background-color); border-radius: 8px;
-            border: 1px solid var(--pico-muted-border-color); padding: 8px 12px; flex-shrink: 0;
-        }
-        .title-card-box label { margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; }
-        .title-card-box input { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
+        /* MANAGEMENT VIEW OVERRIDES */
+        .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+        .management-view article { margin-bottom: 0; padding: 10px 12px; display: flex; flex-direction: column; }
+        .management-view label { font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; margin-bottom: 0; }
+        .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
+        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; }
 
-        .timeline-box { display: flex; flex-direction: column; background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); overflow: hidden; flex-grow: 1; min-height: 0; }
+        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; }
         .timeline-header { padding: 6px 12px; background: var(--pico-table-row-stripped-background-color); font-weight: 700; font-size: clamp(0.75rem, 1.2vw, 0.85rem); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
         .timeline-item { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
@@ -123,10 +73,6 @@
         .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .editor-box { background: var(--pico-card-background-color); border-radius: 8px; border: 1px solid var(--pico-muted-border-color); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; height: 100%; min-width: 0; min-height: 0; box-sizing: border-box; }
-        .editor-box label { font-size: clamp(0.7rem, 1vw, 0.8rem); font-weight: 700; margin-bottom: 0; }
-        .editor-box input { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
-        .editor-box textarea { margin-bottom: 0; padding: 6px 8px; font-size: clamp(0.8rem, 1.2vw, 0.95rem); flex-grow: 1; min-height: 60px; resize: none; }
         .control-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; }
         .control-bar button { padding: 4px 8px; font-size: clamp(0.68rem, 1vw, 0.8rem); margin-bottom: 0; width: auto; font-weight: 700; }
 
@@ -159,7 +105,7 @@
                 </div>
                 
                 <div class="next-up-container">
-                    <button class="outline secondary prev-btn" @click="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <button class="outline secondary" style="padding:12px 14px; margin-bottom:0;" @click="shiftItem(-1)" title="Previous Topic">◀</button>
                     <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click="shiftItem(1)" title="Advance to Next Topic">
                         <div class="next-label">Next Up</div>
                         <div class="next-title" x-text="nextItem ? `${nextItem.time} - ${nextItem.title}` : 'Adjournment / Session Closed'"></div>
@@ -169,24 +115,22 @@
             
             <div class="details-panel">
                 <div class="details-viewport" id="viewport">
-                    <div class="details-page active" id="fallbackPage">
-                        <p>No item details loaded.</p>
-                    </div>
+                    <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- MANAGEMENT LAYER -->
-    <div class="management-view">
+    <div class="management-view grid">
         <div class="timeline-container">
-            <div class="title-card-box">
+            <article>
                 <label>Meeting Title
                     <input type="text" x-model="meetingTitle" @input="updateTitle()" placeholder="August 19, 2026">
                 </label>
-            </div>
+            </article>
             
-            <div class="timeline-box">
+            <article class="timeline-box">
                 <div class="timeline-header">
                     <span>Agenda</span>
                     <div style="display:flex; gap:4px;">
@@ -203,11 +147,11 @@
                         </div>
                     </template>
                 </div>
-            </div>
+            </article>
         </div>
         
-        <div class="editor-box">
-            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:8px;">
+        <article style="min-height:0; gap:8px;">
+            <div class="grid">
                 <label>Time <input type="text" x-model="editTime" placeholder="10:45 AM"></label>
                 <label>Topic Title <input type="text" x-model="editTitle" placeholder="Executive Review"></label>
             </div>
@@ -217,15 +161,15 @@
             <div class="control-bar" style="justify-content: flex-end;">
                 <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light Mode' : '🌓 Dark Mode'"></button>
                 <button class="secondary" @click="toggleFullscreen()">📺 Fullscreen</button>
-                <button class="secondary" @click="reloadApp()">🔄 Refresh</button>
+                <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
                 <button class="contrast" @click="shareAgendaURL()">🔗 Share</button>
                 <button class="secondary" @click="showImportModal = true">📥 Import</button>
                 <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
-                <button class="outline pico-color-red" style="color:var(--pico-del-color);" @click="deleteCurrentItem()">Delete</button>
+                <button class="outline" style="color:var(--pico-del-color); border-color:var(--pico-del-color);" @click="deleteCurrentItem()">Delete</button>
                 <button class="primary" @click="saveEditorValues()">Save</button>
                 <button class="contrast" @click="addNewItemBelow()">+ Add</button>
             </div>
-        </div>
+        </article>
     </div>
 </div>
 
@@ -245,150 +189,85 @@
 <script>
 function meetingApp() {
     return {
-        meetingTitle: '',
-        agenda: [],
-        currentIndex: 0,
-        isManualOverride: false,
-        isAlertActive: false,
-        isDark: false,
-        sysClockText: '--:--:-- --',
-        lastCheckedMilestoneTime: '',
-        historyStack: [],
-        MAX_HISTORY: 20,
-        editTime: '', editTitle: '', editDetails: '',
-        showImportModal: false, importText: '',
+        meetingTitle: '', agenda: [], currentIndex: 0, isManualOverride: false, isAlertActive: false,
+        isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
+        editTime: '', editTitle: '', editDetails: '', showImportModal: false, importText: '',
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
         get canUndo() { return this.historyStack.length > 0; },
 
         async initApp() {
-            this.initTheme();
+            this.isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
+            document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             this.agenda = await this.loadInitialAgenda();
-            this.requestWakeLock();
+            if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
             this.renderPresentationTextPages();
-            
             setInterval(() => this.updateSystemClock(), 1000);
             window.addEventListener('resize', () => this.renderPresentationTextPages());
         },
 
-        initTheme() {
-            this.isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
-            this.applyTheme();
-        },
         toggleTheme() {
             this.isDark = !this.isDark;
             localStorage.setItem('boardTheme', this.isDark ? 'dark' : 'light');
-            this.applyTheme();
-        },
-        applyTheme() {
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
         },
 
         getTimeString(date = new Date(), includeSeconds = false) {
-            let hrs = date.getHours();
-            const mins = String(date.getMinutes()).padStart(2, '0');
-            const ampm = hrs >= 12 ? 'PM' : 'AM';
-            hrs = hrs % 12 || 12;
-            const normHrs = String(hrs).padStart(2, '0');
+            let hrs = date.getHours(); const mins = String(date.getMinutes()).padStart(2, '0'); const ampm = hrs >= 12 ? 'PM' : 'AM';
+            hrs = hrs % 12 || 12; const normHrs = String(hrs).padStart(2, '0');
             return includeSeconds ? `${normHrs}:${mins}:${String(date.getSeconds()).padStart(2, '0')} ${ampm}` : `${normHrs}:${mins} ${ampm}`;
         },
         updateSystemClock() {
             this.sysClockText = this.getTimeString(new Date(), true);
-            const checkString = this.getTimeString(new Date(), false);
-            if (checkString !== this.lastCheckedMilestoneTime) this.evaluateAutomatedTimeTrigger(checkString);
+            const check = this.getTimeString(new Date(), false);
+            if (check !== this.lastCheckedMilestoneTime) this.evaluateAutomatedTimeTrigger(check);
         },
         parseToMinutes(timeStr) {
-            const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-            if (!match) return 0;
-            let [_, hrs, mins, period] = match;
-            hrs = parseInt(hrs); mins = parseInt(mins);
+            const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i); if (!match) return 0;
+            let [_, hrs, mins, period] = match; hrs = parseInt(hrs); mins = parseInt(mins);
             if (period.toUpperCase() === "PM" && hrs !== 12) hrs += 12;
             if (period.toUpperCase() === "AM" && hrs === 12) hrs = 0;
             return hrs * 60 + mins;
         },
-        sortAgenda() { this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time)); },
         
         evaluateAutomatedTimeTrigger(currentWallTime) {
-            let matchedIndex = -1;
-            const currentMins = this.parseToMinutes(currentWallTime);
-            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matchedIndex = i; });
+            let matched = -1; const currentMins = this.parseToMinutes(currentWallTime);
+            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
 
-            if (matchedIndex !== -1) {
-                const exactAgendaTime = this.agenda[matchedIndex].time.replace(/^0/, '');
-                const exactWallTime = currentWallTime.replace(/^0/, '');
-                if (!this.isManualOverride && matchedIndex !== this.currentIndex) {
-                    this.lastCheckedMilestoneTime = currentWallTime;
-                    this.currentIndex = matchedIndex;
-                    this.isAlertActive = false;
-                    this.syncEditorInputs();
-                    this.renderPresentationTextPages();
-                } else if (this.isManualOverride && exactAgendaTime === exactWallTime && this.lastCheckedMilestoneTime !== currentWallTime) {
-                    this.lastCheckedMilestoneTime = currentWallTime;
-                    this.isManualOverride = false;
-                    this.currentIndex = matchedIndex;
-                    this.isAlertActive = false;
-                    this.syncEditorInputs();
-                    this.renderPresentationTextPages();
+            if (matched !== -1) {
+                const exactAgenda = this.agenda[matched].time.replace(/^0/, '');
+                const exactWall = currentWallTime.replace(/^0/, '');
+                if (!this.isManualOverride && matched !== this.currentIndex) {
+                    this.lastCheckedMilestoneTime = currentWallTime; this.currentIndex = matched; this.isAlertActive = false;
+                    this.syncEditorInputs(); this.renderPresentationTextPages();
+                } else if (this.isManualOverride && exactAgenda === exactWall && this.lastCheckedMilestoneTime !== currentWallTime) {
+                    this.lastCheckedMilestoneTime = currentWallTime; this.isManualOverride = false; this.currentIndex = matched; this.isAlertActive = false;
+                    this.syncEditorInputs(); this.renderPresentationTextPages();
                 }
             }
         },
 
         shiftItem(dir) {
-            if (dir < 0 && this.currentIndex === 0) {
-                this.isAlertActive = !this.isAlertActive;
-                return;
-            }
-            this.isManualOverride = true;
-            const target = this.currentIndex + dir;
-            if (target >= 0 && target < this.agenda.length) {
-                this.currentIndex = target;
-                this.isAlertActive = false;
-                this.syncEditorInputs();
-                this.renderPresentationTextPages();
-            }
+            if (dir < 0 && this.currentIndex === 0) { this.isAlertActive = !this.isAlertActive; return; }
+            this.isManualOverride = true; const target = this.currentIndex + dir;
+            if (target >= 0 && target < this.agenda.length) { this.currentIndex = target; this.isAlertActive = false; this.syncEditorInputs(); this.renderPresentationTextPages(); }
         },
-        selectItem(idx) {
-            this.isManualOverride = true;
-            this.currentIndex = idx;
-            this.isAlertActive = false;
-            this.syncEditorInputs();
-            this.renderPresentationTextPages();
-        },
-        clearOverride() {
-            this.isManualOverride = false;
-            this.lastCheckedMilestoneTime = "";
-            this.isAlertActive = false;
-            this.evaluateAutomatedTimeTrigger(this.getTimeString());
-            this.syncEditorInputs();
-            this.renderPresentationTextPages();
-        },
+        selectItem(idx) { this.isManualOverride = true; this.currentIndex = idx; this.isAlertActive = false; this.syncEditorInputs(); this.renderPresentationTextPages(); },
+        clearOverride() { this.isManualOverride = false; this.lastCheckedMilestoneTime = ""; this.isAlertActive = false; this.evaluateAutomatedTimeTrigger(this.getTimeString()); this.syncEditorInputs(); this.renderPresentationTextPages(); },
 
-        updateTitle() {
-            document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting";
-            localStorage.setItem('boardMeetingTitle', this.meetingTitle);
-        },
+        updateTitle() { document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting"; localStorage.setItem('boardMeetingTitle', this.meetingTitle); },
         syncEditorInputs() {
-            if (this.currentItem) {
-                this.editTime = this.currentItem.time;
-                this.editTitle = this.currentItem.title;
-                this.editDetails = this.currentItem.details;
-            } else { this.editTime = ""; this.editTitle = ""; this.editDetails = ""; }
+            if (this.currentItem) { this.editTime = this.currentItem.time; this.editTitle = this.currentItem.title; this.editDetails = this.currentItem.details; }
+            else { this.editTime = ""; this.editTitle = ""; this.editDetails = ""; }
         },
-        pushHistoryState() {
-            this.historyStack.push({ agenda: JSON.parse(JSON.stringify(this.agenda)), currentIndex: this.currentIndex });
-            if (this.historyStack.length > this.MAX_HISTORY) this.historyStack.shift();
-        },
+        pushHistoryState() { this.historyStack.push({ agenda: JSON.parse(JSON.stringify(this.agenda)), currentIndex: this.currentIndex }); if (this.historyStack.length > this.MAX_HISTORY) this.historyStack.shift(); },
         undoLastAction() {
-            if (!this.canUndo) return;
-            const prev = this.historyStack.pop();
-            this.agenda = prev.agenda;
-            this.currentIndex = prev.currentIndex;
-            this.saveAgenda();
-            this.syncEditorInputs();
-            this.renderPresentationTextPages();
+            if (!this.canUndo) return; const prev = this.historyStack.pop();
+            this.agenda = prev.agenda; this.currentIndex = prev.currentIndex;
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages();
         },
         saveEditorValues() {
             if (!this.editTime.trim() || !this.editTitle.trim()) return alert("Time and title parameters are required.");
@@ -396,170 +275,98 @@ function meetingApp() {
             const payload = { time: this.editTime.trim(), title: this.editTitle.trim(), details: this.editDetails.trim() };
             if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
             else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
-            this.sortAgenda();
-            this.saveAgenda();
-            this.renderPresentationTextPages();
+            this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.renderPresentationTextPages();
         },
         addNewItemBelow() {
             this.pushHistoryState();
-            const newItem = {
-                time: this.editTime.trim() || "12:00 PM",
-                title: this.editTitle.trim() || "New Topic",
-                details: this.editDetails.trim() || ""
-            };
             this.currentIndex++;
-            this.agenda.splice(this.currentIndex, 0, newItem);
-            this.sortAgenda();
-            this.saveAgenda();
-            this.syncEditorInputs();
-            this.renderPresentationTextPages();
+            this.agenda.splice(this.currentIndex, 0, { time: this.editTime.trim() || "12:00 PM", title: this.editTitle.trim() || "New Topic", details: this.editDetails.trim() || "" });
+            this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages();
         },
         deleteCurrentItem() {
             if (this.agenda.length <= 1) return alert("At least one agenda topic is required.");
-            this.pushHistoryState();
-            this.agenda.splice(this.currentIndex, 1);
+            this.pushHistoryState(); this.agenda.splice(this.currentIndex, 1);
             this.currentIndex = Math.max(0, this.currentIndex - 1);
-            this.saveAgenda();
-            this.syncEditorInputs();
-            this.renderPresentationTextPages();
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages();
         },
-        saveAgenda() { localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); },
 
         renderPresentationTextPages() {
-            const container = document.getElementById('viewport');
-            if (!container) return;
+            const container = document.getElementById('viewport'); if (!container) return;
             if (window.carouselInterval) clearInterval(window.carouselInterval);
             container.innerHTML = "";
-
-            if (!this.agenda.length || !this.currentItem) {
-                container.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
-                return;
-            }
+            if (!this.agenda.length || !this.currentItem) { container.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>'; return; }
 
             const testDiv = document.createElement('div');
             testDiv.style.cssText = `width:${container.clientWidth}px; position:absolute; visibility:hidden; font-size:1.25rem; line-height:1.6;`;
-            testDiv.innerHTML = this.currentItem.details;
-            document.body.appendChild(testDiv);
+            testDiv.innerHTML = this.currentItem.details; document.body.appendChild(testDiv);
 
-            const pagesData = [];
-            let currentPageHTML = "", currentHeight = 0;
-            const maxHeight = container.clientHeight - 20;
-
+            const pagesData = []; let currentPageHTML = "", currentHeight = 0; const maxHeight = container.clientHeight - 20;
             Array.from(testDiv.childNodes).forEach(node => {
                 const tempBox = document.createElement('div');
                 tempBox.style.cssText = `width:${container.clientWidth}px; font-size:1.25rem; line-height:1.6;`;
-                tempBox.appendChild(node.cloneNode(true));
-                document.body.appendChild(tempBox);
+                tempBox.appendChild(node.cloneNode(true)); document.body.appendChild(tempBox);
+                const nodeHeight = tempBox.clientHeight; document.body.removeChild(tempBox);
 
-                const nodeHeight = tempBox.clientHeight;
-                document.body.removeChild(tempBox);
-
-                if (currentHeight + nodeHeight > maxHeight && currentPageHTML !== "") {
-                    pagesData.push(currentPageHTML);
-                    currentPageHTML = "";
-                    currentHeight = 0;
-                }
-
-                currentPageHTML += (node.nodeType === Node.TEXT_NODE) ? node.textContent : node.outerHTML;
-                currentHeight += nodeHeight;
+                if (currentHeight + nodeHeight > maxHeight && currentPageHTML !== "") { pagesData.push(currentPageHTML); currentPageHTML = ""; currentHeight = 0; }
+                currentPageHTML += (node.nodeType === Node.TEXT_NODE) ? node.textContent : node.outerHTML; currentHeight += nodeHeight;
             });
-
             if (currentPageHTML) pagesData.push(currentPageHTML);
             document.body.removeChild(testDiv);
 
             pagesData.forEach((html, idx) => {
-                const pageDiv = document.createElement('div');
-                pageDiv.className = `details-page ${idx === 0 ? 'active' : ''}`;
-                pageDiv.innerHTML = html;
-                container.appendChild(pageDiv);
+                const pageDiv = document.createElement('div'); pageDiv.className = `details-page ${idx === 0 ? 'active' : ''}`;
+                pageDiv.innerHTML = html; container.appendChild(pageDiv);
             });
 
             if (pagesData.length > 1) {
                 let activeIdx = 0;
                 window.carouselInterval = setInterval(() => {
-                    const pages = container.querySelectorAll('.details-page');
-                    if (!pages.length) return;
-                    pages[activeIdx].classList.remove('active');
-                    activeIdx = (activeIdx + 1) % pages.length;
-                    pages[activeIdx].classList.add('active');
+                    const pages = container.querySelectorAll('.details-page'); if (!pages.length) return;
+                    pages[activeIdx].classList.remove('active'); activeIdx = (activeIdx + 1) % pages.length; pages[activeIdx].classList.add('active');
                 }, 8000);
             }
         },
 
         async shareAgendaURL() {
             try {
-                const compressed = await this.encodeAgendaToURL(this.agenda);
-                const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${compressed}`;
-                await navigator.clipboard.writeText(shareURL);
-                alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
+                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ({ t: item.time, i: item.title, d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim() })) };
+                const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
+                const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
+                await navigator.clipboard.writeText(shareURL); alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
             } catch (e) { alert("Failed to generate compressed share link."); }
         },
-        async encodeAgendaToURL(data) {
-            const minified = {
-                m: this.meetingTitle,
-                items: data.map(item => ({
-                    t: item.time, i: item.title,
-                    d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim()
-                }))
-            };
-            const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-            const buffer = await new Response(stream).arrayBuffer();
-            let binary = '';
-            new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
-            return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        },
-        async decodeAgendaFromURL(base64Str) {
-            let base64 = base64Str.replace(/-/g, '+').replace(/_/g, '/');
-            while (base64.length % 4) base64 += '=';
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-            const minified = JSON.parse(await new Response(stream).text());
-
-            if (minified.m !== undefined) {
-                this.meetingTitle = minified.m;
-                this.updateTitle();
-            }
-
-            return (minified.items || minified).map(item => {
-                let detailsHtml = item.d;
-                if (detailsHtml.includes('- ') || detailsHtml.includes('\n')) {
-                    let html = '', inList = false;
-                    detailsHtml.split('\n').forEach(l => {
-                        const line = l.trim();
-                        if (!line) return;
-                        if (line.startsWith('- ')) {
-                            if (!inList) { html += '<ul>'; inList = true; }
-                            html += `<li>${line.replace(/^-\s*/, '')}</li>`;
-                        } else {
-                            if (inList) { html += '</ul>'; inList = false; }
-                            html += `<p>${line}</p>`;
-                        }
-                    });
-                    if (inList) html += '</ul>';
-                    detailsHtml = html;
-                } else if (detailsHtml) detailsHtml = `<p>${detailsHtml}</p>`;
-                return { time: item.t, title: item.i, details: detailsHtml };
-            });
-        },
         async loadInitialAgenda() {
-            this.meetingTitle = localStorage.getItem('boardMeetingTitle') || "August 19, 2026";
-            this.updateTitle();
-
+            this.meetingTitle = localStorage.getItem('boardMeetingTitle') || "August 19, 2026"; this.updateTitle();
             if (window.location.hash.startsWith('#agenda=')) {
                 try {
-                    const decoded = await this.decodeAgendaFromURL(window.location.hash.replace('#agenda=', ''));
-                    if (Array.isArray(decoded) && decoded.length) {
-                        localStorage.setItem('boardAgenda', JSON.stringify(decoded));
-                        return decoded;
-                    }
+                    let base64 = window.location.hash.replace('#agenda=', '').replace(/-/g, '+').replace(/_/g, '/');
+                    while (base64.length % 4) base64 += '=';
+                    const binary = atob(base64); const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                    const minified = JSON.parse(await new Response(stream).text());
+                    if (minified.m !== undefined) { this.meetingTitle = minified.m; this.updateTitle(); }
+                    const decoded = (minified.items || minified).map(item => {
+                        let d = item.d;
+                        if (d.includes('- ') || d.includes('\n')) {
+                            let html = '', inList = false;
+                            d.split('\n').forEach(l => {
+                                const line = l.trim(); if (!line) return;
+                                if (line.startsWith('- ')) { if (!inList) { html += '<ul>'; inList = true; } html += `<li>${line.replace(/^-\s*/, '')}</li>`; }
+                                else { if (inList) { html += '</ul>'; inList = false; } html += `<p>${line}</p>`; }
+                            });
+                            if (inList) html += '</ul>'; d = html;
+                        } else if (d) d = `<p>${d}</p>`;
+                        return { time: item.t, title: item.i, details: d };
+                    });
+                    if (Array.isArray(decoded) && decoded.length) { localStorage.setItem('boardAgenda', JSON.stringify(decoded)); return decoded; }
                 } catch (e) {}
             }
             const stored = localStorage.getItem('boardAgenda');
-            if (stored) {
-                try { return JSON.parse(stored); } catch (e) {}
-            }
+            if (stored) { try { return JSON.parse(stored); } catch (e) {} }
             return [
                 { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
                 { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
@@ -569,71 +376,31 @@ function meetingApp() {
 
         processImportText() {
             if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
-
-            const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i;
-            const newAgenda = [];
-            let currentItem = null, inList = false, titleFound = false;
-
+            const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, inList = false, titleFound = false;
             this.importText.trim().split('\n').forEach(line => {
-                const trimmed = line.trim();
-                if (!trimmed) return;
-
-                if (!titleFound && !newAgenda.length && !currentItem && !timePattern.test(trimmed)) {
-                    this.meetingTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, '');
-                    this.updateTitle();
-                    titleFound = true;
-                    return;
-                }
-
+                const trimmed = line.trim(); if (!trimmed) return;
+                if (!titleFound && !newAgenda.length && !currentItem && !timePattern.test(trimmed)) { this.meetingTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, ''); this.updateTitle(); titleFound = true; return; }
                 const match = trimmed.match(timePattern);
                 if (match && (match[1].toUpperCase().includes('AM') || match[1].toUpperCase().includes('PM') || match[1].includes(':'))) {
-                    if (currentItem) {
-                        if (inList) currentItem.details += '</ul>';
-                        newAgenda.push(currentItem);
-                    }
-                    let timeStr = match[1].trim();
-                    if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
-                    currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" };
-                    inList = false;
+                    if (currentItem) { if (inList) currentItem.details += '</ul>'; newAgenda.push(currentItem); }
+                    let timeStr = match[1].trim(); if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
+                    currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" }; inList = false;
                 } else if (currentItem) {
-                    if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-                        if (!inList) { currentItem.details += '<ul>'; inList = true; }
-                        currentItem.details += `<li>${trimmed.replace(/^[-*]\s*/, '')}</li>`;
-                    } else {
-                        if (inList) { currentItem.details += '</ul>'; inList = false; }
-                        currentItem.details += `<p>${trimmed}</p>`;
-                    }
+                    if (trimmed.startsWith('-') || trimmed.startsWith('*')) { if (!inList) { currentItem.details += '<ul>'; inList = true; } currentItem.details += `<li>${trimmed.replace(/^[-*]\s*/, '')}</li>`; }
+                    else { if (inList) { currentItem.details += '</ul>'; inList = false; } currentItem.details += `<p>${trimmed}</p>`; }
                 }
             });
-
-            if (currentItem) {
-                if (inList) currentItem.details += '</ul>';
-                newAgenda.push(currentItem);
-            }
-
+            if (currentItem) { if (inList) currentItem.details += '</ul>'; newAgenda.push(currentItem); }
             if (newAgenda.length) {
-                this.historyStack = [];
-                this.agenda = newAgenda;
-                this.currentIndex = 0;
-                this.saveAgenda();
-                this.syncEditorInputs();
-                this.renderPresentationTextPages();
-                this.showImportModal = false;
-                this.importText = '';
+                this.historyStack = []; this.agenda = newAgenda; this.currentIndex = 0;
+                localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.showImportModal = false; this.importText = '';
             } else alert("Could not parse time indexes.");
         },
 
         toggleFullscreen() {
             const doc = document.documentElement;
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                (doc.requestFullscreen || doc.webkitRequestFullscreen).call(doc).catch(() => alert("Fullscreen disabled by browser."));
-            } else { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
-        },
-        reloadApp() { window.location.reload(true); },
-        async requestWakeLock() {
-            if ('wakeLock' in navigator) {
-                try { await navigator.wakeLock.request('screen'); } catch (e) {}
-            }
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) { (doc.requestFullscreen || doc.webkitRequestFullscreen).call(doc).catch(() => alert("Fullscreen disabled by browser.")); }
+            else { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
         }
     }
 }
