@@ -58,16 +58,16 @@
 
         /* MANAGEMENT VIEW */
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
-        .management-view article { margin-bottom: 0; padding: 10px 12px; display: flex; flex-direction: column; }
+        .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
         .management-view label { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; margin-bottom: 0; }
         .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
         .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; }
 
         .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); }
-        .timeline-header { padding: 10px 12px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
         .timeline-header span { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
-        .timeline-item { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
+        .timeline-item { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
         .timeline-item.active { background: #bae6fd; color: #0369a1; border-left: 5px solid #0284c7; font-weight: 700; }
         [data-theme="dark"] .timeline-item.active { background: #1e3a8a; color: #38bdf8; border-left-color: #38bdf8; }
@@ -138,10 +138,10 @@
             </article>
             
             <article class="timeline-box">
-                <header class="timeline-header">
+                <div class="timeline-header">
                     <span>Agenda</span>
                     <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
-                </header>
+                </div>
                 <div class="timeline-rows">
                     <template x-for="(item, idx) in agenda" :key="idx">
                         <div class="timeline-item" :class="{ 'active': idx === currentIndex }" @click="selectItem(idx)">
@@ -213,7 +213,7 @@ function meetingApp() {
             this.agenda = await this.loadInitialAgenda();
             if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
             
-            // Check Document Last Modified Date (Removed local test overriding condition)
+            // Check Document Last Modified Date
             const modDate = new Date(document.lastModified);
             if (!isNaN(modDate) && modDate.getFullYear() > 1970) {
                 this.lastUpdatedText = modDate.toLocaleString();
