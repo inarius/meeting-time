@@ -35,14 +35,40 @@
             scroll-snap-stop: always;
             background: #f8fafc;
             border-bottom: 4px solid #cbd5e1;
-            display: grid;
-            grid-template-columns: 2fr 3fr;
-            padding: 4% 4% 3% 4%;
-            gap: 24px;
+            display: flex;
+            flex-direction: column;
+            padding: 2.5% 3.5%;
+            gap: 16px;
             position: relative;
             transition: background 0.3s, border-color 0.3s;
         }
         
+        /* MEETING TITLE HEADER BAR */
+        .meeting-title-bar {
+            background: #e2e8f0;
+            border-left: 5px solid #2563eb;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: clamp(0.9rem, 1.8vw, 1.25rem);
+            font-weight: 800;
+            color: #1e293b;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        /* STRICT SPLIT: Left side maxes out at 40%, right side takes the rest */
+        .presentation-grid {
+            display: grid;
+            grid-template-columns: minmax(280px, 40%) 1fr;
+            gap: 24px;
+            flex-grow: 1;
+            height: calc(100% - 50px);
+        }
+
         .status-panel { display: flex; flex-direction: column; justify-content: space-between; border-right: 2px solid #cbd5e1; padding-right: 24px; transition: border-color 0.3s; }
         .current-meta { display: flex; align-items: center; gap: 12px; color: #0284c7; font-weight: 800; letter-spacing: 0.05em; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
         .current-title { font-size: clamp(1.4rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.2; color: #0f172a; margin-top: 8px; transition: color 0.3s; }
@@ -151,6 +177,7 @@
         /* DARK MODE OVERRIDES */
         body.dark-mode { background: #0f172a; color: #f8fafc; }
         body.dark-mode .presentation-view { background: #1e293b; border-bottom-color: #334155; }
+        body.dark-mode .meeting-title-bar { background: #0f172a; border-left-color: #38bdf8; color: #f8fafc; }
         body.dark-mode .status-panel { border-right-color: #334155; }
         body.dark-mode .current-meta { color: #38bdf8; }
         body.dark-mode .current-title { color: #ffffff; }
@@ -207,32 +234,39 @@
     
     <!-- TOP SECTION: PROJECTED 16:9 VIEWPORT -->
     <div class="presentation-view">
-        <div class="status-panel">
-            <div>
-                <div class="current-meta">
-                    <span>Now</span>
-                    <span class="system-clock" id="sysClock">--:--:-- --</span>
+        
+        <!-- HEADER TITLE BAR -->
+        <div class="meeting-title-bar" id="presMeetingTitle">August 19, 2026</div>
+
+        <div class="presentation-grid">
+            <div class="status-panel">
+                <div>
+                    <div class="current-meta">
+                        <span>Now</span>
+                        <span class="system-clock" id="sysClock">--:--:-- --</span>
+                    </div>
+                    <div id="presTitle" class="current-title">No Active Agenda Item</div>
+                    <div id="presTime" class="current-time-box">--:--</div>
                 </div>
-                <div id="presTitle" class="current-title">No Active Agenda Item</div>
-                <div id="presTime" class="current-time-box">--:--</div>
+                
+                <div class="next-up-container">
+                    <button class="prev-arrow-btn" onclick="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <div class="next-up-card" onclick="shiftItem(1)" title="Advance to Next Topic">
+                        <div class="next-label">Next Up</div>
+                        <div id="presNext" class="next-title">Adjournment</div>
+                    </div>
+                </div>
             </div>
             
-            <div class="next-up-container">
-                <button class="prev-arrow-btn" onclick="shiftItem(-1)" title="Previous Topic">◀</button>
-                <div class="next-up-card" onclick="shiftItem(1)" title="Advance to Next Topic">
-                    <div class="next-label">Next Up</div>
-                    <div id="presNext" class="next-title">Adjournment</div>
+            <div class="details-panel">
+                <div class="details-viewport" id="viewport">
+                    <div class="details-page active" id="fallbackPage">
+                        <p>No item details loaded.</p>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="details-panel">
-            <div class="details-viewport" id="viewport">
-                <div class="details-page active" id="fallbackPage">
-                    <p>No item details loaded.</p>
-                </div>
-            </div>
-        </div>
+
     </div>
 
     <!-- BOTTOM SECTION: MANAGEMENT VIEWPORT -->
@@ -328,10 +362,15 @@
 
     function updateMeetingTitle(newTitle) {
         meetingTitle = newTitle ? newTitle.trim() : "";
+        const titleBar = document.getElementById('presMeetingTitle');
+        
         if (meetingTitle) {
             document.title = `Meeting - ${meetingTitle}`;
+            titleBar.innerText = meetingTitle;
+            titleBar.style.display = 'block';
         } else {
             document.title = "Meeting";
+            titleBar.style.display = 'none';
         }
         localStorage.setItem('boardMeetingTitle', meetingTitle);
     }
