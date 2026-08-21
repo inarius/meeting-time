@@ -455,8 +455,14 @@ function meetingApp() {
 
         toggleFullscreen() {
             const doc = document.documentElement;
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) { (doc.requestFullscreen || doc.webkitRequestFullscreen).call(doc).catch(() => alert("Fullscreen disabled by browser.")); }
-            else { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) { 
+                const req = doc.requestFullscreen || doc.webkitRequestFullscreen;
+                if (req) req.call(doc).catch(() => alert("Fullscreen not supported by browser."));
+                else alert("Fullscreen not supported on this device.");
+            } else { 
+                const exit = document.exitFullscreen || document.webkitExitFullscreen;
+                if (exit) exit.call(document); 
+            }
         }
     }
 }
