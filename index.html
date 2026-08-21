@@ -23,8 +23,15 @@
         }
         .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; }
         
-        /* RESTORED GRID TEMPLATE FOR LANDSCAPE */
-        .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, 43%) 1fr; }
+        /* UPDATED GRID TEMPLATE FOR MANAGEMENT */
+        .management-view { 
+            background: var(--pico-secondary-background); 
+            gap: 12px; 
+            display: grid; 
+            grid-template-columns: minmax(260px, 43%) 1fr; 
+            grid-template-rows: auto 1fr; /* Allows top nav rows to sit above the expanding cards */
+            position: relative; /* For absolute positioning of the updated text */
+        }
 
         .presentation-grid { display: grid; grid-template-columns: minmax(260px, 43%) 1fr; gap: 28px; height: 100%; }
         .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 20px; position: relative; z-index: 2; }
@@ -80,6 +87,9 @@
         .control-bar [role="group"] { margin-bottom: 0; }
         .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
 
+        .top-nav-row { display: flex; }
+        .top-nav-right { justify-content: flex-end; }
+
         @media (orientation: portrait), (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
             .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
@@ -88,6 +98,7 @@
             .details-panel { order: 2; flex-grow: 1; min-height: 0; }
             .next-up-container { order: 3; width: 100%; margin-top: auto; }
             .timeline-container { height: auto; max-height: 35vh; }
+            .top-nav-right { justify-content: flex-start; } /* Aligns buttons left in portrait mode */
         }
     </style>
 </head>
@@ -96,11 +107,6 @@
 <div class="app-container">
     <!-- PRESENTATION LAYER -->
     <div class="presentation-view">
-        <!-- DISCREET UPDATE INDICATOR -->
-        <div x-show="lastUpdatedText" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: var(--pico-muted-color); font-weight: 600; pointer-events: none; z-index: 100;">
-            Updated: <span x-text="lastUpdatedText"></span>
-        </div>
-
         <div class="presentation-grid">
             <header class="status-panel">
                 <div>
@@ -132,6 +138,30 @@
 
     <!-- MANAGEMENT LAYER -->
     <div class="management-view">
+        
+        <!-- DISCREET UPDATE INDICATOR (MOVED TO LOWER RIGHT) -->
+        <div x-show="lastUpdatedText" style="position: absolute; bottom: 8px; right: 16px; font-size: 0.70rem; color: var(--pico-muted-color); font-weight: 600; pointer-events: none; z-index: 100;">
+            Updated: <span x-text="lastUpdatedText"></span>
+        </div>
+
+        <!-- GRID ROW 1, COL 1: Share / Import -->
+        <nav class="top-nav-row">
+            <div role="group" style="margin-bottom: 0;">
+                <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
+                <button class="secondary" @click="$refs.importModal.showModal()">📥 Import</button>
+            </div>
+        </nav>
+
+        <!-- GRID ROW 1, COL 2: Theme / Fullscreen / Refresh -->
+        <nav class="top-nav-row top-nav-right">
+            <div role="group" style="margin-bottom: 0;">
+                <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
+                <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
+                <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
+            </div>
+        </nav>
+
+        <!-- GRID ROW 2, COL 1: Meeting Title & Timeline -->
         <div class="timeline-container">
             <article>
                 <label>Meeting Title
@@ -155,7 +185,8 @@
             </article>
         </div>
         
-        <article style="min-height:0; gap:8px;">
+        <!-- GRID ROW 2, COL 2: Editor Box -->
+        <article style="min-height:0; gap:8px; display:flex; flex-direction:column;">
             <div class="grid">
                 <label>Time <input type="text" x-model="editTime" placeholder="10:45 AM"></label>
                 <label>Topic Title <input type="text" x-model="editTitle" placeholder="Executive Review"></label>
@@ -164,16 +195,8 @@
                 <textarea x-model="editDetails" placeholder="<p>Overview details...</p>"></textarea>
             </label>
             
+            <!-- EDITOR ACTION BUTTONS -->
             <nav class="control-bar">
-                <div role="group">
-                    <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
-                    <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
-                    <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
-                </div>
-                <div role="group">
-                    <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
-                    <button class="secondary" @click="$refs.importModal.showModal()">📥 Import</button>
-                </div>
                 <div role="group">
                     <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
                     <button class="secondary outline" @click="deleteCurrentItem()">Delete</button>
