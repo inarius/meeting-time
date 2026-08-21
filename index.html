@@ -92,6 +92,13 @@
         .top-nav-row [role="group"] { margin-bottom: 0; }
         .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
         .top-nav-right { justify-content: flex-end; }
+        
+        .centered-button-group {
+            display: flex !important;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
 
         @keyframes spin-emoji { 100% { transform: rotate(360deg); } }
         .spin-anim { display: inline-block; animation: spin-emoji 1s linear infinite; }
@@ -154,7 +161,7 @@
     <div class="management-view">
         <!-- GRID ROW 1, COL 1: Share / Import -->
         <nav class="top-nav-row">
-            <div role="group">
+            <div role="group" class="centered-button-group">
                 <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
                 <button class="secondary" @click="$refs.importModal.showModal()">📥 Import</button>
             </div>
@@ -162,7 +169,7 @@
 
         <!-- GRID ROW 1, COL 2: Theme / Fullscreen / Refresh -->
         <nav class="top-nav-row top-nav-right">
-            <div role="group">
+            <div role="group" class="centered-button-group">
                 <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
                 <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
                 <button class="secondary" @click="smartRefresh()" :disabled="isRefreshing">
@@ -464,7 +471,7 @@ function meetingApp() {
             const stored = localStorage.getItem('boardAgenda');
             if (stored) { try { return JSON.parse(stored); } catch (e) {} }
             return [
-                { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorum:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
+                { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorumc:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
                 { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
                 { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
             ];
