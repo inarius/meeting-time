@@ -259,7 +259,15 @@
     <article>
         <h3>Bulk Import Agenda</h3>
         <p>Paste time-indexed text below:</p>
-        <textarea x-model="importText" style="height: 140px;" placeholder="10:00 AM Call to Order"></textarea>
+        <textarea x-model="importText" style="height: 220px;" placeholder="August 20, 2026 Board Meeting
+        
+10:00 AM Call to Order
+Initial protocols and setup.
+- Roll call of members
+- Approval of previous minutes
+
+10:45 AM Financial Review
+Review of Q3 expenditures."></textarea>
         <footer>
             <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
             <button class="primary" @click="processImportText(); $refs.importModal.close()">Import</button>
