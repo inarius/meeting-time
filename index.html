@@ -90,7 +90,8 @@
         /* REFINED TOP NAV SIZING & ANIMATIONS */
         .top-nav-row { display: flex; align-items: center; }
         .top-nav-row [role="group"] { margin-bottom: 0; }
-        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+        /* ADDED: justify-content: center to properly center the text and icon inside the button */
+        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
         .top-nav-right { justify-content: flex-end; }
         
         .centered-button-group {
