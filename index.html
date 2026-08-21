@@ -51,7 +51,7 @@
             .next-up-container {
                 width: max-content;
                 min-width: calc(100% + 10vw);
-                max-width: 185%;
+                max-width: 200%;
             }
         }
         
@@ -139,7 +139,8 @@
             color: #94a3b8; 
         }
 
-        @media (orientation: portrait), (max-width: 768px) {
+        /* MOBILE / PORTRAIT MEDIA QUERY */
+        @media (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
             .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
             .status-panel { display: contents; }
@@ -149,8 +150,8 @@
             /* STRICT PORTRAIT BOUNDARIES */
             .next-up-container { 
                 order: 3; 
-                width: 100% !important; 
-                max-width: 92% !important; 
+                width: 96% !important; 
+                max-width: 96% !important; 
                 margin-top: auto; 
             }
             
