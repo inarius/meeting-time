@@ -12,6 +12,17 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
+        :root, html[data-theme="light"] {
+            --alert-bg: #ffedd5; --alert-border: #fed7aa; --alert-lbl: #9a3412; --alert-txt: #0f172a;
+            --active-bg: #bae6fd; --active-txt: #0369a1; --active-border: #0284c7;
+            --ts-color: #8ca3ba; --btn-border: #94a3b8;
+        }
+        html[data-theme="dark"] {
+            --alert-bg: #431407; --alert-border: #f97316; --alert-lbl: #fed7aa; --alert-txt: #f8fafc;
+            --active-bg: #1e3a8a; --active-txt: #38bdf8; --active-border: #38bdf8;
+            --ts-color: #94a3b8; --btn-border: #475569;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
         .app-container { display: flex; flex-direction: column; width: 100vw; }
@@ -22,15 +33,9 @@
             padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
         }
         .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; }
-        
-        /* UPDATED GRID TEMPLATE FOR MANAGEMENT */
         .management-view { 
-            background: var(--pico-secondary-background); 
-            gap: 12px; 
-            display: grid; 
-            grid-template-columns: minmax(260px, 43%) 1fr; 
-            grid-template-rows: auto 1fr; 
-            position: relative;
+            background: var(--pico-secondary-background); gap: 12px; display: grid; 
+            grid-template-columns: minmax(260px, 43%) 1fr; grid-template-rows: auto 1fr; position: relative;
         }
 
         .presentation-grid { display: grid; grid-template-columns: minmax(260px, 43%) 1fr; gap: 28px; height: 100%; }
@@ -43,27 +48,13 @@
         .current-time-box { font-size: clamp(1rem, 2vw, 1.4rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
         .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
-        /* BASE NEXT UP CONTAINER */
         .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; }
-        
-        /* DESKTOP / LANDSCAPE SPECIFIC SCALING */
-        @media (min-width: 769px) {
-            .next-up-container {
-                width: max-content;
-                min-width: calc(100% + 10vw);
-                max-width: 200%;
-            }
-        }
+        @media (min-width: 769px) { .next-up-container { width: max-content; min-width: calc(100% + 10vw); max-width: 200%; } }
         
         .next-up-card { flex-grow: 1; min-width: 0; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
-        
-        /* ALERT STATE */
-        .next-up-card.alert-active { background: #ffedd5 !important; border-color: #fed7aa !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
-        .next-up-card.alert-active .next-label { color: #9a3412 !important; }
-        .next-up-card.alert-active .next-title { color: #0f172a !important; }
-        [data-theme="dark"] .next-up-card.alert-active { background: #431407 !important; border-color: #f97316 !important; }
-        [data-theme="dark"] .next-up-card.alert-active .next-label { color: #fed7aa !important; }
-        [data-theme="dark"] .next-up-card.alert-active .next-title { color: #f8fafc !important; }
+        .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
+        .next-up-card.alert-active .next-label { color: var(--alert-lbl) !important; }
+        .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
 
         @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
@@ -76,7 +67,6 @@
         .details-viewport ul { padding-left: 24px; margin-top: 8px; }
         .details-viewport li { margin-bottom: 6px; }
 
-        /* MANAGEMENT VIEW */
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
         .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
         .management-view label { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; margin-bottom: 0; }
@@ -89,8 +79,7 @@
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
         .timeline-item { display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
-        .timeline-item.active { background: #bae6fd; color: #0369a1; border-left: 5px solid #0284c7; font-weight: 700; }
-        [data-theme="dark"] .timeline-item.active { background: #1e3a8a; color: #38bdf8; border-left-color: #38bdf8; }
+        .timeline-item.active { background: var(--active-bg); color: var(--active-txt); border-left: 5px solid var(--active-border); font-weight: 700; }
         .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -98,64 +87,27 @@
         .control-bar [role="group"] { margin-bottom: 0; }
         .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
 
-        /* REFINED TOP NAV SIZING & ANIMATIONS */
         .top-nav-row { display: flex; align-items: center; }
         .top-nav-row [role="group"] { margin-bottom: 0; }
-        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-        
-        /* EXPLICIT FIX FOR TOP BUTTON BORDERS */
-        [data-theme="light"] .top-nav-row button { 
-            border: 1px solid #94a3b8 !important;
-        }
-        [data-theme="dark"] .top-nav-row button { 
-            border: 1px solid #475569 !important;
-        }
-        
+        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--btn-border) !important; }
         .top-nav-right { justify-content: flex-end; }
         
-        .centered-button-group {
-            display: flex !important;
-            width: 100%;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
+        .centered-button-group { display: flex !important; width: 100%; justify-content: center; flex-wrap: wrap; }
         @keyframes spin-emoji { 100% { transform: rotate(360deg); } }
         .spin-anim { display: inline-block; animation: spin-emoji 1s linear infinite; }
 
-        /* EDITOR COLUMN WRAPPER */
         .editor-column-wrapper { display: flex; flex-direction: column; min-height: 0; height: 100%; }
         .editor-article { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; margin-bottom: 6px !important; }
 
-        /* TIMESTAMP STYLES */
-        .timestamp-text {
-            text-align: right; 
-            font-size: 0.70rem; 
-            font-weight: 600; 
-            padding-right: 2px;
-            color: #8ca3ba; 
-        }
-        [data-theme="dark"] .timestamp-text {
-            color: #94a3b8; 
-        }
+        .timestamp-text { text-align: right; font-size: 0.70rem; font-weight: 600; padding-right: 2px; color: var(--ts-color); }
 
-        /* MOBILE / PORTRAIT MEDIA QUERY */
         @media (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
             .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
             .status-panel { display: contents; }
             .status-panel::after { display: none; }
             .details-panel { order: 2; flex-grow: 1; min-height: 0; }
-            
-            /* STRICT PORTRAIT BOUNDARIES */
-            .next-up-container { 
-                order: 3; 
-                width: 96% !important; 
-                max-width: 96% !important; 
-                margin-top: auto; 
-            }
-            
-            /* Enhanced Portrait Layout */
+            .next-up-container { order: 3; width: 98% !important; max-width: 98% !important; margin-top: auto; }
             .top-nav-row { justify-content: center; }
             .top-nav-right { justify-content: center; }
             .timeline-container { height: 45vh; max-height: none; flex-shrink: 0; }
@@ -166,7 +118,6 @@
 <body x-data="meetingApp()" x-init="initApp()">
 
 <div class="app-container">
-    <!-- PRESENTATION LAYER -->
     <div class="presentation-view">
         <div class="presentation-grid">
             <header class="status-panel">
@@ -197,9 +148,7 @@
         </div>
     </div>
 
-    <!-- MANAGEMENT LAYER -->
     <div class="management-view">
-        <!-- GRID ROW 1, COL 1: Share / Import -->
         <nav class="top-nav-row">
             <div role="group" class="centered-button-group">
                 <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
@@ -207,7 +156,6 @@
             </div>
         </nav>
 
-        <!-- GRID ROW 1, COL 2: Theme / Fullscreen / Refresh -->
         <nav class="top-nav-row top-nav-right">
             <div role="group" class="centered-button-group">
                 <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
@@ -219,7 +167,6 @@
             </div>
         </nav>
 
-        <!-- GRID ROW 2, COL 1: Meeting Title & Timeline -->
         <div class="timeline-container">
             <article>
                 <label>Meeting Title
@@ -243,7 +190,6 @@
             </article>
         </div>
         
-        <!-- GRID ROW 2, COL 2: Editor Column Wrapper (Inline Timestamp) -->
         <div class="editor-column-wrapper">
             <article class="editor-article">
                 <div class="grid">
@@ -254,7 +200,6 @@
                     <textarea x-model="editDetails" placeholder="<p>Overview details...</p>"></textarea>
                 </label>
                 
-                <!-- EDITOR ACTION BUTTONS -->
                 <nav class="control-bar">
                     <div role="group">
                         <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
@@ -265,7 +210,6 @@
                 </nav>
             </article>
             
-            <!-- INLINE TIMESTAMP -->
             <div x-show="lastUpdatedText" class="timestamp-text">
                 Updated: <span x-text="lastUpdatedText"></span>
             </div>
@@ -273,20 +217,12 @@
     </div>
 </div>
 
-<!-- NATIVE HTML5 DIALOG -->
 <dialog x-ref="importModal">
     <article>
         <h3>Bulk Import Agenda</h3>
         <p>Paste time-indexed text below:</p>
-        <textarea x-model="importText" style="height: 220px;" placeholder="August 20, 2026 Board Meeting
-        
-10:00 AM Call to Order
-Initial protocols and setup.
-- Roll call of members
-- Approval of previous minutes
-
-10:45 AM Financial Review
-Review of Q3 expenditures."></textarea>
+        <!-- MINIFIED PLACEHOLDER STRING -->
+        <textarea x-model="importText" style="height: 220px;" placeholder="August 20, 2026 Board Meeting&#10;&#10;10:00 AM Call to Order&#10;Initial protocols and setup.&#10;- Roll call of members&#10;- Approval of previous minutes&#10;&#10;10:45 AM Financial Review&#10;Review of Q3 expenditures."></textarea>
         <footer>
             <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
             <button class="primary" @click="processImportText(); $refs.importModal.close()">Import</button>
@@ -311,11 +247,8 @@ function meetingApp() {
             this.agenda = await this.loadInitialAgenda();
             if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
             
-            // Check Document Last Modified Date
             const modDate = new Date(document.lastModified);
-            if (!isNaN(modDate) && modDate.getFullYear() > 1970) {
-                this.lastUpdatedText = modDate.toLocaleString();
-            }
+            if (!isNaN(modDate) && modDate.getFullYear() > 1970) this.lastUpdatedText = modDate.toLocaleString();
 
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
@@ -327,36 +260,16 @@ function meetingApp() {
         async smartRefresh() {
             if (this.isRefreshing) return;
             this.isRefreshing = true;
-            
             const currentMod = new Date(document.lastModified).getTime();
             const startTime = Date.now();
-            const maxWait = 180000; // 3 minutes
-
             const checkUpdate = async () => {
-                if (Date.now() - startTime > maxWait) {
-                    this.isRefreshing = false; // Give up after 3 minutes
-                    return; 
-                }
+                if (Date.now() - startTime > 180000) return this.isRefreshing = false; 
                 try {
-                    // Fetch HEAD with a cache-busting parameter to bypass GitHub Pages/Browser caching
-                    const url = window.location.href.split('#')[0];
-                    const separator = url.includes('?') ? '&' : '?';
-                    const res = await fetch(url + separator + 'cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-                    
-                    const remoteModStr = res.headers.get('Last-Modified');
-                    if (remoteModStr) {
-                        const remoteMod = new Date(remoteModStr).getTime();
-                        if (remoteMod > currentMod) {
-                            window.location.reload(true); // Newer version found! Reload.
-                            return;
-                        }
-                    }
+                    const res = await fetch(window.location.href.split('#')[0] + (window.location.href.includes('?') ? '&' : '?') + 'cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+                    if (res.headers.get('Last-Modified') && new Date(res.headers.get('Last-Modified')).getTime() > currentMod) return window.location.reload(true);
                 } catch(e) {}
-                
-                // Keep polling every 5 seconds if no update found yet
                 setTimeout(checkUpdate, 5000);
             };
-            
             checkUpdate();
         },
 
@@ -366,22 +279,18 @@ function meetingApp() {
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
         },
 
-        getTimeString(date = new Date(), includeSeconds = false) {
-            let hrs = date.getHours(); const mins = String(date.getMinutes()).padStart(2, '0'); const ampm = hrs >= 12 ? 'PM' : 'AM';
-            hrs = hrs % 12 || 12; const normHrs = String(hrs).padStart(2, '0');
-            return includeSeconds ? `${normHrs}:${mins}:${String(date.getSeconds()).padStart(2, '0')} ${ampm}` : `${normHrs}:${mins} ${ampm}`;
+        getTimeString(d = new Date(), s = false) {
+            let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
+            return `${(h % 12 || 12).toString().padStart(2, '0')}:${m}${s ? ':' + d.getSeconds().toString().padStart(2, '0') : ''} ${h >= 12 ? 'PM' : 'AM'}`;
         },
         updateSystemClock() {
             this.sysClockText = this.getTimeString(new Date(), true);
             const check = this.getTimeString(new Date(), false);
             if (check !== this.lastCheckedMilestoneTime) this.evaluateAutomatedTimeTrigger(check);
         },
-        parseToMinutes(timeStr) {
-            const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i); if (!match) return 0;
-            let [_, hrs, mins, period] = match; hrs = parseInt(hrs); mins = parseInt(mins);
-            if (period.toUpperCase() === "PM" && hrs !== 12) hrs += 12;
-            if (period.toUpperCase() === "AM" && hrs === 12) hrs = 0;
-            return hrs * 60 + mins;
+        parseToMinutes(ts) {
+            let m = ts.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            return m ? (m[1] % 12 + (/PM/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 0;
         },
         
         evaluateAutomatedTimeTrigger(currentWallTime) {
@@ -444,38 +353,32 @@ function meetingApp() {
         },
 
         renderPresentationTextPages() {
-            const container = document.getElementById('viewport'); if (!container) return;
-            if (window.carouselInterval) clearInterval(window.carouselInterval);
-            container.innerHTML = "";
-            if (!this.agenda.length || !this.currentItem) { container.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>'; return; }
+            const c = document.getElementById('viewport'); if (!c) return;
+            clearInterval(window.carouselInterval); c.innerHTML = "";
+            if (!this.agenda.length || !this.currentItem) return c.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
 
-            const testDiv = document.createElement('div');
-            testDiv.style.cssText = `width:${container.clientWidth}px; position:absolute; visibility:hidden; font-size:1.25rem; line-height:1.6;`;
-            testDiv.innerHTML = this.currentItem.details; document.body.appendChild(testDiv);
+            const t = document.createElement('div');
+            t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:1.25rem;line-height:1.6;`;
+            t.innerHTML = this.currentItem.details; document.body.appendChild(t);
 
-            const pagesData = []; let currentPageHTML = "", currentHeight = 0; const maxHeight = container.clientHeight - 20;
-            Array.from(testDiv.childNodes).forEach(node => {
-                const tempBox = document.createElement('div');
-                tempBox.style.cssText = `width:${container.clientWidth}px; font-size:1.25rem; line-height:1.6;`;
-                tempBox.appendChild(node.cloneNode(true)); document.body.appendChild(tempBox);
-                const nodeHeight = tempBox.clientHeight; document.body.removeChild(tempBox);
-
-                if (currentHeight + nodeHeight > maxHeight && currentPageHTML !== "") { pagesData.push(currentPageHTML); currentPageHTML = ""; currentHeight = 0; }
-                currentPageHTML += (node.nodeType === Node.TEXT_NODE) ? node.textContent : node.outerHTML; currentHeight += nodeHeight;
+            let p = [], h = "", ch = 0; const mh = c.clientHeight - 20;
+            [...t.childNodes].forEach(n => {
+                const b = document.createElement('div'); b.style.cssText = t.style.cssText; b.appendChild(n.cloneNode(true)); document.body.appendChild(b);
+                const nh = b.clientHeight; document.body.removeChild(b);
+                if (ch + nh > mh && h) { p.push(h); h = ""; ch = 0; }
+                h += n.nodeType === 3 ? n.textContent : n.outerHTML; ch += nh;
             });
-            if (currentPageHTML) pagesData.push(currentPageHTML);
-            document.body.removeChild(testDiv);
+            if (h) p.push(h); document.body.removeChild(t);
 
-            pagesData.forEach((html, idx) => {
-                const pageDiv = document.createElement('div'); pageDiv.className = `details-page ${idx === 0 ? 'active' : ''}`;
-                pageDiv.innerHTML = html; container.appendChild(pageDiv);
+            p.forEach((ht, i) => {
+                const d = document.createElement('div'); d.className = `details-page ${i === 0 ? 'active' : ''}`;
+                d.innerHTML = ht; c.appendChild(d);
             });
 
-            if (pagesData.length > 1) {
-                let activeIdx = 0;
-                window.carouselInterval = setInterval(() => {
-                    const pages = container.querySelectorAll('.details-page'); if (!pages.length) return;
-                    pages[activeIdx].classList.remove('active'); activeIdx = (activeIdx + 1) % pages.length; pages[activeIdx].classList.add('active');
+            if (p.length > 1) {
+                let a = 0; window.carouselInterval = setInterval(() => {
+                    const pgs = c.querySelectorAll('.details-page'); if (!pgs.length) return;
+                    pgs[a].classList.remove('active'); a = (a + 1) % pgs.length; pgs[a].classList.add('active');
                 }, 8000);
             }
         },
@@ -518,11 +421,7 @@ function meetingApp() {
             }
             const stored = localStorage.getItem('boardAgenda');
             if (stored) { try { return JSON.parse(stored); } catch (e) {} }
-            return [
-                { time: "10:35 AM", title: "Call to Order & Roll Call", details: "<p>Initial meeting protocols and legal establishment of the board quorumc:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>" },
-                { time: "10:45 AM", title: "Quarterly Financial Overview", details: "<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>" },
-                { time: "11:15 AM", title: "Facility Safety & Compliance", details: "<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>" }
-            ];
+            return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"<p>Initial meeting protocols and legal establishment of the board quorumc:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>"},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>"},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>"}];
         },
 
         processImportText() {
