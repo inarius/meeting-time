@@ -107,9 +107,12 @@
             .status-panel::after { display: none; }
             .details-panel { order: 2; flex-grow: 1; min-height: 0; }
             .next-up-container { order: 3; width: 100%; margin-top: auto; }
-            .timeline-container { height: auto; max-height: 35vh; }
-            .top-nav-right { justify-content: flex-start; }
-            .editor-column-wrapper { flex-grow: 1; }
+            
+            /* Enhanced Portrait Layout */
+            .top-nav-row { justify-content: center; }
+            .top-nav-right { justify-content: center; }
+            .timeline-container { height: 45vh; max-height: none; flex-shrink: 0; }
+            .editor-column-wrapper { flex-grow: 1; min-height: 0; }
         }
     </style>
 </head>
@@ -164,7 +167,7 @@
                 <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
                 <button class="secondary" @click="smartRefresh()" :disabled="isRefreshing">
                     <span :class="{'spin-anim': isRefreshing}">🔄</span> 
-                    <span x-text="isRefreshing ? 'Checking...' : 'Refresh'"></span>
+                    <span>Refresh</span>
                 </button>
             </div>
         </nav>
