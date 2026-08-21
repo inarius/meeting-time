@@ -43,7 +43,8 @@
         .current-time-box { font-size: clamp(1rem, 2vw, 1.4rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
         .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
-        .next-up-container { display: flex; align-items: center; gap: 8px; width: calc(100% + 10vw); position: relative; z-index: 5; }
+        /* ADAPTIVE WIDTH FOR NEXT UP IN LANDSCAPE */
+        .next-up-container { display: flex; align-items: center; gap: 8px; width: max-content; min-width: calc(100% + 10vw); max-width: 185%; position: relative; z-index: 5; }
         
         /* ADDED MIN-WIDTH: 0 TO ENABLE ELLIPSIS AND PREVENT FLEXBOX OVERFLOW */
         .next-up-card { flex-grow: 1; min-width: 0; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
@@ -137,8 +138,8 @@
             .status-panel::after { display: none; }
             .details-panel { order: 2; flex-grow: 1; min-height: 0; }
             
-            /* ADDED MAX-WIDTH TO PREVENT OVERFLOW IN PORTRAIT */
-            .next-up-container { order: 3; width: 100%; max-width: 100%; margin-top: auto; }
+            /* ADDED 96% MAX-WIDTH TO PULL IT OFF THE RIGHT EDGE IN PORTRAIT */
+            .next-up-container { order: 3; width: 96%; max-width: 96%; margin-top: auto; }
             
             /* Enhanced Portrait Layout */
             .top-nav-row { justify-content: center; }
