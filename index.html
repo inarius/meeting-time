@@ -92,14 +92,12 @@
         .top-nav-row [role="group"] { margin-bottom: 0; }
         .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
         
-        /* EXPLICIT FIX FOR TOP BUTTON OUTLINE LEGIBILITY */
-        [data-theme="light"] .top-nav-row button.outline { 
-            color: #f8fafc !important; 
+        /* EXPLICIT FIX FOR TOP BUTTON BORDERS (Keeping solid backgrounds for legibility) */
+        [data-theme="light"] .top-nav-row button { 
             border: 1px solid #94a3b8 !important;
         }
-        [data-theme="dark"] .top-nav-row button.outline { 
-            color: #ffffff !important; 
-            border: 1px solid #cbd5e1 !important;
+        [data-theme="dark"] .top-nav-row button { 
+            border: 1px solid #475569 !important;
         }
         
         .top-nav-right { justify-content: flex-end; }
@@ -185,17 +183,17 @@
         <!-- GRID ROW 1, COL 1: Share / Import -->
         <nav class="top-nav-row">
             <div role="group" class="centered-button-group">
-                <button class="secondary outline" @click="shareAgendaURL()">🔗 Share</button>
-                <button class="secondary outline" @click="$refs.importModal.showModal()">📥 Import</button>
+                <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
+                <button class="secondary" @click="$refs.importModal.showModal()">📥 Import</button>
             </div>
         </nav>
 
         <!-- GRID ROW 1, COL 2: Theme / Fullscreen / Refresh -->
         <nav class="top-nav-row top-nav-right">
             <div role="group" class="centered-button-group">
-                <button class="secondary outline" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
-                <button class="secondary outline" @click="toggleFullscreen()">📺 Full</button>
-                <button class="secondary outline" @click="smartRefresh()" :disabled="isRefreshing">
+                <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
+                <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
+                <button class="secondary" @click="smartRefresh()" :disabled="isRefreshing">
                     <span :class="{'spin-anim': isRefreshing}">🔄</span> 
                     <span>Refresh</span>
                 </button>
