@@ -30,6 +30,7 @@
             display: grid; 
             grid-template-columns: minmax(260px, 43%) 1fr; 
             grid-template-rows: auto 1fr; 
+            position: relative;
         }
 
         .presentation-grid { display: grid; grid-template-columns: minmax(260px, 43%) 1fr; gap: 28px; height: 100%; }
@@ -86,11 +87,14 @@
         .control-bar [role="group"] { margin-bottom: 0; }
         .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
 
-        /* REFINED TOP NAV SIZING */
+        /* REFINED TOP NAV SIZING & ANIMATIONS */
         .top-nav-row { display: flex; align-items: center; }
         .top-nav-row [role="group"] { margin-bottom: 0; }
-        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
+        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
         .top-nav-right { justify-content: flex-end; }
+
+        @keyframes spin-emoji { 100% { transform: rotate(360deg); } }
+        .spin-anim { display: inline-block; animation: spin-emoji 1s linear infinite; }
 
         /* EDITOR COLUMN WRAPPER */
         .editor-column-wrapper { display: flex; flex-direction: column; min-height: 0; height: 100%; }
@@ -114,11 +118,6 @@
 <div class="app-container">
     <!-- PRESENTATION LAYER -->
     <div class="presentation-view">
-        <!-- DISCREET UPDATE INDICATOR FOR PRESENTATION VIEW (RETAINED AT TOP) -->
-        <div x-show="lastUpdatedText" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 0.75rem; color: var(--pico-muted-color); font-weight: 600; pointer-events: none; z-index: 100;">
-            Updated: <span x-text="lastUpdatedText"></span>
-        </div>
-
         <div class="presentation-grid">
             <header class="status-panel">
                 <div>
@@ -163,7 +162,10 @@
             <div role="group">
                 <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
                 <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
-                <button class="secondary" @click="window.location.reload(true)">🔄 Refresh</button>
+                <button class="secondary" @click="smartRefresh()" :disabled="isRefreshing">
+                    <span :class="{'spin-anim': isRefreshing}">🔄</span> 
+                    <span x-text="isRefreshing ? 'Checking...' : 'Refresh'"></span>
+                </button>
             </div>
         </nav>
 
@@ -214,7 +216,7 @@
             </article>
             
             <!-- INLINE TIMESTAMP -->
-            <div x-show="lastUpdatedText" style="text-align: right; font-size: 0.70rem; color: var(--pico-muted-color); font-weight: 600;">
+            <div x-show="lastUpdatedText" style="text-align: right; font-size: 0.70rem; color: var(--pico-muted-color); font-weight: 600; padding-right: 2px;">
                 Updated: <span x-text="lastUpdatedText"></span>
             </div>
         </div>
@@ -239,7 +241,7 @@ function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isManualOverride: false, isAlertActive: false,
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
-        editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '',
+        editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '', isRefreshing: false,
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
@@ -262,6 +264,42 @@ function meetingApp() {
             this.renderPresentationTextPages();
             setInterval(() => this.updateSystemClock(), 1000);
             window.addEventListener('resize', () => this.renderPresentationTextPages());
+        },
+
+        async smartRefresh() {
+            if (this.isRefreshing) return;
+            this.isRefreshing = true;
+            
+            const currentMod = new Date(document.lastModified).getTime();
+            const startTime = Date.now();
+            const maxWait = 180000; // 3 minutes
+
+            const checkUpdate = async () => {
+                if (Date.now() - startTime > maxWait) {
+                    this.isRefreshing = false; // Give up after 3 minutes
+                    return; 
+                }
+                try {
+                    // Fetch HEAD with a cache-busting parameter to bypass GitHub Pages/Browser caching
+                    const url = window.location.href.split('#')[0];
+                    const separator = url.includes('?') ? '&' : '?';
+                    const res = await fetch(url + separator + 'cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+                    
+                    const remoteModStr = res.headers.get('Last-Modified');
+                    if (remoteModStr) {
+                        const remoteMod = new Date(remoteModStr).getTime();
+                        if (remoteMod > currentMod) {
+                            window.location.reload(true); // Newer version found! Reload.
+                            return;
+                        }
+                    }
+                } catch(e) {}
+                
+                // Keep polling every 5 seconds if no update found yet
+                setTimeout(checkUpdate, 5000);
+            };
+            
+            checkUpdate();
         },
 
         toggleTheme() {
