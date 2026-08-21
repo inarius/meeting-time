@@ -8,9 +8,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Meeting</title>
     
-    <!-- SINGLE-FILE FAVICON & MANIFEST -->
+    <!-- SINGLE-FILE FAVICON, APPLE TOUCH ICON & MANIFEST -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Meeting Agenda","short_name":"Agenda","display":"standalone","start_url":".","background_color":"#ffffff","theme_color":"#0284c7"}'>
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23ffffff%22/><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Meeting Agenda","short_name":"Agenda","display":"standalone","start_url":".","background_color":"#ffffff","theme_color":"#0284c7","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>","sizes":"192x192 512x512","type":"image/svg+xml"}]}'>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -225,7 +226,6 @@
     <article>
         <h3>Bulk Import Agenda</h3>
         <p>Paste time-indexed text below:</p>
-        <!-- RESPONSIVE DIALOG HEIGHT MINIFICATION -->
         <textarea x-model="importText" style="height: 25vh; min-height: 120px;" placeholder="August 20, 2026 Board Meeting&#10;&#10;10:00 AM Call to Order&#10;Initial protocols and setup.&#10;- Roll call of members&#10;- Approval of previous minutes&#10;&#10;10:45 AM Financial Review&#10;Review of Q3 expenditures."></textarea>
         <footer>
             <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
