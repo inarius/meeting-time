@@ -458,7 +458,7 @@ function meetingApp() {
             if (!document.fullscreenElement && !document.webkitFullscreenElement) { 
                 const req = doc.requestFullscreen || doc.webkitRequestFullscreen;
                 if (req) req.call(doc).catch(() => alert("Fullscreen not supported by browser."));
-                else alert("Fullscreen not supported on this device.");
+                else alert("To gain full screen functionality on this device, please add this page to your Home Screen.");
             } else { 
                 const exit = document.exitFullscreen || document.webkitExitFullscreen;
                 if (exit) exit.call(document); 
