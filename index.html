@@ -391,13 +391,14 @@ function meetingApp() {
 
         async shareAgendaURL() {
             try {
-                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ({ t: item.time, i: item.title, d: item.details.replace(/<\/?ul>/g, '').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim() })) };
+                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ({ t: item.time, i: item.title, d: item.details.replace(/<\/?ul>/g, '').replace(/<li class="sub-item"[^>]*>/g, '-- ').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim() })) };
                 const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
                 const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
                 const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
                 await navigator.clipboard.writeText(shareURL); alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
             } catch (e) { alert("Failed to generate compressed share link."); }
         },
+        
         async loadInitialAgenda() {
             this.meetingTitle = localStorage.getItem('boardMeetingTitle') || "August 19, 2026"; this.updateTitle();
             if (window.location.hash.startsWith('#agenda=')) {
@@ -415,8 +416,16 @@ function meetingApp() {
                             let html = '', inList = false;
                             d.split('\n').forEach(l => {
                                 const line = l.trim(); if (!line) return;
-                                if (line.startsWith('- ')) { if (!inList) { html += '<ul>'; inList = true; } html += `<li>${line.replace(/^-\s*/, '')}</li>`; }
-                                else { if (inList) { html += '</ul>'; inList = false; } html += `<p>${line}</p>`; }
+                                if (line.startsWith('-- ') || line.startsWith('** ')) { 
+                                    if (!inList) { html += '<ul>'; inList = true; } 
+                                    html += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${line.replace(/^[-*]{2}\s*/, '')}</li>`; 
+                                } else if (line.startsWith('- ') || line.startsWith('* ')) { 
+                                    if (!inList) { html += '<ul>'; inList = true; } 
+                                    html += `<li>${line.replace(/^[-*]\s*/, '')}</li>`; 
+                                } else { 
+                                    if (inList) { html += '</ul>'; inList = false; } 
+                                    html += `<p>${line}</p>`; 
+                                }
                             });
                             if (inList) html += '</ul>'; d = html;
                         } else if (d) d = `<p>${d}</p>`;
@@ -442,8 +451,16 @@ function meetingApp() {
                     let timeStr = match[1].trim(); if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
                     currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" }; inList = false;
                 } else if (currentItem) {
-                    if (trimmed.startsWith('-') || trimmed.startsWith('*')) { if (!inList) { currentItem.details += '<ul>'; inList = true; } currentItem.details += `<li>${trimmed.replace(/^[-*]\s*/, '')}</li>`; }
-                    else { if (inList) { currentItem.details += '</ul>'; inList = false; } currentItem.details += `<p>${trimmed}</p>`; }
+                    if (trimmed.startsWith('--') || trimmed.startsWith('**')) { 
+                        if (!inList) { currentItem.details += '<ul>'; inList = true; } 
+                        currentItem.details += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${trimmed.replace(/^[-*]{2}\s*/, '')}</li>`; 
+                    } else if (trimmed.startsWith('-') || trimmed.startsWith('*')) { 
+                        if (!inList) { currentItem.details += '<ul>'; inList = true; } 
+                        currentItem.details += `<li>${trimmed.replace(/^[-*]\s*/, '')}</li>`; 
+                    } else { 
+                        if (inList) { currentItem.details += '</ul>'; inList = false; } 
+                        currentItem.details += `<p>${trimmed}</p>`; 
+                    }
                 }
             });
             if (currentItem) { if (inList) currentItem.details += '</ul>'; newAgenda.push(currentItem); }
