@@ -22,13 +22,15 @@
             --alert-bg: #ffedd5; --alert-border: #fed7aa; --alert-lbl: #9a3412; --alert-txt: #0f172a;
             --active-bg: #bae6fd; --active-txt: #0369a1; --active-border: #0284c7;
             --ts-color: #8ca3ba; --btn-border: #94a3b8;
-            --swipe-bg: rgba(3, 105, 161, 0.15);
+            --swipe-bg: rgba(3, 105, 161, 0.6);
+            --swipe-ready-color: #0284c7;
         }
         html[data-theme="dark"] {
             --alert-bg: #431407; --alert-border: #f97316; --alert-lbl: #fed7aa; --alert-txt: #f8fafc;
             --active-bg: #1e3a8a; --active-txt: #38bdf8; --active-border: #38bdf8;
             --ts-color: #94a3b8; --btn-border: #475569;
-            --swipe-bg: rgba(56, 189, 248, 0.15);
+            --swipe-bg: rgba(56, 189, 248, 0.6);
+            --swipe-ready-color: #38bdf8;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -39,17 +41,27 @@
             width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
             padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
         }
-        /* touch-action: pan-y prevents browser forward/back swipes while allowing vertical scroll */
         .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; touch-action: pan-y; }
         
-        /* SWIPE UI ELEMENTS */
+        /* REFINED SWIPE UI ELEMENTS */
         .swipe-overlay {
-            position: absolute; top: 0; bottom: 0; width: 120px; display: flex; align-items: center; 
+            position: absolute; top: 0; bottom: 0; width: 85px; display: flex; align-items: center; 
             pointer-events: none; z-index: 50; transition: opacity 0.1s linear;
         }
-        .swipe-left { left: 0; justify-content: flex-start; padding-left: 20px; background: linear-gradient(to right, var(--swipe-bg), transparent); }
-        .swipe-right { right: 0; justify-content: flex-end; padding-right: 20px; background: linear-gradient(to left, var(--swipe-bg), transparent); }
-        .swipe-icon { font-size: 2.5rem; color: var(--active-border); font-weight: 900; transition: transform 0.1s linear; }
+        .swipe-left { left: 0; justify-content: flex-start; padding-left: 15px; background: linear-gradient(to right, var(--swipe-bg), transparent); }
+        .swipe-right { right: 0; justify-content: flex-end; padding-right: 15px; background: linear-gradient(to left, var(--swipe-bg), transparent); }
+        
+        .swipe-icon-wrapper { transition: transform 0.1s linear; }
+        .swipe-icon { 
+            font-size: 2.5rem; color: var(--ts-color); font-weight: 900; 
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        /* The distinct visual cue when threshold is reached */
+        .swipe-ready .swipe-icon { 
+            transform: scale(1.4); 
+            color: var(--swipe-ready-color); 
+            filter: drop-shadow(0 0 6px var(--swipe-ready-color)); 
+        }
 
         .management-view { 
             background: var(--pico-secondary-background); gap: 12px; display: grid; 
@@ -138,18 +150,21 @@
 <body x-data="meetingApp()" x-init="initApp()">
 
 <div class="app-container">
-    <!-- TOUCH LISTENERS ADDED HERE -->
     <div class="presentation-view" 
          @touchstart="handleTouchStart" 
          @touchmove="handleTouchMove" 
          @touchend="handleTouchEnd">
          
-        <!-- SWIPE VISUAL OVERLAYS -->
-        <div class="swipe-overlay swipe-left" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
-            <div class="swipe-icon" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 20) : 0}px)`">◀</div>
+        <!-- SWIPE VISUAL OVERLAYS (Now with .swipe-ready class binding) -->
+        <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
+            <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 15) : 0}px)`">
+                <div class="swipe-icon">◀</div>
+            </div>
         </div>
-        <div class="swipe-overlay swipe-right" :style="`opacity: ${swipeDirection === 'next' ? swipeProgress : 0}`">
-            <div class="swipe-icon" :style="`transform: translateX(${swipeDirection === 'next' ? (-swipeProgress * 20) : 0}px)`">▶</div>
+        <div class="swipe-overlay swipe-right" :class="{ 'swipe-ready': swipeDirection === 'next' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'next' ? swipeProgress : 0}`">
+            <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'next' ? (-swipeProgress * 15) : 0}px)`">
+                <div class="swipe-icon">▶</div>
+            </div>
         </div>
 
         <div class="presentation-grid">
@@ -269,7 +284,6 @@ function meetingApp() {
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
         editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '', isRefreshing: false,
 
-        // SWIPE STATE VARIABLES
         touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false,
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
@@ -293,7 +307,6 @@ function meetingApp() {
             window.addEventListener('resize', () => this.renderPresentationTextPages());
         },
 
-        // TOUCH HANDLERS FOR SWIPE GESTURE
         handleTouchStart(e) {
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
@@ -304,31 +317,28 @@ function meetingApp() {
             const deltaX = e.touches[0].clientX - this.touchStartX;
             const deltaY = e.touches[0].clientY - this.touchStartY;
 
-            // Lock out horizontal swipe if the user is scrolling vertically
             if (!this.isSwiping && Math.abs(deltaY) > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
                 this.touchLocked = true; return;
             }
 
-            const deadzone = 30; // Ignore tiny twitches
-            const maxDrag = window.innerWidth * 0.35; // Screen distance required for full opacity
+            const deadzone = 25; 
+            const dragDistance = 70; // Hard threshold set to 70px as requested
 
             if (Math.abs(deltaX) > deadzone) {
                 this.isSwiping = true;
-                // Drag right (positive) means previous. Drag left (negative) means next.
                 this.swipeDirection = deltaX > 0 ? 'prev' : 'next';
-                const rawProgress = (Math.abs(deltaX) - deadzone) / maxDrag;
-                this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); // Cap at 1.0
+                const rawProgress = (Math.abs(deltaX) - deadzone) / dragDistance;
+                this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); 
             } else {
                 this.swipeProgress = 0;
             }
         },
         handleTouchEnd(e) {
-            // Only trigger the shift if they pulled far enough (e.g. 75% of the max drag zone)
-            if (this.isSwiping && this.swipeProgress > 0.75) {
+            // Must hit exactly 1.0 (100% of the 70px drag) to trigger
+            if (this.isSwiping && this.swipeProgress >= 1) {
                 if (this.swipeDirection === 'prev') this.shiftItem(-1);
                 else if (this.swipeDirection === 'next') this.shiftItem(1);
             }
-            // Reset state
             this.isSwiping = false; this.swipeProgress = 0; this.swipeDirection = null; this.touchLocked = false;
         },
 
