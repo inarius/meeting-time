@@ -469,7 +469,7 @@ function meetingApp() {
         },
 
         processImportText() {
-            if (!this.importText.trim()) return;
+            if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
             const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, titleFound = false;
             
             this.importText.trim().split('\n').forEach(line => {
@@ -486,7 +486,7 @@ function meetingApp() {
             });
             if (currentItem) newAgenda.push(currentItem);
             if (newAgenda.length) {
-                this.pushHistoryState();
+                this.historyStack = []; 
                 this.agenda = newAgenda; this.currentIndex = 0;
                 localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); 
                 this.syncToURL();
