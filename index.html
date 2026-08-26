@@ -56,7 +56,6 @@
             font-size: 2.5rem; color: var(--ts-color); font-weight: 900; 
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
-        /* The distinct visual cue when threshold is reached */
         .swipe-ready .swipe-icon { 
             transform: scale(1.4); 
             color: var(--swipe-ready-color); 
@@ -79,7 +78,15 @@
         .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
         .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; }
-        @media (min-width: 769px) { .next-up-container { width: max-content; min-width: calc(100% + 10vw); max-width: 200%; } }
+        .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; }
+        
+        @media (min-width: 769px) { 
+            .next-up-container { width: max-content; min-width: calc(100% + 10vw); max-width: 200%; } 
+            .prev-btn { display: none !important; }
+        }
+        @media (max-width: 768px) and (orientation: landscape) {
+            .prev-btn { display: none !important; }
+        }
         
         .next-up-card { flex-grow: 1; min-width: 0; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
         .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
@@ -155,7 +162,6 @@
          @touchmove="handleTouchMove" 
          @touchend="handleTouchEnd">
          
-        <!-- SWIPE VISUAL OVERLAYS (Now with .swipe-ready class binding) -->
         <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
             <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 15) : 0}px)`">
                 <div class="swipe-icon">◀</div>
@@ -180,7 +186,7 @@
                 </div>
                 
                 <nav class="next-up-container">
-                    <button class="outline secondary" style="padding:12px 14px; margin-bottom:0; z-index:10;" @click="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <button class="outline secondary prev-btn" @click="shiftItem(-1)" title="Previous Topic">◀</button>
                     <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click="shiftItem(1)" title="Advance to Next Topic">
                         <div class="next-label">Next Up</div>
                         <div class="next-title" x-text="nextItem ? `${nextItem.time} - ${nextItem.title}` : 'Adjournment / Session Closed'"></div>
@@ -322,7 +328,7 @@ function meetingApp() {
             }
 
             const deadzone = 25; 
-            const dragDistance = 70; // Hard threshold set to 70px as requested
+            const dragDistance = 70; 
 
             if (Math.abs(deltaX) > deadzone) {
                 this.isSwiping = true;
@@ -334,7 +340,6 @@ function meetingApp() {
             }
         },
         handleTouchEnd(e) {
-            // Must hit exactly 1.0 (100% of the 70px drag) to trigger
             if (this.isSwiping && this.swipeProgress >= 1) {
                 if (this.swipeDirection === 'prev') this.shiftItem(-1);
                 else if (this.swipeDirection === 'next') this.shiftItem(1);
