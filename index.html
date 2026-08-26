@@ -73,12 +73,14 @@
         .details-page.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
         .details-viewport ul { padding-left: 24px; margin-top: 8px; }
         .details-viewport li { margin-bottom: 6px; }
+        .details-viewport strong { font-weight: 800; }
+        .details-viewport em { font-style: italic; }
 
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
         .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
         .management-view label { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; margin-bottom: 0; }
         .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
-        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; }
+        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
 
         .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); }
         .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
@@ -204,7 +206,7 @@
                     <label>Topic Title <input type="text" x-model="editTitle" placeholder="Executive Review"></label>
                 </div>
                 <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Topic Detail
-                    <textarea x-model="editDetails" placeholder="<p>Overview details...</p>"></textarea>
+                    <textarea x-model="editDetails" placeholder="Overview details... Use - for lists, -- for sub-lists, **bold** and *italics*"></textarea>
                 </label>
                 
                 <nav class="control-bar">
@@ -228,7 +230,7 @@
     <article>
         <h3>Bulk Import Agenda</h3>
         <p>Paste time-indexed text below:</p>
-        <textarea x-model="importText" style="height: 25vh; min-height: 120px;" placeholder="August 20, 2026 Board Meeting&#10;&#10;10:00 AM Call to Order&#10;Initial protocols and setup.&#10;- Roll call of members&#10;- Approval of previous minutes&#10;&#10;10:45 AM Financial Review&#10;Review of Q3 expenditures."></textarea>
+        <textarea x-model="importText" style="height: 25vh; min-height: 120px;" placeholder="August 26, 2026 Board Meeting&#10;&#10;10:00 AM Call to Order&#10;Initial protocols and setup.&#10;- Roll call of members&#10;-- Special guests&#10;- Approval of previous minutes&#10;&#10;10:45 AM Financial Review&#10;**Review** of Q3 expenditures."></textarea>
         <footer>
             <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
             <button class="primary" @click="processImportText(); $refs.importModal.close()">Import</button>
@@ -261,6 +263,29 @@ function meetingApp() {
             this.renderPresentationTextPages();
             setInterval(() => this.updateSystemClock(), 1000);
             window.addEventListener('resize', () => this.renderPresentationTextPages());
+        },
+
+        // MICRO-MARKDOWN PARSER
+        parseMarkdown(text) {
+            if (!text) return '';
+            let parsed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+            let lines = parsed.split('\n'), html = '', inList = false;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) { if (inList) { html += '</ul>'; inList = false; } continue; }
+                if (line.startsWith('-- ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${line.substring(3)}</li>`;
+                } else if (line.startsWith('- ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li>${line.substring(2)}</li>`;
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p>${line}</p>`;
+                }
+            }
+            if (inList) html += '</ul>';
+            return html;
         },
 
         async smartRefresh() {
@@ -365,7 +390,10 @@ function meetingApp() {
 
             const t = document.createElement('div');
             t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:1.25rem;line-height:1.6;`;
-            t.innerHTML = this.currentItem.details; document.body.appendChild(t);
+            
+            // INJECT PARSED MARKDOWN FOR MEASUREMENT
+            t.innerHTML = this.parseMarkdown(this.currentItem.details); 
+            document.body.appendChild(t);
 
             let p = [], h = "", ch = 0; const mh = c.clientHeight - 20;
             [...t.childNodes].forEach(n => {
@@ -391,7 +419,7 @@ function meetingApp() {
 
         async shareAgendaURL() {
             try {
-                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ({ t: item.time, i: item.title, d: item.details.replace(/<\/?ul>/g, '').replace(/<li class="sub-item"[^>]*>/g, '-- ').replace(/<li>/g, '- ').replace(/<\/li>/g, '\n').replace(/<p>/g, '').replace(/<\/p>/g, '\n').trim() })) };
+                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ({ t: item.time, i: item.title, d: item.details })) };
                 const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
                 const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
                 const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
@@ -410,60 +438,32 @@ function meetingApp() {
                     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
                     const minified = JSON.parse(await new Response(stream).text());
                     if (minified.m !== undefined) { this.meetingTitle = minified.m; this.updateTitle(); }
-                    const decoded = (minified.items || minified).map(item => {
-                        let d = item.d;
-                        if (d.includes('- ') || d.includes('\n')) {
-                            let html = '', inList = false;
-                            d.split('\n').forEach(l => {
-                                const line = l.trim(); if (!line) return;
-                                if (line.startsWith('-- ') || line.startsWith('** ')) { 
-                                    if (!inList) { html += '<ul>'; inList = true; } 
-                                    html += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${line.replace(/^[-*]{2}\s*/, '')}</li>`; 
-                                } else if (line.startsWith('- ') || line.startsWith('* ')) { 
-                                    if (!inList) { html += '<ul>'; inList = true; } 
-                                    html += `<li>${line.replace(/^[-*]\s*/, '')}</li>`; 
-                                } else { 
-                                    if (inList) { html += '</ul>'; inList = false; } 
-                                    html += `<p>${line}</p>`; 
-                                }
-                            });
-                            if (inList) html += '</ul>'; d = html;
-                        } else if (d) d = `<p>${d}</p>`;
-                        return { time: item.t, title: item.i, details: d };
-                    });
+                    const decoded = (minified.items || minified).map(item => ({ time: item.t, title: item.i, details: item.d }));
                     if (Array.isArray(decoded) && decoded.length) { localStorage.setItem('boardAgenda', JSON.stringify(decoded)); return decoded; }
                 } catch (e) {}
             }
             const stored = localStorage.getItem('boardAgenda');
             if (stored) { try { return JSON.parse(stored); } catch (e) {} }
-            return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"<p>Initial meeting protocols and legal establishment of the board quorumc:</p><ul><li>Approval of previous executive session minutes.</li><li>Introduction of community observers and external stakeholders.</li></ul>"},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"<p>Granular structural inspection of administrative balances across localized programs:</p><ul><li>Review of paperless utility updates and water infrastructure accounts.</li><li>Evaluation of capital allocations targeting regional youth programs.</li></ul>"},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"<p>Ensuring full technical alignment with municipal regulatory framework criteria:</p><ul><li>Verification of structural audit pipelines for regional asset installations.</li><li>Updates on background check procedures and safety clearances.</li></ul>"}];
+            return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."}];
         },
 
         processImportText() {
             if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
-            const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, inList = false, titleFound = false;
+            const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, titleFound = false;
+            
             this.importText.trim().split('\n').forEach(line => {
                 const trimmed = line.trim(); if (!trimmed) return;
                 if (!titleFound && !newAgenda.length && !currentItem && !timePattern.test(trimmed)) { this.meetingTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, ''); this.updateTitle(); titleFound = true; return; }
                 const match = trimmed.match(timePattern);
                 if (match && (match[1].toUpperCase().includes('AM') || match[1].toUpperCase().includes('PM') || match[1].includes(':'))) {
-                    if (currentItem) { if (inList) currentItem.details += '</ul>'; newAgenda.push(currentItem); }
+                    if (currentItem) newAgenda.push(currentItem);
                     let timeStr = match[1].trim(); if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
-                    currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" }; inList = false;
+                    currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" };
                 } else if (currentItem) {
-                    if (trimmed.startsWith('--') || trimmed.startsWith('**')) { 
-                        if (!inList) { currentItem.details += '<ul>'; inList = true; } 
-                        currentItem.details += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${trimmed.replace(/^[-*]{2}\s*/, '')}</li>`; 
-                    } else if (trimmed.startsWith('-') || trimmed.startsWith('*')) { 
-                        if (!inList) { currentItem.details += '<ul>'; inList = true; } 
-                        currentItem.details += `<li>${trimmed.replace(/^[-*]\s*/, '')}</li>`; 
-                    } else { 
-                        if (inList) { currentItem.details += '</ul>'; inList = false; } 
-                        currentItem.details += `<p>${trimmed}</p>`; 
-                    }
+                    currentItem.details += (currentItem.details ? '\n' : '') + trimmed;
                 }
             });
-            if (currentItem) { if (inList) currentItem.details += '</ul>'; newAgenda.push(currentItem); }
+            if (currentItem) newAgenda.push(currentItem);
             if (newAgenda.length) {
                 this.historyStack = []; this.agenda = newAgenda; this.currentIndex = 0;
                 localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.importText = '';
