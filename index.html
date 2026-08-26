@@ -8,7 +8,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Meeting</title>
     
-    <!-- APP ICONS & MANIFEST -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -34,7 +33,6 @@
         body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
         .app-container { display: flex; flex-direction: column; width: 100vw; }
 
-        /* VIEWPORT LAYOUT SHELLS */
         .presentation-view, .management-view {
             width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
             padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
@@ -161,7 +159,7 @@
         <nav class="top-nav-row">
             <div role="group" class="centered-button-group">
                 <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
-                <button class="secondary" @click="$refs.importModal.showModal()">📥 Import</button>
+                <button class="secondary" @click="openImportModal()">📥 Import / Edit Raw</button>
             </div>
         </nav>
 
@@ -179,7 +177,7 @@
         <div class="timeline-container">
             <article>
                 <label>Meeting Title
-                    <input type="text" x-model="meetingTitle" @input="updateTitle()" placeholder="August 19, 2026">
+                    <input type="text" x-model="meetingTitle" @change="updateTitle(); syncToURL()" placeholder="August 19, 2026">
                 </label>
             </article>
             
@@ -228,12 +226,12 @@
 
 <dialog x-ref="importModal">
     <article>
-        <h3>Bulk Import Agenda</h3>
-        <p>Paste time-indexed text below:</p>
+        <h3>Bulk Import / Edit Raw</h3>
+        <p>Edit the full raw text of the agenda below:</p>
         <textarea x-model="importText" style="height: 25vh; min-height: 120px;" placeholder="August 26, 2026 Board Meeting&#10;&#10;10:00 AM Call to Order&#10;Initial protocols and setup.&#10;- Roll call of members&#10;-- Special guests&#10;- Approval of previous minutes&#10;&#10;10:45 AM Financial Review&#10;**Review** of Q3 expenditures."></textarea>
         <footer>
             <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
-            <button class="primary" @click="processImportText(); $refs.importModal.close()">Import</button>
+            <button class="primary" @click="processImportText(); $refs.importModal.close()">Save to Agenda</button>
         </footer>
     </article>
 </dialog>
@@ -253,6 +251,7 @@ function meetingApp() {
             this.isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             this.agenda = await this.loadInitialAgenda();
+            this.syncToURL();
             if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
             
             const modDate = new Date(document.lastModified);
@@ -265,7 +264,39 @@ function meetingApp() {
             window.addEventListener('resize', () => this.renderPresentationTextPages());
         },
 
-        // MICRO-MARKDOWN PARSER
+        async syncToURL() {
+            try {
+                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ([ item.time, item.title, item.details ])) };
+                const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
+                const hash = '#agenda=' + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                if (window.location.hash !== hash) history.replaceState(null, '', hash);
+            } catch (e) {}
+        },
+
+        shareAgendaURL() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Live Share Link copied! (${url.length} chars)`);
+            }).catch(() => alert("Failed to copy link."));
+        },
+
+        openImportModal() {
+            this.importText = this.agenda.length ? this.generateImportText() : '';
+            this.$refs.importModal.showModal();
+        },
+
+        generateImportText() {
+            if (!this.agenda.length) return '';
+            let text = `${this.meetingTitle}\n\n`;
+            this.agenda.forEach(item => {
+                text += `${item.time} ${item.title}\n`;
+                if (item.details) text += `${item.details}\n`;
+                text += `\n`;
+            });
+            return text.trim();
+        },
+
         parseMarkdown(text) {
             if (!text) return '';
             let parsed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
@@ -358,7 +389,7 @@ function meetingApp() {
         undoLastAction() {
             if (!this.canUndo) return; const prev = this.historyStack.pop();
             this.agenda = prev.agenda; this.currentIndex = prev.currentIndex;
-            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages();
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
         },
         saveEditorValues() {
             if (!this.editTime.trim() || !this.editTitle.trim()) return alert("Time and title parameters are required.");
@@ -367,20 +398,20 @@ function meetingApp() {
             if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
             else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
             this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
-            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.renderPresentationTextPages();
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.renderPresentationTextPages(); this.syncToURL();
         },
         addNewItemBelow() {
             this.pushHistoryState();
             this.currentIndex++;
             this.agenda.splice(this.currentIndex, 0, { time: this.editTime.trim() || "12:00 PM", title: this.editTitle.trim() || "New Topic", details: this.editDetails.trim() || "" });
             this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
-            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages();
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
         },
         deleteCurrentItem() {
             if (this.agenda.length <= 1) return alert("At least one agenda topic is required.");
             this.pushHistoryState(); this.agenda.splice(this.currentIndex, 1);
             this.currentIndex = Math.max(0, this.currentIndex - 1);
-            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages();
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
         },
 
         renderPresentationTextPages() {
@@ -391,7 +422,6 @@ function meetingApp() {
             const t = document.createElement('div');
             t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:1.25rem;line-height:1.6;`;
             
-            // INJECT PARSED MARKDOWN FOR MEASUREMENT
             t.innerHTML = this.parseMarkdown(this.currentItem.details); 
             document.body.appendChild(t);
 
@@ -417,17 +447,6 @@ function meetingApp() {
             }
         },
 
-        async shareAgendaURL() {
-            try {
-                // Compression logic mapping to Array payload: [time, title, details]
-                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ([ item.time, item.title, item.details ])) };
-                const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
-                const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
-                const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
-                await navigator.clipboard.writeText(shareURL); alert(`Compressed Share Link copied! (${shareURL.length} chars)`);
-            } catch (e) { alert("Failed to generate compressed share link."); }
-        },
-        
         async loadInitialAgenda() {
             this.meetingTitle = localStorage.getItem('boardMeetingTitle') || "August 19, 2026"; this.updateTitle();
             if (window.location.hash.startsWith('#agenda=')) {
@@ -440,7 +459,6 @@ function meetingApp() {
                     const minified = JSON.parse(await new Response(stream).text());
                     if (minified.m !== undefined) { this.meetingTitle = minified.m; this.updateTitle(); }
                     
-                    // Decode from the new array structure: [time, title, details]
                     const decoded = (minified.items || minified).map(item => ({ time: item[0], title: item[1], details: item[2] }));
                     if (Array.isArray(decoded) && decoded.length) { localStorage.setItem('boardAgenda', JSON.stringify(decoded)); return decoded; }
                 } catch (e) {}
@@ -451,7 +469,7 @@ function meetingApp() {
         },
 
         processImportText() {
-            if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
+            if (!this.importText.trim()) return;
             const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, titleFound = false;
             
             this.importText.trim().split('\n').forEach(line => {
@@ -468,8 +486,11 @@ function meetingApp() {
             });
             if (currentItem) newAgenda.push(currentItem);
             if (newAgenda.length) {
-                this.historyStack = []; this.agenda = newAgenda; this.currentIndex = 0;
-                localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.importText = '';
+                this.pushHistoryState();
+                this.agenda = newAgenda; this.currentIndex = 0;
+                localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); 
+                this.syncToURL();
+                this.importText = '';
             } else alert("Could not parse time indexes.");
         },
 
