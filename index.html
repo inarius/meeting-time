@@ -22,11 +22,13 @@
             --alert-bg: #ffedd5; --alert-border: #fed7aa; --alert-lbl: #9a3412; --alert-txt: #0f172a;
             --active-bg: #bae6fd; --active-txt: #0369a1; --active-border: #0284c7;
             --ts-color: #8ca3ba; --btn-border: #94a3b8;
+            --swipe-bg: rgba(3, 105, 161, 0.15);
         }
         html[data-theme="dark"] {
             --alert-bg: #431407; --alert-border: #f97316; --alert-lbl: #fed7aa; --alert-txt: #f8fafc;
             --active-bg: #1e3a8a; --active-txt: #38bdf8; --active-border: #38bdf8;
             --ts-color: #94a3b8; --btn-border: #475569;
+            --swipe-bg: rgba(56, 189, 248, 0.15);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -37,13 +39,24 @@
             width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
             padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
         }
-        .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; }
+        /* touch-action: pan-y prevents browser forward/back swipes while allowing vertical scroll */
+        .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; touch-action: pan-y; }
+        
+        /* SWIPE UI ELEMENTS */
+        .swipe-overlay {
+            position: absolute; top: 0; bottom: 0; width: 120px; display: flex; align-items: center; 
+            pointer-events: none; z-index: 50; transition: opacity 0.1s linear;
+        }
+        .swipe-left { left: 0; justify-content: flex-start; padding-left: 20px; background: linear-gradient(to right, var(--swipe-bg), transparent); }
+        .swipe-right { right: 0; justify-content: flex-end; padding-right: 20px; background: linear-gradient(to left, var(--swipe-bg), transparent); }
+        .swipe-icon { font-size: 2.5rem; color: var(--active-border); font-weight: 900; transition: transform 0.1s linear; }
+
         .management-view { 
             background: var(--pico-secondary-background); gap: 12px; display: grid; 
             grid-template-columns: minmax(260px, 43%) 1fr; grid-template-rows: auto 1fr; position: relative;
         }
 
-        .presentation-grid { display: grid; grid-template-columns: minmax(260px, 43%) 1fr; gap: 28px; height: 100%; }
+        .presentation-grid { display: grid; grid-template-columns: minmax(260px, 43%) 1fr; gap: 28px; height: 100%; position: relative; z-index: 5; }
         .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 20px; position: relative; z-index: 2; }
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
@@ -65,10 +78,10 @@
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; }
+        .details-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; height: 100%; pointer-events: none; }
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
-        .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; pointer-events: none; }
-        .details-page.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .details-page.active { opacity: 1; transform: translateY(0); }
         .details-viewport ul { padding-left: 24px; margin-top: 8px; }
         .details-viewport li { margin-bottom: 6px; }
         .details-viewport strong { font-weight: 800; }
@@ -125,7 +138,20 @@
 <body x-data="meetingApp()" x-init="initApp()">
 
 <div class="app-container">
-    <div class="presentation-view">
+    <!-- TOUCH LISTENERS ADDED HERE -->
+    <div class="presentation-view" 
+         @touchstart="handleTouchStart" 
+         @touchmove="handleTouchMove" 
+         @touchend="handleTouchEnd">
+         
+        <!-- SWIPE VISUAL OVERLAYS -->
+        <div class="swipe-overlay swipe-left" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
+            <div class="swipe-icon" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 20) : 0}px)`">◀</div>
+        </div>
+        <div class="swipe-overlay swipe-right" :style="`opacity: ${swipeDirection === 'next' ? swipeProgress : 0}`">
+            <div class="swipe-icon" :style="`transform: translateX(${swipeDirection === 'next' ? (-swipeProgress * 20) : 0}px)`">▶</div>
+        </div>
+
         <div class="presentation-grid">
             <header class="status-panel">
                 <div>
@@ -139,7 +165,7 @@
                 </div>
                 
                 <nav class="next-up-container">
-                    <button class="outline secondary" style="padding:12px 14px; margin-bottom:0;" @click="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <button class="outline secondary" style="padding:12px 14px; margin-bottom:0; z-index:10;" @click="shiftItem(-1)" title="Previous Topic">◀</button>
                     <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click="shiftItem(1)" title="Advance to Next Topic">
                         <div class="next-label">Next Up</div>
                         <div class="next-title" x-text="nextItem ? `${nextItem.time} - ${nextItem.title}` : 'Adjournment / Session Closed'"></div>
@@ -243,6 +269,9 @@ function meetingApp() {
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
         editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '', isRefreshing: false,
 
+        // SWIPE STATE VARIABLES
+        touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false,
+
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
         get canUndo() { return this.historyStack.length > 0; },
@@ -262,6 +291,45 @@ function meetingApp() {
             this.renderPresentationTextPages();
             setInterval(() => this.updateSystemClock(), 1000);
             window.addEventListener('resize', () => this.renderPresentationTextPages());
+        },
+
+        // TOUCH HANDLERS FOR SWIPE GESTURE
+        handleTouchStart(e) {
+            this.touchStartX = e.touches[0].clientX;
+            this.touchStartY = e.touches[0].clientY;
+            this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; this.touchLocked = false;
+        },
+        handleTouchMove(e) {
+            if (this.touchLocked) return;
+            const deltaX = e.touches[0].clientX - this.touchStartX;
+            const deltaY = e.touches[0].clientY - this.touchStartY;
+
+            // Lock out horizontal swipe if the user is scrolling vertically
+            if (!this.isSwiping && Math.abs(deltaY) > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                this.touchLocked = true; return;
+            }
+
+            const deadzone = 30; // Ignore tiny twitches
+            const maxDrag = window.innerWidth * 0.35; // Screen distance required for full opacity
+
+            if (Math.abs(deltaX) > deadzone) {
+                this.isSwiping = true;
+                // Drag right (positive) means previous. Drag left (negative) means next.
+                this.swipeDirection = deltaX > 0 ? 'prev' : 'next';
+                const rawProgress = (Math.abs(deltaX) - deadzone) / maxDrag;
+                this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); // Cap at 1.0
+            } else {
+                this.swipeProgress = 0;
+            }
+        },
+        handleTouchEnd(e) {
+            // Only trigger the shift if they pulled far enough (e.g. 75% of the max drag zone)
+            if (this.isSwiping && this.swipeProgress > 0.75) {
+                if (this.swipeDirection === 'prev') this.shiftItem(-1);
+                else if (this.swipeDirection === 'next') this.shiftItem(1);
+            }
+            // Reset state
+            this.isSwiping = false; this.swipeProgress = 0; this.swipeDirection = null; this.touchLocked = false;
         },
 
         async syncToURL() {
@@ -492,18 +560,6 @@ function meetingApp() {
                 this.syncToURL();
                 this.importText = '';
             } else alert("Could not parse time indexes.");
-        },
-
-        toggleFullscreen() {
-            const doc = document.documentElement;
-            if (!document.fullscreenElement && !document.webkitFullscreenElement) { 
-                const req = doc.requestFullscreen || doc.webkitRequestFullscreen;
-                if (req) req.call(doc).catch(() => alert("Fullscreen not supported by browser."));
-                else alert("To gain full screen functionality on this device, please add this page to your Home Screen.");
-            } else { 
-                const exit = document.exitFullscreen || document.webkitExitFullscreen;
-                if (exit) exit.call(document); 
-            }
         }
     }
 }
