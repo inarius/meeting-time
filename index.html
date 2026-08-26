@@ -419,7 +419,8 @@ function meetingApp() {
 
         async shareAgendaURL() {
             try {
-                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ({ t: item.time, i: item.title, d: item.details })) };
+                // Compression logic mapping to Array payload: [time, title, details]
+                const minified = { m: this.meetingTitle, items: this.agenda.map(item => ([ item.time, item.title, item.details ])) };
                 const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
                 const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
                 const shareURL = `${window.location.origin}${window.location.pathname}#agenda=${btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
@@ -438,7 +439,9 @@ function meetingApp() {
                     const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
                     const minified = JSON.parse(await new Response(stream).text());
                     if (minified.m !== undefined) { this.meetingTitle = minified.m; this.updateTitle(); }
-                    const decoded = (minified.items || minified).map(item => ({ time: item.t, title: item.i, details: item.d }));
+                    
+                    // Decode from the new array structure: [time, title, details]
+                    const decoded = (minified.items || minified).map(item => ({ time: item[0], title: item[1], details: item[2] }));
                     if (Array.isArray(decoded) && decoded.length) { localStorage.setItem('boardAgenda', JSON.stringify(decoded)); return decoded; }
                 } catch (e) {}
             }
