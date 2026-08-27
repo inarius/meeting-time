@@ -323,7 +323,6 @@ function meetingApp() {
             const deltaX = e.touches[0].clientX - this.touchStartX;
             const deltaY = e.touches[0].clientY - this.touchStartY;
 
-            // Determine dominant axis in the first 10 pixels of movement
             if (!this.axisDetermined) {
                 if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) return;
                 
@@ -452,30 +451,55 @@ function meetingApp() {
             return m ? (m[1] % 12 + (/PM/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 0;
         },
         
+        checkSyncState() {
+            let matched = 0; const currentMins = this.parseToMinutes(this.getTimeString());
+            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
+            this.isManualOverride = (this.currentIndex !== matched);
+        },
+
         evaluateAutomatedTimeTrigger(currentWallTime) {
             let matched = -1; const currentMins = this.parseToMinutes(currentWallTime);
             this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
 
             if (matched !== -1) {
-                const exactAgenda = this.agenda[matched].time.replace(/^0/, '');
-                const exactWall = currentWallTime.replace(/^0/, '');
+                if (this.currentIndex === matched) this.isManualOverride = false;
+
                 if (!this.isManualOverride && matched !== this.currentIndex) {
-                    this.lastCheckedMilestoneTime = currentWallTime; this.currentIndex = matched; this.isAlertActive = false;
-                    this.syncEditorInputs(); this.renderPresentationTextPages();
-                } else if (this.isManualOverride && exactAgenda === exactWall && this.lastCheckedMilestoneTime !== currentWallTime) {
-                    this.lastCheckedMilestoneTime = currentWallTime; this.isManualOverride = false; this.currentIndex = matched; this.isAlertActive = false;
-                    this.syncEditorInputs(); this.renderPresentationTextPages();
+                    this.lastCheckedMilestoneTime = currentWallTime; 
+                    this.currentIndex = matched; 
+                    this.isAlertActive = false;
+                    this.syncEditorInputs(); 
+                    this.renderPresentationTextPages();
                 }
             }
         },
 
         shiftItem(dir) {
             if (dir < 0 && this.currentIndex === 0) { this.isAlertActive = !this.isAlertActive; return; }
-            this.isManualOverride = true; const target = this.currentIndex + dir;
-            if (target >= 0 && target < this.agenda.length) { this.currentIndex = target; this.isAlertActive = false; this.syncEditorInputs(); this.renderPresentationTextPages(); }
+            const target = this.currentIndex + dir;
+            if (target >= 0 && target < this.agenda.length) { 
+                this.currentIndex = target; 
+                this.isAlertActive = false; 
+                this.checkSyncState();
+                this.syncEditorInputs(); 
+                this.renderPresentationTextPages(); 
+            }
         },
-        selectItem(idx) { this.isManualOverride = true; this.currentIndex = idx; this.isAlertActive = false; this.syncEditorInputs(); this.renderPresentationTextPages(); },
-        clearOverride() { this.isManualOverride = false; this.lastCheckedMilestoneTime = ""; this.isAlertActive = false; this.evaluateAutomatedTimeTrigger(this.getTimeString()); this.syncEditorInputs(); this.renderPresentationTextPages(); },
+        selectItem(idx) { 
+            this.currentIndex = idx; 
+            this.isAlertActive = false; 
+            this.checkSyncState();
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+        },
+        clearOverride() { 
+            this.isManualOverride = false; 
+            this.lastCheckedMilestoneTime = ""; 
+            this.isAlertActive = false; 
+            this.evaluateAutomatedTimeTrigger(this.getTimeString()); 
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+        },
 
         updateTitle() { document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting"; localStorage.setItem('boardMeetingTitle', this.meetingTitle); },
         syncEditorInputs() {
