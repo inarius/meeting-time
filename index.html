@@ -50,7 +50,6 @@
         .swipe-icon { font-size: 2.5rem; color: var(--ts-color); font-weight: 900; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .swipe-ready .swipe-icon { transform: scale(1.4); color: var(--swipe-ready-color); filter: drop-shadow(0 0 6px var(--swipe-ready-color)); }
 
-        /* REFINED CSS GRID FOR SLIDING TABS */
         .presentation-grid { 
             display: grid; 
             grid-template-columns: minmax(260px, 43%) minmax(200px, 1fr) 40px; 
@@ -65,7 +64,6 @@
         .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 20px; position: relative; z-index: 2; overflow: hidden; }
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
-        /* COLLAPSING LOGIC */
         .hide-on-tab { transition: opacity 0.6s ease, max-height 0.6s ease, margin 0.6s ease; max-height: 200px; opacity: 1; overflow: hidden; }
         .tab-open .hide-on-tab { max-height: 0; opacity: 0; margin-bottom: 0 !important; margin-top: 0 !important; }
 
@@ -98,7 +96,6 @@
         .details-viewport strong { font-weight: 800; }
         .details-viewport em { font-style: italic; }
 
-        /* TABS UI */
         .tabs-panel { display: flex; overflow: hidden; height: 100%; }
         .tab-content-area { flex-grow: 1; background: var(--pico-background-color); border-radius: 12px; border: 2px solid var(--pico-muted-border-color); padding: 24px; overflow-y: auto; opacity: 0; transition: opacity 0.5s ease 0.3s; display: flex; flex-direction: column; }
         .tab-open .tab-content-area { opacity: 1; }
@@ -118,14 +115,18 @@
         .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
 
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
-        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); }
+        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); display: flex; flex-direction: column; }
         .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
         .timeline-header span { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
         .timeline-item { display: flex; align-items: center; padding: 8px 16px 8px 11px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
         .timeline-item.active { background: var(--active-bg); color: var(--active-txt); border-left: 5px solid var(--active-border); font-weight: 700; }
+        
+        /* New distinct styling for the time/status column in the list */
         .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
+        .item-status-col { width: 85px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0; }
+        
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .control-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; justify-content: flex-end; }
@@ -176,7 +177,6 @@
             <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'next' ? (-swipeProgress * 15) : 0}px)`"><div class="swipe-icon">▶</div></div>
         </div>
 
-        <!-- The main Grid shifts depending on activeTabId -->
         <div class="presentation-grid" :class="{ 'tab-open': activeTabId !== null }">
             
             <header class="status-panel">
@@ -210,7 +210,6 @@
                 </div>
             </section>
 
-            <!-- TABS & TAB CONTENT -->
             <section class="tabs-panel">
                 <div class="tab-content-area" x-show="activeTabId !== null">
                     <h2 :style="`color: ${activeTabColor}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="activeTabTitle"></h2>
@@ -262,12 +261,23 @@
             
             <article class="timeline-box">
                 <div class="timeline-header">
-                    <span>Agenda</span>
+                    <span>Elements & Agenda</span>
                     <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
                 </div>
                 <div class="timeline-rows">
+                    <template x-for="tab in tabs" :key="'m_'+tab.id">
+                        <div class="timeline-item" :class="{ 'active': editingMode === 'tab' && currentEditTabId === tab.id }" @click="selectEditTab(tab.id)">
+                            <div class="item-status-col" :style="tab.enabled ? 'color: var(--pico-color);' : 'color: var(--pico-muted-color);'">
+                                <span x-text="tab.enabled ? '🟢 On' : '⭕ Off'"></span>
+                            </div>
+                            <div class="item-text" :style="`color: ${tab.color}; opacity: ${tab.enabled ? 1 : 0.6};`" x-text="tab.title"></div>
+                        </div>
+                    </template>
+                    
+                    <div style="height: 1px; background: var(--pico-muted-border-color); margin: 4px 0;"></div>
+                    
                     <template x-for="(item, idx) in agenda" :key="idx">
-                        <div class="timeline-item" :class="{ 'active': idx === currentIndex }" @click="selectItem(idx)">
+                        <div class="timeline-item" :class="{ 'active': editingMode === 'agenda' && idx === currentIndex }" @click="selectItem(idx)">
                             <div class="item-time" x-text="item.time"></div>
                             <div class="item-text" x-text="item.title"></div>
                         </div>
@@ -276,41 +286,39 @@
             </article>
         </div>
         
-        <div class="editor-column-wrapper" style="overflow-y: auto; padding-right: 8px;">
+        <div class="editor-column-wrapper">
             <article class="editor-article">
                 <div class="grid">
-                    <label>Time <input type="text" x-model="editTime" placeholder="10:45 AM"></label>
-                    <label>Topic Title <input type="text" x-model="editTitle" placeholder="Executive Review"></label>
+                    <label x-show="editingMode === 'agenda'">Time 
+                        <input type="text" x-model="editTime" placeholder="10:45 AM">
+                    </label>
+                    <label x-show="editingMode === 'tab'">Display Status
+                        <div style="padding-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;">
+                                <input type="checkbox" x-model="editEnabled" style="margin-bottom: 0;"> Enabled in Rotation
+                            </label>
+                        </div>
+                    </label>
+                    
+                    <label>Title 
+                        <input type="text" x-model="editTitle" placeholder="Topic or Tab Title">
+                    </label>
                 </div>
-                <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Topic Detail
+                <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Detail Content
                     <textarea x-model="editDetails" placeholder="Overview details... Use - for lists, -- for sub-lists, **bold** and *italics*"></textarea>
                 </label>
                 
-                <nav class="control-bar" style="margin-top: 10px; margin-bottom: 12px;">
+                <nav class="control-bar" style="margin-top: 10px;">
                     <div role="group">
                         <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
-                        <button class="secondary outline" @click="deleteCurrentItem()">Delete</button>
+                        <button class="secondary outline" x-show="editingMode === 'agenda'" @click="deleteCurrentItem()">Delete</button>
                         <button class="primary" @click="saveEditorValues()">Save</button>
-                        <button class="contrast" @click="addNewItemBelow()">+ Add</button>
+                        <button class="contrast" x-show="editingMode === 'agenda'" @click="addNewItemBelow()">+ Add</button>
                     </div>
                 </nav>
             </article>
-
-            <!-- TABS MANAGEMENT SECTION -->
-            <article class="editor-article" style="flex-grow: 0;">
-                <header style="margin-bottom: 12px; font-weight: 800; font-size: 0.95rem; color: var(--ts-color);">Persistent Information Tabs</header>
-                <template x-for="tab in tabs" :key="tab.id">
-                    <div style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 12px; margin-bottom: 12px; background: var(--pico-background-color);">
-                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0;">
-                            <input type="checkbox" x-model="tab.enabled" @change="syncToURL(); buildDisplaySequence();"> 
-                            <span x-text="tab.title" :style="`color: ${tab.color}; font-weight: 800;`"></span>
-                        </label>
-                        <textarea x-show="tab.enabled" x-model="tab.content" @change="syncToURL()" placeholder="Markdown content..." style="min-height: 80px; margin-top: 10px; margin-bottom: 0;"></textarea>
-                    </div>
-                </template>
-            </article>
             
-            <div x-show="lastUpdatedText" class="timestamp-text">Updated: <span x-text="lastUpdatedText"></span></div>
+            <div x-show="lastUpdatedText" class="timestamp-text" style="padding-top: 4px;">Updated: <span x-text="lastUpdatedText"></span></div>
         </div>
     </div>
 </div>
@@ -332,11 +340,10 @@ function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isManualOverride: false, isAlertActive: false,
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
-        editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '', isRefreshing: false,
+        editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
 
         touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
 
-        // NEW TAB STATE
         tabs: [
             { id: 'patrols', title: 'Patrols', content: '', enabled: true, color: '#16a34a' },
             { id: 'dates', title: 'Dates', content: '', enabled: true, color: '#2563eb' },
@@ -344,6 +351,9 @@ function meetingApp() {
         ],
         activeTabId: null, displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
         isKioskPaused: false, kioskIdleTime: 0, isBouncing: null,
+        
+        editingMode: 'agenda', 
+        currentEditTabId: null, 
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
@@ -369,7 +379,7 @@ function meetingApp() {
             this.syncEditorInputs();
             this.renderPresentationTextPages();
             setInterval(() => this.updateSystemClock(), 1000);
-            setInterval(() => this.runDisplayLoop(), 1000); // 1-second auto-rotation loop
+            setInterval(() => this.runDisplayLoop(), 1000); 
             window.addEventListener('resize', () => this.renderPresentationTextPages());
         },
 
@@ -391,30 +401,29 @@ function meetingApp() {
             this.userInteracted();
             if (this.activeTabId === id) {
                 this.activeTabId = null;
-                this.displayIndex = 0; // Return to agenda
+                this.displayIndex = 0;
             } else {
                 this.activeTabId = id;
                 let idx = this.displaySequence.indexOf(id);
                 if (idx !== -1) this.displayIndex = idx;
-                this.displayTime = 0; // Reset tab clock so they get 30s once they walk away
+                this.displayTime = 0; 
             }
         },
 
         runDisplayLoop() {
             if (this.isKioskPaused) {
                 this.kioskIdleTime++;
-                if (this.kioskIdleTime > 90) { // 90 second Kiosk timeout
+                if (this.kioskIdleTime > 90) { 
                     this.isKioskPaused = false;
                     this.displayTime = 0; 
                 }
                 return;
             }
 
-            if (this.displaySequence.length <= 1) return; // Only agenda enabled, do nothing
+            if (this.displaySequence.length <= 1) return; 
 
             this.displayTime++;
             
-            // Soft bounce anticipation 3 seconds before transition
             if (this.displayTime === 27) {
                 let nextMode = this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length];
                 if (nextMode !== 'agenda') {
@@ -423,7 +432,6 @@ function meetingApp() {
                 }
             }
 
-            // Execute transition at 30 seconds
             if (this.displayTime >= 30) {
                 this.displayTime = 0;
                 this.displayIndex = (this.displayIndex + 1) % this.displaySequence.length;
@@ -476,11 +484,10 @@ function meetingApp() {
 
         async syncToURL() {
             try {
-                // Now includes tab states (t)
                 const minified = { 
                     m: this.meetingTitle, 
                     items: this.agenda.map(item => ([ item.time, item.title, item.details ])),
-                    t: this.tabs.map(tab => ([ tab.enabled ? 1 : 0, tab.content ]))
+                    t: this.tabs.map(tab => ([ tab.enabled ? 1 : 0, tab.content, tab.title ]))
                 };
                 const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
                 const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
@@ -579,14 +586,14 @@ function meetingApp() {
         checkSyncState() {
             let matched = 0; const currentMins = this.parseToMinutes(this.getTimeString());
             this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
-            this.isManualOverride = (this.currentIndex !== matched);
+            this.isManualOverride = (this.currentIndex !== matched || this.editingMode !== 'agenda');
         },
 
         evaluateAutomatedTimeTrigger(currentWallTime) {
             let matched = 0; const currentMins = this.parseToMinutes(currentWallTime);
             this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
 
-            if (this.currentIndex === matched) this.isManualOverride = false;
+            if (this.currentIndex === matched && this.editingMode === 'agenda') this.isManualOverride = false;
 
             if (!this.isManualOverride && matched !== this.currentIndex) {
                 this.lastCheckedMilestoneTime = currentWallTime; 
@@ -604,20 +611,32 @@ function meetingApp() {
             if (target >= 0 && target < this.agenda.length) { 
                 this.currentIndex = target; 
                 this.isAlertActive = false; 
+                this.editingMode = 'agenda';
                 this.checkSyncState();
                 this.syncEditorInputs(); 
                 this.renderPresentationTextPages(); 
             }
         },
+        
         selectItem(idx) { 
+            this.editingMode = 'agenda';
             this.currentIndex = idx; 
             this.isAlertActive = false; 
             this.checkSyncState();
             this.syncEditorInputs(); 
             this.renderPresentationTextPages(); 
         },
+
+        selectEditTab(id) {
+            this.editingMode = 'tab';
+            this.currentEditTabId = id;
+            this.isManualOverride = true; 
+            this.syncEditorInputs();
+        },
+
         clearOverride() { 
             this.isManualOverride = false; 
+            this.editingMode = 'agenda';
             this.lastCheckedMilestoneTime = ""; 
             this.isAlertActive = false; 
             this.evaluateAutomatedTimeTrigger(this.getTimeString()); 
@@ -626,33 +645,86 @@ function meetingApp() {
         },
 
         updateTitle() { document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting"; localStorage.setItem('boardMeetingTitle', this.meetingTitle); },
+        
         syncEditorInputs() {
-            if (this.currentItem) { this.editTime = this.currentItem.time; this.editTitle = this.currentItem.title; this.editDetails = this.currentItem.details; }
-            else { this.editTime = ""; this.editTitle = ""; this.editDetails = ""; }
+            if (this.editingMode === 'agenda') {
+                if (this.currentItem) { this.editTime = this.currentItem.time; this.editTitle = this.currentItem.title; this.editDetails = this.currentItem.details; }
+                else { this.editTime = ""; this.editTitle = ""; this.editDetails = ""; }
+            } else if (this.editingMode === 'tab') {
+                const tab = this.tabs.find(t => t.id === this.currentEditTabId);
+                if (tab) {
+                    this.editEnabled = tab.enabled;
+                    this.editTitle = tab.title;
+                    this.editDetails = tab.content;
+                }
+            }
         },
-        pushHistoryState() { this.historyStack.push({ agenda: JSON.parse(JSON.stringify(this.agenda)), currentIndex: this.currentIndex }); if (this.historyStack.length > this.MAX_HISTORY) this.historyStack.shift(); },
+        
+        pushHistoryState() { 
+            this.historyStack.push({ 
+                agenda: JSON.parse(JSON.stringify(this.agenda)), 
+                tabs: JSON.parse(JSON.stringify(this.tabs)),
+                currentIndex: this.currentIndex,
+                editingMode: this.editingMode,
+                currentEditTabId: this.currentEditTabId
+            }); 
+            if (this.historyStack.length > this.MAX_HISTORY) this.historyStack.shift(); 
+        },
+        
         undoLastAction() {
-            if (!this.canUndo) return; const prev = this.historyStack.pop();
-            this.agenda = prev.agenda; this.currentIndex = prev.currentIndex;
-            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
+            if (!this.canUndo) return; 
+            const prev = this.historyStack.pop();
+            this.agenda = prev.agenda; 
+            this.tabs = prev.tabs;
+            this.currentIndex = prev.currentIndex;
+            this.editingMode = prev.editingMode;
+            this.currentEditTabId = prev.currentEditTabId;
+            
+            this.buildDisplaySequence();
+            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); 
+            localStorage.setItem('boardTabs', JSON.stringify(this.tabs));
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+            this.syncToURL();
         },
+        
         saveEditorValues() {
-            if (!this.editTime.trim() || !this.editTitle.trim()) return alert("Time and title parameters are required.");
+            if (!this.editTitle.trim()) return alert("A title is required.");
+            
             this.pushHistoryState();
-            const payload = { time: this.editTime.trim(), title: this.editTitle.trim(), details: this.editDetails.trim() };
-            if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
-            else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
-            this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
-            localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.renderPresentationTextPages(); this.syncToURL();
+
+            if (this.editingMode === 'agenda') {
+                if (!this.editTime.trim()) return alert("A time is required for agenda items.");
+                const payload = { time: this.editTime.trim(), title: this.editTitle.trim(), details: this.editDetails.trim() };
+                if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
+                else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
+                this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+                localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); 
+                this.renderPresentationTextPages(); 
+            } else if (this.editingMode === 'tab') {
+                const tab = this.tabs.find(t => t.id === this.currentEditTabId);
+                if (tab) {
+                    tab.enabled = this.editEnabled;
+                    tab.title = this.editTitle.trim() || tab.title;
+                    tab.content = this.editDetails.trim();
+                }
+                this.buildDisplaySequence();
+                localStorage.setItem('boardTabs', JSON.stringify(this.tabs));
+            }
+            this.syncToURL();
         },
+        
         addNewItemBelow() {
+            if (this.editingMode !== 'agenda') return;
             this.pushHistoryState();
             this.currentIndex++;
             this.agenda.splice(this.currentIndex, 0, { time: this.editTime.trim() || "12:00 PM", title: this.editTitle.trim() || "New Topic", details: this.editDetails.trim() || "" });
             this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
             localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
         },
+        
         deleteCurrentItem() {
+            if (this.editingMode !== 'agenda') return;
             if (this.agenda.length <= 1) return alert("At least one agenda topic is required.");
             this.pushHistoryState(); this.agenda.splice(this.currentIndex, 1);
             this.currentIndex = Math.max(0, this.currentIndex - 1);
@@ -706,7 +778,11 @@ function meetingApp() {
                     
                     if (minified.t && Array.isArray(minified.t)) {
                         minified.t.forEach((tData, i) => {
-                            if (this.tabs[i]) { this.tabs[i].enabled = !!tData[0]; this.tabs[i].content = tData[1] || ''; }
+                            if (this.tabs[i]) { 
+                                this.tabs[i].enabled = !!tData[0]; 
+                                this.tabs[i].content = tData[1] || ''; 
+                                if (tData[2]) this.tabs[i].title = tData[2];
+                            }
                         });
                     }
                     
@@ -748,15 +824,31 @@ function meetingApp() {
                     let currentTab = null;
                     tabsPart.split('\n').forEach(line => {
                         let l = line.trim();
-                        if (l.match(/^#\s*Patrols/i)) { currentTab = this.tabs[0]; currentTab.enabled = l.includes('[x]'); currentTab.content = ''; }
-                        else if (l.match(/^#\s*Dates/i)) { currentTab = this.tabs[1]; currentTab.enabled = l.includes('[x]'); currentTab.content = ''; }
-                        else if (l.match(/^#\s*Announcements/i)) { currentTab = this.tabs[2]; currentTab.enabled = l.includes('[x]'); currentTab.content = ''; }
+                        // Allows customized tab titles to be mapped back correctly based on original ordering or ID matching
+                        if (l.match(/^#.*\[x\]|^#.*\[\s\]/i)) {
+                            const isChecked = l.includes('[x]');
+                            const titleRaw = l.replace(/^#/, '').replace(/\[x\]|\[\s\]/g, '').trim();
+                            if (this.tabs.some(t => t.title === titleRaw)) {
+                                currentTab = this.tabs.find(t => t.title === titleRaw);
+                            } else {
+                                // fallback to order if titles were changed in export
+                                if (!this.tabs[0]._touched) { currentTab = this.tabs[0]; this.tabs[0]._touched = true; }
+                                else if (!this.tabs[1]._touched) { currentTab = this.tabs[1]; this.tabs[1]._touched = true; }
+                                else if (!this.tabs[2]._touched) { currentTab = this.tabs[2]; this.tabs[2]._touched = true; }
+                            }
+                            if (currentTab) {
+                                currentTab.enabled = isChecked;
+                                currentTab.title = titleRaw || currentTab.title;
+                                currentTab.content = '';
+                            }
+                        }
                         else if (currentTab && l) { currentTab.content += (currentTab.content ? '\n' : '') + line; }
                     });
+                    this.tabs.forEach(t => delete t._touched);
                 }
                 
                 this.historyStack = []; 
-                this.agenda = newAgenda; this.currentIndex = 0;
+                this.agenda = newAgenda; this.currentIndex = 0; this.editingMode = 'agenda';
                 this.buildDisplaySequence();
                 localStorage.setItem('boardAgenda', JSON.stringify(this.agenda)); 
                 this.syncEditorInputs(); this.renderPresentationTextPages(); 
