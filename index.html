@@ -458,19 +458,17 @@ function meetingApp() {
         },
 
         evaluateAutomatedTimeTrigger(currentWallTime) {
-            let matched = -1; const currentMins = this.parseToMinutes(currentWallTime);
+            let matched = 0; const currentMins = this.parseToMinutes(currentWallTime);
             this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
 
-            if (matched !== -1) {
-                if (this.currentIndex === matched) this.isManualOverride = false;
+            if (this.currentIndex === matched) this.isManualOverride = false;
 
-                if (!this.isManualOverride && matched !== this.currentIndex) {
-                    this.lastCheckedMilestoneTime = currentWallTime; 
-                    this.currentIndex = matched; 
-                    this.isAlertActive = false;
-                    this.syncEditorInputs(); 
-                    this.renderPresentationTextPages();
-                }
+            if (!this.isManualOverride && matched !== this.currentIndex) {
+                this.lastCheckedMilestoneTime = currentWallTime; 
+                this.currentIndex = matched; 
+                this.isAlertActive = false;
+                this.syncEditorInputs(); 
+                this.renderPresentationTextPages();
             }
         },
 
