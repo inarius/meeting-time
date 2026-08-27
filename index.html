@@ -288,7 +288,7 @@ function meetingApp() {
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
         editTime: '', editTitle: '', editDetails: '', importText: '', lastUpdatedText: '', isRefreshing: false,
 
-        touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false,
+        touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
@@ -314,35 +314,51 @@ function meetingApp() {
         handleTouchStart(e) {
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
-            this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; this.touchLocked = false;
+            this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; 
+            this.touchLocked = false; this.axisDetermined = false;
         },
+        
         handleTouchMove(e) {
             if (this.touchLocked) return;
             const deltaX = e.touches[0].clientX - this.touchStartX;
             const deltaY = e.touches[0].clientY - this.touchStartY;
 
-            if (!this.isSwiping && Math.abs(deltaY) > 20 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                this.touchLocked = true; return;
+            // Determine dominant axis in the first 10 pixels of movement
+            if (!this.axisDetermined) {
+                if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) return;
+                
+                this.axisDetermined = true;
+                if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                    this.touchLocked = true;
+                    return;
+                } else {
+                    this.isSwiping = true;
+                }
             }
 
-            const deadzone = 25; 
-            const dragDistance = 70; 
+            if (this.isSwiping) {
+                if (e.cancelable) e.preventDefault();
 
-            if (Math.abs(deltaX) > deadzone) {
-                this.isSwiping = true;
-                this.swipeDirection = deltaX > 0 ? 'prev' : 'next';
-                const rawProgress = (Math.abs(deltaX) - deadzone) / dragDistance;
-                this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); 
-            } else {
-                this.swipeProgress = 0;
+                const deadzone = 25; 
+                const dragDistance = 70; 
+
+                if (Math.abs(deltaX) > deadzone) {
+                    this.swipeDirection = deltaX > 0 ? 'prev' : 'next';
+                    const rawProgress = (Math.abs(deltaX) - deadzone) / dragDistance;
+                    this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); 
+                } else {
+                    this.swipeProgress = 0;
+                }
             }
         },
+        
         handleTouchEnd(e) {
             if (this.isSwiping && this.swipeProgress >= 1) {
                 if (this.swipeDirection === 'prev') this.shiftItem(-1);
                 else if (this.swipeDirection === 'next') this.shiftItem(1);
             }
-            this.isSwiping = false; this.swipeProgress = 0; this.swipeDirection = null; this.touchLocked = false;
+            this.isSwiping = false; this.swipeProgress = 0; this.swipeDirection = null; 
+            this.touchLocked = false; this.axisDetermined = false;
         },
 
         async syncToURL() {
