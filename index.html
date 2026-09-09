@@ -115,7 +115,6 @@
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
 
-        /* Modified dynamic area and true slide-in */
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         
         .details-panel { 
@@ -178,7 +177,9 @@
         .editor-column-wrapper { display: flex; flex-direction: column; min-height: 0; height: 100%; }
         .editor-article { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; margin-bottom: 6px !important; }
 
-        .timestamp-text { text-align: right; font-size: 0.70rem; font-weight: 600; padding-right: 2px; color: var(--ts-color); }
+        .timestamp-text { text-align: right; font-size: 0.75rem; font-weight: 600; padding-right: 2px; color: var(--ts-color); }
+        .debug-link { color: inherit; text-decoration: none; opacity: 0.6; transition: opacity 0.2s; margin-left: 6px; }
+        .debug-link:hover { opacity: 1; text-decoration: underline; }
 
         @media (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -224,7 +225,7 @@
                     :class="{ 'active': activeTabId === null, 'bounce': isBouncing === 'agenda' }"
                     style="background-color: #475569;"
                     @click.stop="userClickedTab('agenda')">
-                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / 30) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
+                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
                 <span style="position:relative; z-index:2;">▶ Agenda</span>
             </button>
 
@@ -234,7 +235,7 @@
                         :class="{ 'active': activeTabId === tab.id, 'bounce': isBouncing === tab.id }"
                         :style="`background-color: ${tab.color};`"
                         @click.stop="userClickedTab(tab.id)">
-                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / 30) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
+                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
                     <span style="position:relative; z-index:2;" x-text="tab.title"></span>
                 </button>
             </template>
@@ -372,7 +373,10 @@
                 </nav>
             </article>
             
-            <div x-show="lastUpdatedText" class="timestamp-text" style="padding-top: 4px;">Updated: <span x-text="lastUpdatedText"></span></div>
+            <div class="timestamp-text" style="padding-top: 4px;">
+                <span x-show="lastUpdatedText">Updated: <span x-text="lastUpdatedText"></span> &bull; </span>
+                <a href="#" class="debug-link" @click.prevent="$refs.debugModal.showModal()">⚙️ Debug</a>
+            </div>
         </div>
     </div>
 </div>
@@ -385,6 +389,21 @@
         <footer>
             <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
             <button class="primary" @click="processImportText(); $refs.importModal.close()">Save to Agenda</button>
+        </footer>
+    </article>
+</dialog>
+
+<dialog x-ref="debugModal">
+    <article style="max-width: 400px;">
+        <header><strong>Developer Debug</strong></header>
+        <fieldset>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" x-model="isFastMode" @change="displayTime = 0"> 
+                Fast Cycle Simulation (5s)
+            </label>
+        </fieldset>
+        <footer>
+            <button class="primary" @click="$refs.debugModal.close()">Close</button>
         </footer>
     </article>
 </dialog>
@@ -404,7 +423,7 @@ function meetingApp() {
             { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#dc2626' }
         ],
         activeTabId: null, displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
-        isPlaying: true, isBouncing: null,
+        isPlaying: true, isBouncing: null, isFastMode: false,
         
         editingMode: 'agenda', 
         currentEditTabId: null, 
@@ -419,6 +438,7 @@ function meetingApp() {
         get activeTabContent() { return this.activeTabData ? this.activeTabData.content : ''; },
         
         get nextTabTarget() { return this.displaySequence.length > 1 ? this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length] : null; },
+        get currentCycleDuration() { return this.isFastMode ? 5 : 30; },
 
         async initApp() {
             this.isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
@@ -486,13 +506,13 @@ function meetingApp() {
 
             this.displayTime++;
             
-            if (this.displayTime === 27) {
+            if (this.displayTime === (this.currentCycleDuration - 3)) {
                 let nextMode = this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length];
                 this.isBouncing = nextMode;
                 setTimeout(() => this.isBouncing = null, 850);
             }
 
-            if (this.displayTime >= 30) {
+            if (this.displayTime >= this.currentCycleDuration) {
                 this.displayTime = 0;
                 this.displayIndex = (this.displayIndex + 1) % this.displaySequence.length;
                 let target = this.displaySequence[this.displayIndex];
