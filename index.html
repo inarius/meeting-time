@@ -50,7 +50,13 @@
         .swipe-icon { font-size: 2.5rem; color: var(--ts-color); font-weight: 900; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .swipe-ready .swipe-icon { transform: scale(1.4); color: var(--swipe-ready-color); filter: drop-shadow(0 0 6px var(--swipe-ready-color)); }
 
-        /* ABSOLUTE TABS PINNED TO RIGHT EDGE */
+        .playback-toggle-btn {
+            position: absolute; top: 18px; right: 28px; z-index: 100;
+            padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.7;
+        }
+        .playback-toggle-btn:hover { opacity: 1; transform: scale(1.05); }
+
         .tab-sidebar { 
             position: absolute; right: 0; top: 50%; transform: translateY(-50%); 
             display: flex; flex-direction: column; gap: 16px; z-index: 100; 
@@ -60,13 +66,19 @@
             color: white; font-weight: 800; font-size: 0.9rem; cursor: pointer; opacity: 0.85; 
             transition: all 0.2s, transform 0.2s; margin: 0; display: flex; align-items: center; 
             justify-content: center; letter-spacing: 1px; box-shadow: -2px 0 6px rgba(0,0,0,0.1); 
+            position: relative; overflow: hidden;
         }
         .vertical-tab:hover, .vertical-tab.active { opacity: 1; transform: scale(1.05) translateX(-2px); box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
         
+        .tab-progress {
+            position: absolute; top: 0; left: 0; width: 100%; 
+            background: rgba(0, 0, 0, 0.25); z-index: 1; 
+            transition: height 1s linear;
+        }
+
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        /* REVERTED TO 2-COLUMN GRID */
         .presentation-grid { 
             display: grid; 
             grid-template-columns: minmax(260px, 43%) 1fr; 
@@ -104,19 +116,14 @@
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
 
-        /* DYNAMIC CROSS-SLIDING AREA */
-        .dynamic-content-area {
-            position: relative; height: 100%; width: 100%;
-        }
+        .dynamic-content-area { position: relative; height: 100%; width: 100%; }
         
         .details-panel { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
             display: flex; flex-direction: column; overflow: hidden;
             transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease;
         }
-        .details-panel.hidden-by-tab {
-            transform: translateX(-40px); opacity: 0; pointer-events: none;
-        }
+        .details-panel.hidden-by-tab { transform: translateX(-40px); opacity: 0; pointer-events: none; }
 
         .tab-content-area { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
@@ -126,9 +133,7 @@
             transform: translateX(40px); opacity: 0; pointer-events: none;
             display: flex; flex-direction: column;
         }
-        .tab-content-area.visible {
-            transform: translateX(0); opacity: 1; pointer-events: auto;
-        }
+        .tab-content-area.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
 
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -181,12 +186,13 @@
             .status-panel { display: contents; }
             .status-panel::after { display: none; }
             .dynamic-content-area { order: 2; flex-grow: 1; min-height: 0; }
-            .details-panel, .tab-content-area { width: 100% !important; padding-right: 25px; } /* Room for absolute tabs */
+            .details-panel, .tab-content-area { width: 100% !important; padding-right: 25px; } 
             .next-up-container { order: 3; width: 98% !important; max-width: 98% !important; margin-top: auto; }
             .top-nav-row { justify-content: center; }
             .top-nav-right { justify-content: center; }
             .timeline-container { height: 45vh; max-height: none; flex-shrink: 0; }
             .editor-column-wrapper { flex-grow: 1; min-height: 0; }
+            .playback-toggle-btn { top: 10px; right: 10px; }
         }
     </style>
 </head>
@@ -199,6 +205,12 @@
          @touchend="handleTouchEnd"
          @click="userInteracted()">
          
+        <button class="playback-toggle-btn" 
+                :class="isPlaying ? 'secondary' : 'contrast'" 
+                @click.stop="togglePlayback()">
+            <span x-text="isPlaying ? '⏸ Auto-Run On' : '▶ Paused (Resume Auto)'"></span>
+        </button>
+
         <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
             <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 15) : 0}px)`"><div class="swipe-icon">◀</div></div>
         </div>
@@ -207,13 +219,23 @@
         </div>
 
         <div class="tab-sidebar">
+            <button class="vertical-tab" 
+                    x-show="displaySequence.length > 1"
+                    :class="{ 'active': activeTabId === null, 'bounce': isBouncing === 'agenda' }"
+                    style="background-color: #475569;"
+                    @click.stop="userClickedTab('agenda')">
+                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / 30) * 100 : 0}%;`"></div>
+                <span style="position:relative; z-index:2;">▶ Agenda</span>
+            </button>
+
             <template x-for="tab in tabs" :key="tab.id">
                 <button class="vertical-tab" 
                         x-show="tab.enabled"
                         :class="{ 'active': activeTabId === tab.id, 'bounce': isBouncing === tab.id }"
                         :style="`background-color: ${tab.color};`"
-                        @click.stop="userClickedTab(tab.id)"
-                        x-text="tab.title">
+                        @click.stop="userClickedTab(tab.id)">
+                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / 30) * 100 : 0}%;`"></div>
+                    <span style="position:relative; z-index:2;" x-text="tab.title"></span>
                 </button>
             </template>
         </div>
@@ -221,7 +243,8 @@
         <div class="presentation-grid" :class="{ 'tab-open': activeTabId !== null }">
             
             <header class="status-panel">
-                <div> <div class="hide-on-tab">
+                <div> 
+                    <div class="hide-on-tab">
                         <h1 class="meeting-title-bar" x-show="meetingTitle" x-text="meetingTitle"></h1>
                     </div>
                     <div class="current-meta">
@@ -293,7 +316,7 @@
             <article class="timeline-box">
                 <div class="timeline-header">
                     <span>Elements & Agenda</span>
-                    <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="isManualOverride" @click="clearOverride()">Resume Auto</button>
+                    <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="!isPlaying" @click="resumeAuto()">Resume Auto</button>
                 </div>
                 <div class="timeline-rows">
                     <template x-for="tab in tabs" :key="'m_'+tab.id">
@@ -369,7 +392,7 @@
 <script>
 function meetingApp() {
     return {
-        meetingTitle: '', agenda: [], currentIndex: 0, isManualOverride: false, isAlertActive: false,
+        meetingTitle: '', agenda: [], currentIndex: 0, isAlertActive: false,
         isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [], MAX_HISTORY: 20,
         editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
 
@@ -381,7 +404,7 @@ function meetingApp() {
             { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#dc2626' }
         ],
         activeTabId: null, displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
-        isKioskPaused: false, kioskIdleTime: 0, isBouncing: null,
+        isPlaying: true, isBouncing: null,
         
         editingMode: 'agenda', 
         currentEditTabId: null, 
@@ -394,6 +417,8 @@ function meetingApp() {
         get activeTabColor() { return this.activeTabData ? this.activeTabData.color : ''; },
         get activeTabTitle() { return this.activeTabData ? this.activeTabData.title : ''; },
         get activeTabContent() { return this.activeTabData ? this.activeTabData.content : ''; },
+        
+        get nextTabTarget() { return this.displaySequence.length > 1 ? this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length] : null; },
 
         async initApp() {
             this.isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
@@ -423,44 +448,48 @@ function meetingApp() {
             if(this.displayIndex >= this.displaySequence.length) this.displayIndex = 0;
         },
 
+        togglePlayback() {
+            if (this.isPlaying) {
+                this.isPlaying = false;
+            } else {
+                this.resumeAuto();
+            }
+        },
+
+        resumeAuto() {
+            this.isPlaying = true;
+            this.displayTime = 0;
+            this.isAlertActive = false;
+            this.evaluateAutomatedTimeTrigger(this.getTimeString());
+        },
+
         userInteracted() {
-            this.isKioskPaused = true;
-            this.kioskIdleTime = 0;
+            this.isPlaying = false;
+            this.displayTime = 0;
         },
 
         userClickedTab(id) {
             this.userInteracted();
-            if (this.activeTabId === id) {
+            if (id === 'agenda' || this.activeTabId === id) {
                 this.activeTabId = null;
-                this.displayIndex = 0;
+                let idx = this.displaySequence.indexOf('agenda');
+                if (idx !== -1) this.displayIndex = idx;
             } else {
                 this.activeTabId = id;
                 let idx = this.displaySequence.indexOf(id);
                 if (idx !== -1) this.displayIndex = idx;
-                this.displayTime = 0; 
             }
         },
 
         runDisplayLoop() {
-            if (this.isKioskPaused) {
-                this.kioskIdleTime++;
-                if (this.kioskIdleTime > 90) { 
-                    this.isKioskPaused = false;
-                    this.displayTime = 0; 
-                }
-                return;
-            }
-
-            if (this.displaySequence.length <= 1) return; 
+            if (!this.isPlaying || this.displaySequence.length <= 1) return; 
 
             this.displayTime++;
             
             if (this.displayTime === 27) {
                 let nextMode = this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length];
-                if (nextMode !== 'agenda') {
-                    this.isBouncing = nextMode;
-                    setTimeout(() => this.isBouncing = null, 850);
-                }
+                this.isBouncing = nextMode;
+                setTimeout(() => this.isBouncing = null, 850);
             }
 
             if (this.displayTime >= 30) {
@@ -472,6 +501,7 @@ function meetingApp() {
         },
 
         handleTouchStart(e) {
+            if (e.target.closest('.playback-toggle-btn') || e.target.closest('.vertical-tab')) return;
             this.userInteracted();
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
@@ -613,20 +643,12 @@ function meetingApp() {
             let m = ts.match(/(\d+):(\d+)\s*(AM|PM)/i);
             return m ? (m[1] % 12 + (/PM/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 0;
         },
-        
-        checkSyncState() {
-            let matched = 0; const currentMins = this.parseToMinutes(this.getTimeString());
-            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
-            this.isManualOverride = (this.currentIndex !== matched || this.editingMode !== 'agenda');
-        },
 
         evaluateAutomatedTimeTrigger(currentWallTime) {
             let matched = 0; const currentMins = this.parseToMinutes(currentWallTime);
             this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
 
-            if (this.currentIndex === matched && this.editingMode === 'agenda') this.isManualOverride = false;
-
-            if (!this.isManualOverride && matched !== this.currentIndex) {
+            if (this.isPlaying && matched !== this.currentIndex) {
                 this.lastCheckedMilestoneTime = currentWallTime; 
                 this.currentIndex = matched; 
                 this.isAlertActive = false;
@@ -643,36 +665,25 @@ function meetingApp() {
                 this.currentIndex = target; 
                 this.isAlertActive = false; 
                 this.editingMode = 'agenda';
-                this.checkSyncState();
                 this.syncEditorInputs(); 
                 this.renderPresentationTextPages(); 
             }
         },
         
         selectItem(idx) { 
+            this.isPlaying = false;
             this.editingMode = 'agenda';
             this.currentIndex = idx; 
             this.isAlertActive = false; 
-            this.checkSyncState();
             this.syncEditorInputs(); 
             this.renderPresentationTextPages(); 
         },
 
         selectEditTab(id) {
+            this.isPlaying = false;
             this.editingMode = 'tab';
             this.currentEditTabId = id;
-            this.isManualOverride = true; 
             this.syncEditorInputs();
-        },
-
-        clearOverride() { 
-            this.isManualOverride = false; 
-            this.editingMode = 'agenda';
-            this.lastCheckedMilestoneTime = ""; 
-            this.isAlertActive = false; 
-            this.evaluateAutomatedTimeTrigger(this.getTimeString()); 
-            this.syncEditorInputs(); 
-            this.renderPresentationTextPages(); 
         },
 
         updateTitle() { document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting"; localStorage.setItem('boardMeetingTitle', this.meetingTitle); },
