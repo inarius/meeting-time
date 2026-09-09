@@ -75,7 +75,7 @@
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        /* Left column updated to 35% with 260px safety limit */
+        /* Left column is now 35% as requested, with a 260px safety limit */
         .presentation-grid { 
             display: grid; 
             grid-template-columns: minmax(260px, 35%) 1fr; 
@@ -107,31 +107,23 @@
 
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         
-        /* The Agenda Panel - sits at the bottom and slides/fades slightly when a tab opens over it */
+        /* The Tattooed Agenda Panel - Always sits quietly at the bottom layer (z-index 1) */
         .details-panel { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
-            display: flex; flex-direction: column; overflow: hidden;
-            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
-            z-index: 1;
+            display: flex; flex-direction: column; overflow: hidden; z-index: 1;
         }
-        .details-panel.hidden-by-tab { transform: translateX(-40px); opacity: 0; pointer-events: none; }
 
-        /* The Tab Panels - these manage the deck dealing animation from the right */
+        /* The Deck Cards - They slide in from the right and cover whatever is beneath */
         .tab-content-area { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
             border-radius: 12px; border: 2px solid var(--pico-muted-border-color); 
             padding: 24px; overflow-y: auto; display: flex; flex-direction: column;
-            transform: translateX(110%); opacity: 0; pointer-events: none;
-            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
+            transform: translateX(110%);
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: -4px 0 16px rgba(0,0,0,0.2);
         }
-        .tab-content-area.visible { 
-            transform: translateX(0); opacity: 1; pointer-events: auto; 
-        }
-        /* Freeze the outgoing card in place so the new card slides over it */
-        .tab-content-area.underneath { 
-            transform: translateX(0); opacity: 1; pointer-events: none; 
-            transition: none; 
-        }
+        /* When dealt, a card sits at zero */
+        .tab-content-area.dealt { transform: translateX(0); }
 
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -270,21 +262,23 @@
             </header>
             
             <div class="dynamic-content-area">
-                <!-- Agenda Details Container (Bottom layer) -->
-                <section class="details-panel" :class="{ 'hidden-by-tab': activeTabId !== null }">
+                <!-- Tattooed Agenda Details (Bottom layer) -->
+                <section class="details-panel">
                     <div class="details-viewport" id="viewport">
                         <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
                     </div>
                 </section>
 
-                <!-- Statically rendered Tabs for true dealing animation -->
+                <!-- Solid-backed cards sliding over the top -->
                 <template x-for="tab in tabs" :key="tab.id">
                     <section class="tab-content-area"
-                             :class="{ 
-                                 'visible': activeTabId === tab.id, 
-                                 'underneath': previousTabId === tab.id && activeTabId !== null 
-                             }"
-                             :style="`background-color: ${tab.color}1A; border-color: ${tab.color}40; z-index: ${activeTabId === tab.id ? 20 : (previousTabId === tab.id ? 10 : 1)};`">
+                             :class="{ 'dealt': visibleTabs.includes(tab.id) }"
+                             :style="`
+                                 background-color: var(--pico-background-color);
+                                 background-image: linear-gradient(${tab.color}1A, ${tab.color}1A);
+                                 border-color: ${tab.color}40; 
+                                 z-index: ${visibleTabs.indexOf(tab.id) === -1 ? 10 : 20 + visibleTabs.indexOf(tab.id)};
+                             `">
                         <h2 :style="`color: ${tab.color}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="tab.title"></h2>
                         <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
                              <div class="details-page active" x-html="parseMarkdown(tab.content)"></div>
@@ -431,8 +425,7 @@ function meetingApp() {
             { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#dc2626' }
         ],
         activeTabId: null, 
-        previousTabId: null,
-        tabTimeout: null,
+        visibleTabs: [], // Tracks the physical stack of dealt cards
         
         displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
         isPlaying: true, isBouncing: null, isFastMode: false,
@@ -496,14 +489,19 @@ function meetingApp() {
         },
 
         switchTabTo(targetId) {
-            if (this.activeTabId !== targetId) {
-                this.previousTabId = this.activeTabId;
-                this.activeTabId = targetId;
-                
-                clearTimeout(this.tabTimeout);
-                this.tabTimeout = setTimeout(() => {
-                    this.previousTabId = null;
-                }, 700);
+            this.activeTabId = targetId;
+            if (targetId === null) {
+                // Clear the table (slide all cards right)
+                this.visibleTabs = [];
+            } else {
+                // Deal a card onto the stack
+                if (!this.visibleTabs.includes(targetId)) {
+                    this.visibleTabs.push(targetId);
+                } else {
+                    // Bring to top if already dealt
+                    this.visibleTabs = this.visibleTabs.filter(id => id !== targetId);
+                    this.visibleTabs.push(targetId);
+                }
             }
         },
 
