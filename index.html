@@ -51,7 +51,7 @@
         .swipe-ready .swipe-icon { transform: scale(1.4); color: var(--swipe-ready-color); filter: drop-shadow(0 0 6px var(--swipe-ready-color)); }
 
         .playback-toggle-btn {
-            position: absolute; top: 18px; right: 28px; z-index: 100;
+            position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.7;
         }
@@ -73,7 +73,6 @@
         .tab-progress {
             position: absolute; top: 0; left: 0; width: 100%; 
             background: rgba(0, 0, 0, 0.25); z-index: 1; 
-            transition: height 1s linear;
         }
 
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
@@ -116,7 +115,8 @@
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
         .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
 
-        .dynamic-content-area { position: relative; height: 100%; width: 100%; }
+        /* Modified dynamic area and true slide-in */
+        .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         
         .details-panel { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
@@ -127,10 +127,10 @@
 
         .tab-content-area { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
-            background: var(--pico-background-color); border-radius: 12px; 
-            border: 2px solid var(--pico-muted-border-color); padding: 24px; overflow-y: auto; 
-            transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease;
-            transform: translateX(40px); opacity: 0; pointer-events: none;
+            border-radius: 12px; border: 2px solid var(--pico-muted-border-color); 
+            padding: 24px; overflow-y: auto; 
+            transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease, background-color 0.8s ease;
+            transform: translateX(100%); opacity: 0; pointer-events: none;
             display: flex; flex-direction: column;
         }
         .tab-content-area.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
@@ -192,7 +192,7 @@
             .top-nav-right { justify-content: center; }
             .timeline-container { height: 45vh; max-height: none; flex-shrink: 0; }
             .editor-column-wrapper { flex-grow: 1; min-height: 0; }
-            .playback-toggle-btn { top: 10px; right: 10px; }
+            .playback-toggle-btn { bottom: 10px; right: 10px; }
         }
     </style>
 </head>
@@ -208,7 +208,7 @@
         <button class="playback-toggle-btn" 
                 :class="isPlaying ? 'secondary' : 'contrast'" 
                 @click.stop="togglePlayback()">
-            <span x-text="isPlaying ? '⏸ Auto-Run On' : '▶ Paused (Resume Auto)'"></span>
+            <span x-text="isPlaying ? '▶ Auto' : '⏸ Paused'"></span>
         </button>
 
         <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
@@ -224,7 +224,7 @@
                     :class="{ 'active': activeTabId === null, 'bounce': isBouncing === 'agenda' }"
                     style="background-color: #475569;"
                     @click.stop="userClickedTab('agenda')">
-                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / 30) * 100 : 0}%;`"></div>
+                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / 30) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
                 <span style="position:relative; z-index:2;">▶ Agenda</span>
             </button>
 
@@ -234,7 +234,7 @@
                         :class="{ 'active': activeTabId === tab.id, 'bounce': isBouncing === tab.id }"
                         :style="`background-color: ${tab.color};`"
                         @click.stop="userClickedTab(tab.id)">
-                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / 30) * 100 : 0}%;`"></div>
+                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / 30) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
                     <span style="position:relative; z-index:2;" x-text="tab.title"></span>
                 </button>
             </template>
@@ -276,7 +276,7 @@
                     </div>
                 </section>
 
-                <section class="tab-content-area" :class="{ 'visible': activeTabId !== null }">
+                <section class="tab-content-area" :class="{ 'visible': activeTabId !== null }" :style="`background-color: ${activeTabColor}1A; border-color: ${activeTabColor}40;`">
                     <h2 :style="`color: ${activeTabColor}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="activeTabTitle"></h2>
                     <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
                          <div class="details-page active" x-html="parseMarkdown(activeTabContent)"></div>
@@ -414,7 +414,7 @@ function meetingApp() {
         get canUndo() { return this.historyStack.length > 0; },
         
         get activeTabData() { return this.tabs.find(t => t.id === this.activeTabId) || null; },
-        get activeTabColor() { return this.activeTabData ? this.activeTabData.color : ''; },
+        get activeTabColor() { return this.activeTabData ? this.activeTabData.color : '#475569'; },
         get activeTabTitle() { return this.activeTabData ? this.activeTabData.title : ''; },
         get activeTabContent() { return this.activeTabData ? this.activeTabData.content : ''; },
         
