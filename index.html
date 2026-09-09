@@ -75,20 +75,20 @@
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        /* The grid remains completely static now. Left panel is always full size. */
+        /* Left column updated to 35% with 260px safety limit */
         .presentation-grid { 
             display: grid; 
-            grid-template-columns: minmax(260px, 43%) 1fr; 
-            gap: 28px; height: 100%; position: relative; z-index: 5; 
+            grid-template-columns: minmax(260px, 35%) 1fr; 
+            gap: 24px; height: 100%; position: relative; z-index: 5; 
         }
 
-        .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 20px; position: relative; z-index: 2; overflow: hidden; }
+        .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 16px; position: relative; z-index: 2; overflow: hidden; }
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
-        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 10px 14px; border-radius: 6px; font-size: clamp(0.95rem, 1.5vw, 1.2rem); font-weight: 800; margin-bottom: 16px; white-space: nowrap; text-overflow: ellipsis; }
+        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: clamp(0.85rem, 1.2vw, 1.1rem); font-weight: 800; margin-bottom: 16px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
         .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
-        .current-title { font-size: clamp(1.4rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.2; margin-top: 8px; white-space: normal; }
-        .current-time-box { font-size: clamp(1rem, 2vw, 1.4rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
+        .current-title { font-size: clamp(1.2rem, 3vw, 2.2rem); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
+        .current-time-box { font-size: clamp(0.9rem, 1.8vw, 1.2rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
         .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
         .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; width: 100%; }
@@ -96,37 +96,42 @@
         @media (min-width: 769px) { .prev-btn { display: none !important; } }
         @media (max-width: 768px) and (orientation: landscape) { .prev-btn { display: none !important; } }
         
-        .next-up-card { flex-grow: 1; min-width: 0; padding: 12px 16px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
+        .next-up-card { flex-grow: 1; min-width: 0; padding: 12px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
         .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
         .next-up-card.alert-active .next-label { color: var(--alert-lbl) !important; }
         .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
 
         @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
         .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
-        .next-title { font-size: clamp(0.95rem, 2vw, 1.2rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
+        .next-title { font-size: clamp(0.85rem, 1.8vw, 1.1rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
 
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         
-        /* Details panel slides slightly left to make room, or stays hidden behind tabs */
+        /* The Agenda Panel - sits at the bottom and slides/fades slightly when a tab opens over it */
         .details-panel { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
             display: flex; flex-direction: column; overflow: hidden;
-            transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
+            z-index: 1;
         }
         .details-panel.hidden-by-tab { transform: translateX(-40px); opacity: 0; pointer-events: none; }
 
-        /* The structural styling for all slide-in tabs */
+        /* The Tab Panels - these manage the deck dealing animation from the right */
         .tab-content-area { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
             border-radius: 12px; border: 2px solid var(--pico-muted-border-color); 
             padding: 24px; overflow-y: auto; display: flex; flex-direction: column;
+            transform: translateX(110%); opacity: 0; pointer-events: none;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
         }
-
-        /* AlpineJS Transition Classes for true Slide-In effect */
-        .tab-enter-active { transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease; z-index: 20; }
-        .tab-leave-active { transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease; z-index: 10; }
-        .tab-enter-from, .tab-leave-to { transform: translateX(100%); opacity: 0; }
-        .tab-enter-to, .tab-leave-from { transform: translateX(0); opacity: 1; }
+        .tab-content-area.visible { 
+            transform: translateX(0); opacity: 1; pointer-events: auto; 
+        }
+        /* Freeze the outgoing card in place so the new card slides over it */
+        .tab-content-area.underneath { 
+            transform: translateX(0); opacity: 1; pointer-events: none; 
+            transition: none; 
+        }
 
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -265,24 +270,21 @@
             </header>
             
             <div class="dynamic-content-area">
-                <!-- Agenda Details Container -->
+                <!-- Agenda Details Container (Bottom layer) -->
                 <section class="details-panel" :class="{ 'hidden-by-tab': activeTabId !== null }">
                     <div class="details-viewport" id="viewport">
                         <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
                     </div>
                 </section>
 
-                <!-- Dynamic Slide-In Tab Containers -->
-                <template x-for="tab in tabs.filter(t => t.id === activeTabId)" :key="tab.id">
+                <!-- Statically rendered Tabs for true dealing animation -->
+                <template x-for="tab in tabs" :key="tab.id">
                     <section class="tab-content-area"
-                             x-show="true"
-                             x-transition:enter="tab-enter-active"
-                             x-transition:enter-start="tab-enter-from"
-                             x-transition:enter-end="tab-enter-to"
-                             x-transition:leave="tab-leave-active"
-                             x-transition:leave-start="tab-leave-from"
-                             x-transition:leave-end="tab-leave-to"
-                             :style="`background-color: ${tab.color}1A; border-color: ${tab.color}40;`">
+                             :class="{ 
+                                 'visible': activeTabId === tab.id, 
+                                 'underneath': previousTabId === tab.id && activeTabId !== null 
+                             }"
+                             :style="`background-color: ${tab.color}1A; border-color: ${tab.color}40; z-index: ${activeTabId === tab.id ? 20 : (previousTabId === tab.id ? 10 : 1)};`">
                         <h2 :style="`color: ${tab.color}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="tab.title"></h2>
                         <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
                              <div class="details-page active" x-html="parseMarkdown(tab.content)"></div>
@@ -428,7 +430,11 @@ function meetingApp() {
             { id: 'dates', title: 'Dates', content: '', enabled: true, color: '#2563eb' },
             { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#dc2626' }
         ],
-        activeTabId: null, displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
+        activeTabId: null, 
+        previousTabId: null,
+        tabTimeout: null,
+        
+        displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
         isPlaying: true, isBouncing: null, isFastMode: false,
         
         editingMode: 'agenda', 
@@ -489,17 +495,25 @@ function meetingApp() {
             this.displayTime = 0;
         },
 
+        switchTabTo(targetId) {
+            if (this.activeTabId !== targetId) {
+                this.previousTabId = this.activeTabId;
+                this.activeTabId = targetId;
+                
+                clearTimeout(this.tabTimeout);
+                this.tabTimeout = setTimeout(() => {
+                    this.previousTabId = null;
+                }, 700);
+            }
+        },
+
         userClickedTab(id) {
             this.userInteracted();
-            if (id === 'agenda' || this.activeTabId === id) {
-                this.activeTabId = null;
-                let idx = this.displaySequence.indexOf('agenda');
-                if (idx !== -1) this.displayIndex = idx;
-            } else {
-                this.activeTabId = id;
-                let idx = this.displaySequence.indexOf(id);
-                if (idx !== -1) this.displayIndex = idx;
-            }
+            let targetId = (id === 'agenda' || this.activeTabId === id) ? null : id;
+            this.switchTabTo(targetId);
+            
+            let idx = this.displaySequence.indexOf(targetId === null ? 'agenda' : targetId);
+            if (idx !== -1) this.displayIndex = idx;
         },
 
         runDisplayLoop() {
@@ -517,7 +531,8 @@ function meetingApp() {
                 this.displayTime = 0;
                 this.displayIndex = (this.displayIndex + 1) % this.displaySequence.length;
                 let target = this.displaySequence[this.displayIndex];
-                this.activeTabId = target === 'agenda' ? null : target;
+                let targetId = target === 'agenda' ? null : target;
+                this.switchTabTo(targetId);
             }
         },
 
