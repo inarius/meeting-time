@@ -70,30 +70,20 @@
         }
         .vertical-tab:hover, .vertical-tab.active { opacity: 1; transform: scale(1.05) translateX(-2px); box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
         
-        .tab-progress {
-            position: absolute; top: 0; left: 0; width: 100%; 
-            background: rgba(0, 0, 0, 0.25); z-index: 1; 
-        }
+        .tab-progress { position: absolute; top: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.25); z-index: 1; }
 
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
 
+        /* The grid remains completely static now. Left panel is always full size. */
         .presentation-grid { 
             display: grid; 
             grid-template-columns: minmax(260px, 43%) 1fr; 
             gap: 28px; height: 100%; position: relative; z-index: 5; 
-            transition: grid-template-columns 1s cubic-bezier(0.22, 1, 0.36, 1), gap 1s ease; 
-        }
-        .presentation-grid.tab-open {
-            grid-template-columns: 130px 1fr;
-            gap: 20px;
         }
 
         .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 20px; position: relative; z-index: 2; overflow: hidden; }
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
-
-        .hide-on-tab { transition: opacity 0.6s ease, max-height 0.6s ease, margin 0.6s ease; max-height: 200px; opacity: 1; overflow: hidden; }
-        .tab-open .hide-on-tab { max-height: 0; opacity: 0; margin-bottom: 0 !important; margin-top: 0 !important; }
 
         .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 10px 14px; border-radius: 6px; font-size: clamp(0.95rem, 1.5vw, 1.2rem); font-weight: 800; margin-bottom: 16px; white-space: nowrap; text-overflow: ellipsis; }
         .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
@@ -117,6 +107,7 @@
 
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         
+        /* Details panel slides slightly left to make room, or stays hidden behind tabs */
         .details-panel { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
             display: flex; flex-direction: column; overflow: hidden;
@@ -124,15 +115,18 @@
         }
         .details-panel.hidden-by-tab { transform: translateX(-40px); opacity: 0; pointer-events: none; }
 
+        /* The structural styling for all slide-in tabs */
         .tab-content-area { 
             position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
             border-radius: 12px; border: 2px solid var(--pico-muted-border-color); 
-            padding: 24px; overflow-y: auto; 
-            transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease, background-color 0.8s ease;
-            transform: translateX(100%); opacity: 0; pointer-events: none;
-            display: flex; flex-direction: column;
+            padding: 24px; overflow-y: auto; display: flex; flex-direction: column;
         }
-        .tab-content-area.visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+        /* AlpineJS Transition Classes for true Slide-In effect */
+        .tab-enter-active { transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease; z-index: 20; }
+        .tab-leave-active { transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.8s ease; z-index: 10; }
+        .tab-enter-from, .tab-leave-to { transform: translateX(100%); opacity: 0; }
+        .tab-enter-to, .tab-leave-from { transform: translateX(0); opacity: 1; }
 
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -183,7 +177,7 @@
 
         @media (max-width: 768px) {
             .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-            .presentation-grid, .presentation-grid.tab-open { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+            .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
             .status-panel { display: contents; }
             .status-panel::after { display: none; }
             .dynamic-content-area { order: 2; flex-grow: 1; min-height: 0; }
@@ -241,48 +235,60 @@
             </template>
         </div>
 
-        <div class="presentation-grid" :class="{ 'tab-open': activeTabId !== null }">
+        <div class="presentation-grid">
             
             <header class="status-panel">
                 <div> 
-                    <div class="hide-on-tab">
+                    <div>
                         <h1 class="meeting-title-bar" x-show="meetingTitle" x-text="meetingTitle"></h1>
                     </div>
                     <div class="current-meta">
-                        <span class="hide-on-tab" style="margin-right: 12px;">Now</span>
+                        <span style="margin-right: 12px;">Now</span>
                         <span class="system-clock" x-text="sysClockText">--:--:-- --</span>
                     </div>
-                    <div class="hide-on-tab">
+                    <div>
                         <div class="current-title" x-text="currentItem ? currentItem.title : 'No Active Agenda Item'"></div>
                         <div class="current-time-box" x-text="currentItem ? `Scheduled: ${currentItem.time}` : '--:--'"></div>
                     </div>
                 </div>
                 
                 <nav class="next-up-container">
-                    <button class="outline secondary prev-btn hide-on-tab" @click.stop="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <button class="outline secondary prev-btn" @click.stop="shiftItem(-1)" title="Previous Topic">◀</button>
                     <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click.stop="shiftItem(1)" title="Advance to Next Topic">
-                        <div class="next-label hide-on-tab">Next Up</div>
+                        <div class="next-label">Next Up</div>
                         <div class="next-title">
                             <span x-text="nextItem ? nextItem.time : ''"></span>
-                            <span class="hide-on-tab" x-text="nextItem ? ' - ' + nextItem.title : 'Adjournment / Session Closed'"></span>
+                            <span x-text="nextItem ? ' - ' + nextItem.title : 'Adjournment / Session Closed'"></span>
                         </div>
                     </article>
                 </nav>
             </header>
             
             <div class="dynamic-content-area">
+                <!-- Agenda Details Container -->
                 <section class="details-panel" :class="{ 'hidden-by-tab': activeTabId !== null }">
                     <div class="details-viewport" id="viewport">
                         <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
                     </div>
                 </section>
 
-                <section class="tab-content-area" :class="{ 'visible': activeTabId !== null }" :style="`background-color: ${activeTabColor}1A; border-color: ${activeTabColor}40;`">
-                    <h2 :style="`color: ${activeTabColor}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="activeTabTitle"></h2>
-                    <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
-                         <div class="details-page active" x-html="parseMarkdown(activeTabContent)"></div>
-                    </div>
-                </section>
+                <!-- Dynamic Slide-In Tab Containers -->
+                <template x-for="tab in tabs.filter(t => t.id === activeTabId)" :key="tab.id">
+                    <section class="tab-content-area"
+                             x-show="true"
+                             x-transition:enter="tab-enter-active"
+                             x-transition:enter-start="tab-enter-from"
+                             x-transition:enter-end="tab-enter-to"
+                             x-transition:leave="tab-leave-active"
+                             x-transition:leave-start="tab-leave-from"
+                             x-transition:leave-end="tab-leave-to"
+                             :style="`background-color: ${tab.color}1A; border-color: ${tab.color}40;`">
+                        <h2 :style="`color: ${tab.color}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="tab.title"></h2>
+                        <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
+                             <div class="details-page active" x-html="parseMarkdown(tab.content)"></div>
+                        </div>
+                    </section>
+                </template>
             </div>
 
         </div>
@@ -431,11 +437,6 @@ function meetingApp() {
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
         get canUndo() { return this.historyStack.length > 0; },
-        
-        get activeTabData() { return this.tabs.find(t => t.id === this.activeTabId) || null; },
-        get activeTabColor() { return this.activeTabData ? this.activeTabData.color : '#475569'; },
-        get activeTabTitle() { return this.activeTabData ? this.activeTabData.title : ''; },
-        get activeTabContent() { return this.activeTabData ? this.activeTabData.content : ''; },
         
         get nextTabTarget() { return this.displaySequence.length > 1 ? this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length] : null; },
         get currentCycleDuration() { return this.isFastMode ? 5 : 30; },
