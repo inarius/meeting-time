@@ -873,7 +873,7 @@ function meetingApp() {
             return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."}];
         },
 
-        processImportText() {
+processImportText() {
             if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
             
             const parts = this.importText.split(/===\s*TABS\s*===/i);
@@ -900,9 +900,12 @@ function meetingApp() {
                     let currentTab = null;
                     tabsPart.split('\n').forEach(line => {
                         let l = line.trim();
-                        if (l.match(/^#.*\[x\]|^#.*\[\s\]/i)) {
-                            const isChecked = l.includes('[x]');
-                            const titleRaw = l.replace(/^#/, '').replace(/\[x\]|\[\s\]/g, '').trim();
+                        // UPDATED REGEX: Matches [# Title [x]], [# Title [X]], [# Title [ ]], and [# Title []]
+                        if (l.match(/^#.*\[\s*x?\s*\]/i)) {
+                            const isChecked = l.toLowerCase().includes('[x]');
+                            // UPDATED CLEANER: Strips the entire bracket block cleanly regardless of contents
+                            const titleRaw = l.replace(/^#/, '').replace(/\[.*?\]/, '').trim();
+                            
                             if (this.tabs.some(t => t.title === titleRaw)) {
                                 currentTab = this.tabs.find(t => t.title === titleRaw);
                             } else {
