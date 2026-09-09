@@ -75,7 +75,6 @@
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        /* Left column is now 35% as requested, with a 260px safety limit */
         .presentation-grid { 
             display: grid; 
             grid-template-columns: minmax(260px, 35%) 1fr; 
@@ -438,7 +437,9 @@ function meetingApp() {
         get canUndo() { return this.historyStack.length > 0; },
         
         get nextTabTarget() { return this.displaySequence.length > 1 ? this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length] : null; },
-        get currentCycleDuration() { return this.isFastMode ? 5 : 30; },
+        
+        // Updated Dynamic Cycle Duration logic
+        get currentCycleDuration() { return this.isFastMode ? 5 : (this.activeTabId === null ? 40 : 20); },
 
         async initApp() {
             this.isDark = (localStorage.getItem('boardTheme') || 'light') === 'dark';
@@ -873,7 +874,7 @@ function meetingApp() {
             return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."}];
         },
 
-processImportText() {
+        processImportText() {
             if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
             
             const parts = this.importText.split(/===\s*TABS\s*===/i);
@@ -900,10 +901,10 @@ processImportText() {
                     let currentTab = null;
                     tabsPart.split('\n').forEach(line => {
                         let l = line.trim();
-                        // UPDATED REGEX: Matches [# Title [x]], [# Title [X]], [# Title [ ]], and [# Title []]
+                        // Allows [x], [X], [ ], and []
                         if (l.match(/^#.*\[\s*x?\s*\]/i)) {
                             const isChecked = l.toLowerCase().includes('[x]');
-                            // UPDATED CLEANER: Strips the entire bracket block cleanly regardless of contents
+                            // Extracts title by removing # and the bracket section completely
                             const titleRaw = l.replace(/^#/, '').replace(/\[.*?\]/, '').trim();
                             
                             if (this.tabs.some(t => t.title === titleRaw)) {
