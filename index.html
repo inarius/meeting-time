@@ -99,11 +99,13 @@
         .playback-toggle-btn {
             position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; 
+            opacity: 0.3; /* Base dim level for both playing and paused */
         }
-        .playback-toggle-btn:hover { transform: scale(1.05); opacity: 1 !important; }
+        .playback-toggle-btn:hover, .playback-toggle-btn:active { 
+            transform: scale(1.05); opacity: 1 !important; 
+        }
         .playback-playing {
-            opacity: 0.3 !important; 
             background: transparent !important; 
             box-shadow: none !important;
             font-size: 1.4rem; 
