@@ -57,8 +57,9 @@
     - Panic Button: Destructive "Clear All Local Storage" button.
 
     8. DISPLAY, SCALING & KEYBOARD NAV
-    - Proportional Scaling: Text and key UI elements MUST scale proportionally using viewport height (vh) limits with high maximums (e.g., 4rem+) so they remain readable when mirrored to desktop/TV displays in landscape. Minimum clamp values must remain small (e.g. 0.8rem) to prevent inflation on mobile landscape.
-    - Portrait Scaling Lock: In portrait orientation, text sizing MUST decouple from viewport height (vh) and revert to standard safe rem/vw bounds to prevent oversized text and preserve a compact layout.
+    - Proportional Scaling: Text and UI elements MUST scale proportionally using `vh` limits with high maximums (e.g., 4rem+) for large desktop/TV displays.
+    - Portrait Lock: In portrait orientation, text MUST decouple from `vh` and revert to standard `vw/rem` bounds to preserve a compact layout.
+    - Mobile Landscape Lock: In landscape orientation on short screens (`max-height: 600px`), text MUST decouple from `vh` and revert to `vw/rem` bounds to prevent over-inflation on mobile phones.
     - Fluid Padding: Padding and margins on text elements (like lists) MUST use relative `em` units (e.g., `1.5em`) rather than fixed `px` to prevent bullets from being clipped when the parent font size scales up.
     - Wrapping: The meeting title MUST wrap to multiple lines if needed, rather than truncating with ellipses.
     - Scrollbars: Main horizontal and vertical scrollbars MUST be hidden on root and main containers to prevent double-scrollbar overflow, though inner elements (like long sidecards) MAY still scroll natively.
@@ -172,8 +173,7 @@
         .swipe-icon { font-size: 2.5rem; color: var(--ts-color); font-weight: 900; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .swipe-ready .swipe-icon { transform: scale(1.4); color: var(--swipe-ready-color); filter: drop-shadow(0 0 6px var(--swipe-ready-color)); }
 
-        /* BASE SCALING (Designed for Landscape/Desktop proportional matching) 
-           Minimums are intentionally low (0.7-1.2rem) so phone landscape doesn't inflate */
+        /* BASE SCALING (Designed for Desktop proportional matching based on vh) */
         .playback-toggle-btn {
             position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: clamp(4px, 1.5vh, 12px) clamp(14px, 3vh, 24px); 
@@ -311,6 +311,22 @@
             .vertical-tab { font-size: 1rem; padding: 16px 8px; }
             .playback-toggle-btn { font-size: 0.9rem; padding: 6px 14px; }
             .playback-playing { font-size: 1.5rem; }
+        }
+
+        /* MOBILE LANDSCAPE SCALING LOCK (Reverts to safe vw bounds for short phone screens) */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .meeting-title-bar { font-size: clamp(0.85rem, 1.5vw, 1.1rem); margin-bottom: 12px; }
+            .current-meta { font-size: clamp(0.75rem, 1.5vw, 0.9rem); }
+            .current-title { font-size: clamp(1.2rem, 3vw, 2.2rem); margin-top: 6px; }
+            .current-time-box { font-size: clamp(0.9rem, 1.8vw, 1.2rem); }
+            .system-clock { font-size: clamp(0.7rem, 1.2vw, 0.85rem); }
+            .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); }
+            .next-title { font-size: clamp(0.85rem, 1.8vw, 1.1rem); }
+            .details-viewport { font-size: clamp(0.95rem, 2vw, 1.25rem); }
+            .tab-content-area h2 { font-size: clamp(1.2rem, 3vw, 1.8rem); }
+            .vertical-tab { font-size: 0.9rem; padding: 16px 8px; }
+            .playback-toggle-btn { font-size: 0.8rem; padding: 4px 14px; }
+            .playback-playing { font-size: 1.4rem; }
         }
     </style>
 </head>
