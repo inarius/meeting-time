@@ -87,9 +87,17 @@
         .playback-toggle-btn {
             position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.7;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.9;
         }
-        .playback-toggle-btn:hover { opacity: 1; transform: scale(1.05); }
+        .playback-toggle-btn:hover { transform: scale(1.05); opacity: 1 !important; }
+        .playback-playing {
+            opacity: 0.3 !important; 
+            background: transparent !important; 
+            box-shadow: none !important;
+            font-size: 1.4rem; 
+            padding: 0 8px;
+            color: var(--ts-color) !important;
+        }
 
         .tab-sidebar { 
             position: absolute; right: 0; top: 50%; transform: translateY(-50%); 
@@ -228,9 +236,9 @@
          @click="userInteracted()">
          
         <button class="playback-toggle-btn" 
-                :class="isPlaying ? 'secondary' : 'contrast'" 
+                :class="isPlaying ? 'playback-playing' : 'contrast'" 
                 @click.stop="togglePlayback()">
-            <span x-text="isPlaying ? '▶ Auto' : '⏸ Paused'"></span>
+            <span x-text="isPlaying ? '⏸' : '▶ Resume'"></span>
         </button>
 
         <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
@@ -247,7 +255,7 @@
                     style="background-color: #475569;"
                     @click.stop="userClickedTab('agenda')">
                 <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
-                <span style="position:relative; z-index:2;">▶ Agenda</span>
+                <span style="position:relative; z-index:2;">Agenda</span>
             </button>
 
             <template x-for="tab in tabs" :key="tab.id">
@@ -434,6 +442,12 @@
         </fieldset>
         
         <fieldset style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--pico-muted-border-color);">
+            <label>Screen Wake Lock API: <br>
+                <strong x-text="wakeLockStatus" style="color: #0284c7;"></strong>
+            </label>
+        </fieldset>
+
+        <fieldset style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--pico-muted-border-color);">
             <button class="outline" style="width: 100%; color: #dc2626; border-color: #dc2626;" @click="clearAllStorage()">
                 ⚠️ Clear All Local Storage
             </button>
@@ -455,17 +469,18 @@ function meetingApp() {
         touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
         
         wakeLockSentinel: null,
+        wakeLockStatus: 'Not Requested',
 
         tabs: [
             { id: 'patrols', title: 'Patrols', content: '', enabled: true, color: '#16a34a' },
             { id: 'dates', title: 'Dates', content: '', enabled: true, color: '#2563eb' },
-            { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#ea580c' } // Orange color updated
+            { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#ea580c' } 
         ],
         activeTabId: null, 
         visibleTabs: [], 
         
         displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
-        isPlaying: false, isBouncing: null, isFastMode: false, // Starts Paused to ensure wake lock capture on user input
+        isPlaying: false, isBouncing: null, isFastMode: false, 
         
         editingMode: 'agenda', 
         currentEditTabId: null, 
@@ -508,11 +523,21 @@ function meetingApp() {
         },
         
         async requestWakeLock() {
-            if ('wakeLock' in navigator && !this.wakeLockSentinel) {
+            if ('wakeLock' in navigator) {
+                if (this.wakeLockSentinel) return; // Already active
                 try {
                     this.wakeLockSentinel = await navigator.wakeLock.request('screen');
-                    this.wakeLockSentinel.addEventListener('release', () => { this.wakeLockSentinel = null; });
-                } catch (e) {}
+                    this.wakeLockStatus = 'Active 🟢';
+                    
+                    this.wakeLockSentinel.addEventListener('release', () => { 
+                        this.wakeLockSentinel = null; 
+                        this.wakeLockStatus = 'Released ⭕';
+                    });
+                } catch (e) {
+                    this.wakeLockStatus = `Failed ❌ (${e.name})`;
+                }
+            } else {
+                this.wakeLockStatus = 'Unsupported by Browser ⚠️';
             }
         },
 
