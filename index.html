@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Meeting</title>
     
+    <!-- Link to the GitHub Pages specific manifest path -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -452,17 +453,19 @@ function meetingApp() {
         editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
 
         touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
+        
+        wakeLockSentinel: null,
 
         tabs: [
             { id: 'patrols', title: 'Patrols', content: '', enabled: true, color: '#16a34a' },
             { id: 'dates', title: 'Dates', content: '', enabled: true, color: '#2563eb' },
-            { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#ea580c' }
+            { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#ea580c' } // Orange color updated
         ],
         activeTabId: null, 
         visibleTabs: [], 
         
         displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
-        isPlaying: true, isBouncing: null, isFastMode: false,
+        isPlaying: false, isBouncing: null, isFastMode: false, // Starts Paused to ensure wake lock capture on user input
         
         editingMode: 'agenda', 
         currentEditTabId: null, 
@@ -483,7 +486,6 @@ function meetingApp() {
             this.agenda = await this.loadInitialAgenda();
             this.buildDisplaySequence();
             this.syncToURL();
-            if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
             
             const modDate = new Date(document.lastModified);
             if (!isNaN(modDate) && modDate.getFullYear() > 1970) this.lastUpdatedText = modDate.toLocaleString();
@@ -491,9 +493,27 @@ function meetingApp() {
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
             this.renderPresentationTextPages();
+            
+            // Re-acquire wake lock seamlessly if app returns to foreground
+            // Always attempts to re-acquire when visible so paused state remains awake
+            document.addEventListener('visibilitychange', async () => {
+                if (document.visibilityState === 'visible') {
+                    await this.requestWakeLock();
+                }
+            });
+
             setInterval(() => this.updateSystemClock(), 1000);
             setInterval(() => this.runDisplayLoop(), 1000); 
             window.addEventListener('resize', () => this.renderPresentationTextPages());
+        },
+        
+        async requestWakeLock() {
+            if ('wakeLock' in navigator && !this.wakeLockSentinel) {
+                try {
+                    this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+                    this.wakeLockSentinel.addEventListener('release', () => { this.wakeLockSentinel = null; });
+                } catch (e) {}
+            }
         },
 
         buildDisplaySequence() {
@@ -508,6 +528,7 @@ function meetingApp() {
         togglePlayback() {
             if (this.isPlaying) {
                 this.isPlaying = false;
+                // Wake lock is NO LONGER released on pause, ensuring the screen stays active
             } else {
                 this.resumeAuto();
             }
@@ -518,11 +539,14 @@ function meetingApp() {
             this.displayTime = 0;
             this.isAlertActive = false;
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
+            this.requestWakeLock(); // Secures the wake lock on tap
         },
 
         userInteracted() {
+            // Drop to pause when touched, allowing manual control
             this.isPlaying = false;
             this.displayTime = 0;
+            this.requestWakeLock(); // Ensures any interaction also grabs/maintains the wake lock
         },
 
         switchTabTo(targetId) {
@@ -695,6 +719,16 @@ function meetingApp() {
             this.isDark = !this.isDark;
             localStorage.setItem(APP_CONFIG.storage.themeKey, this.isDark ? 'dark' : 'light');
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+        },
+        
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable fullscreen: ${err.message}. (Note: iOS does not support true fullscreen in the browser, please use 'Add to Home Screen' via the share menu instead.)`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
         },
 
         getTimeString(d = new Date(), s = false) {
