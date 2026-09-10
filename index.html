@@ -22,6 +22,9 @@
     <!-- ========================================== -->
     <script>
         const APP_CONFIG = {
+            appearance: {
+                defaultTheme: 'light'    // Options: 'light' or 'dark'
+            },
             timing: {
                 agendaDuration: 40,      // Seconds the main agenda is displayed
                 cardDuration: 20,        // Seconds each sidecard tab is displayed
@@ -475,7 +478,7 @@ function meetingApp() {
         },
 
         async initApp() {
-            this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || 'light') === 'dark';
+            this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || APP_CONFIG.appearance.defaultTheme) === 'dark';
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             this.agenda = await this.loadInitialAgenda();
             this.buildDisplaySequence();
@@ -975,4 +978,3 @@ function meetingApp() {
 
 </body>
 </html>
-
