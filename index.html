@@ -100,17 +100,23 @@
             position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; 
-            opacity: 0.3; /* Base dim level for both playing and paused */
+            opacity: 0.9; /* Base opacity for Resume button */
         }
-        .playback-toggle-btn:hover, .playback-toggle-btn:active { 
+        .playback-toggle-btn:active { 
             transform: scale(1.05); opacity: 1 !important; 
         }
+        /* Only apply hover effects on devices with a real mouse to prevent mobile 'sticky hover' */
+        @media (hover: hover) {
+            .playback-toggle-btn:hover { transform: scale(1.05); opacity: 1 !important; }
+        }
+        
         .playback-playing {
             background: transparent !important; 
             box-shadow: none !important;
             font-size: 1.4rem; 
             padding: 0 8px;
             color: var(--ts-color) !important;
+            opacity: 0.3 !important; /* Base opacity for Pause button */
         }
 
         .tab-sidebar { 
