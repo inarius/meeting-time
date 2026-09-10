@@ -17,6 +17,36 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <!-- ========================================== -->
+    <!--    GLOBAL CONFIGURATION (EASY ACCESS)      -->
+    <!-- ========================================== -->
+    <script>
+        const APP_CONFIG = {
+            timing: {
+                agendaDuration: 40,      // Seconds the main agenda is displayed
+                cardDuration: 20,        // Seconds each sidecard tab is displayed
+                debugDuration: 5,        // Seconds for fast cycle simulation mode
+                bounceLeadTime: 3,       // Seconds before tab transition to trigger the "bounce/tug" animation
+                carouselInterval: 8000,  // Milliseconds between flipping pages of long text
+                refreshTimeout: 180000   // Milliseconds before auto-refresh check gives up
+            },
+            swipe: {
+                deadzone: 25,            // Pixels to swipe before registering the action
+                dragDistance: 70         // Pixels to swipe to complete the transition
+            },
+            storage: {
+                agendaKey: 'boardAgenda',
+                tabsKey: 'boardTabs',
+                themeKey: 'boardTheme',
+                titleKey: 'boardMeetingTitle'
+            },
+            history: {
+                maxItems: 20             // Undo history stack limit
+            }
+        };
+    </script>
+    <!-- ========================================== -->
+
     <style>
         :root, html[data-theme="light"] {
             --alert-bg: #ffedd5; --alert-border: #fed7aa; --alert-lbl: #9a3412; --alert-txt: #0f172a;
@@ -34,6 +64,1816 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .app-container { display: flex; flex-direction: column; width: 100vw; }
+
+        .presentation-view, .management-view {
+            width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
+            padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+        }
+        .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; touch-action: pan-y; }
+        
+        .swipe-overlay { position: absolute; top: 0; bottom: 0; width: 85px; display: flex; align-items: center; pointer-events: none; z-index: 50; transition: opacity 0.1s linear; }
+        .swipe-left { left: 0; justify-content: flex-start; padding-left: 15px; background: linear-gradient(to right, var(--swipe-bg), transparent); }
+        .swipe-right { right: 0; justify-content: flex-end; padding-right: 15px; background: linear-gradient(to left, var(--swipe-bg), transparent); }
+        .swipe-icon-wrapper { transition: transform 0.1s linear; }
+        .swipe-icon { font-size: 2.5rem; color: var(--ts-color); font-weight: 900; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .swipe-ready .swipe-icon { transform: scale(1.4); color: var(--swipe-ready-color); filter: drop-shadow(0 0 6px var(--swipe-ready-color)); }
+
+        .playback-toggle-btn {
+            position: absolute; bottom: 20px; right: 55px; z-index: 100;
+            padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.7;
+        }
+        .playback-toggle-btn:hover { opacity: 1; transform: scale(1.05); }
+
+        .tab-sidebar { 
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%); 
+            display: flex; flex-direction: column; gap: 16px; z-index: 100; 
+        }
+        .vertical-tab { 
+            writing-mode: vertical-rl; padding: 16px 8px; border: none; border-radius: 8px 0 0 8px; 
+            color: white; font-weight: 800; font-size: 0.9rem; cursor: pointer; opacity: 0.85; 
+            transition: all 0.2s, transform 0.2s; margin: 0; display: flex; align-items: center; 
+            justify-content: center; letter-spacing: 1px; box-shadow: -2px 0 6px rgba(0,0,0,0.1); 
+            position: relative; overflow: hidden;
+        }
+        .vertical-tab:hover, .vertical-tab.active { opacity: 1; transform: scale(1.05) translateX(-2px); box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
+        
+        .tab-progress { position: absolute; top: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.25); z-index: 1; }
+
+        @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+        .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        .presentation-grid { 
+            display: grid; 
+            grid-template-columns: minmax(260px, 35%) 1fr; 
+            gap: 24px; height: 100%; position: relative; z-index: 5; 
+        }
+
+        .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 16px; position: relative; z-index: 2; overflow: hidden; }
+        .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
+
+        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: clamp(0.85rem, 1.2vw, 1.1rem); font-weight: 800; margin-bottom: 16px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
+        .current-title { font-size: clamp(1.2rem, 3vw, 2.2rem); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
+        .current-time-box { font-size: clamp(0.9rem, 1.8vw, 1.2rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
+        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
+
+        .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; width: 100%; }
+        .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; }
+        @media (min-width: 769px) { .prev-btn { display: none !important; } }
+        @media (max-width: 768px) and (orientation: landscape) { .prev-btn { display: none !important; } }
+        
+        .next-up-card { flex-grow: 1; min-width: 0; padding: 12px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
+        .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
+        .next-up-card.alert-active .next-label { color: var(--alert-lbl) !important; }
+        .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
+
+        @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
+        .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
+        .next-title { font-size: clamp(0.85rem, 1.8vw, 1.1rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
+
+        .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
+        
+        .details-panel { 
+            position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
+            display: flex; flex-direction: column; overflow: hidden; z-index: 1;
+        }
+
+        .tab-content-area { 
+            position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
+            border-radius: 12px; border: 2px solid var(--pico-muted-border-color); 
+            padding: 24px; overflow-y: auto; display: flex; flex-direction: column;
+            transform: translateX(110%);
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: -4px 0 16px rgba(0,0,0,0.2);
+        }
+        .tab-content-area.dealt { transform: translateX(0); }
+
+        .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
+        .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .details-page.active { opacity: 1; transform: translateY(0); }
+        .details-viewport ul { padding-left: 24px; margin-top: 8px; }
+        .details-viewport li { margin-bottom: 6px; }
+        .details-viewport strong { font-weight: 800; }
+        .details-viewport em { font-style: italic; }
+        .tab-content-area .details-page { position: static !important; opacity: 1 !important; transform: none !important; }
+
+        .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, 43%) 1fr; grid-template-rows: auto 1fr; position: relative; }
+        .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
+        .management-view label { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; margin-bottom: 0; }
+        .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
+        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
+
+        .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); display: flex; flex-direction: column; }
+        .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-header span { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; }
+        .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
+        .timeline-item { display: flex; align-items: center; padding: 8px 16px 8px 11px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
+        .timeline-item:hover { background: var(--pico-primary-hover-background); }
+        .timeline-item.active { background: var(--active-bg); color: var(--active-txt); border-left: 5px solid var(--active-border); font-weight: 700; }
+        .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
+        .item-status-col { width: 85px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0; }
+        .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .control-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; justify-content: flex-end; }
+        .control-bar [role="group"] { margin-bottom: 0; }
+        .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
+
+        .top-nav-row { display: flex; align-items: center; }
+        .top-nav-row [role="group"] { margin-bottom: 0; }
+        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--btn-border) !important; }
+        .top-nav-right { justify-content: flex-end; }
+        
+        .centered-button-group { display: flex !important; width: 100%; justify-content: center; flex-wrap: wrap; }
+        @keyframes spin-emoji { 100% { transform: rotate(360deg); } }
+        .spin-anim { display: inline-block; animation: spin-emoji 1s linear infinite; }
+
+        .editor-column-wrapper { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+        .editor-article { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; margin-bottom: 6px !important; }
+
+        .timestamp-text { text-align: right; font-size: 0.75rem; font-weight: 600; padding-right: 2px; color: var(--ts-color); }
+        .debug-link { color: inherit; text-decoration: none; opacity: 0.6; transition: opacity 0.2s; margin-left: 6px; }
+        .debug-link:hover { opacity: 1; text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+            .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+            .status-panel { display: contents; }
+            .status-panel::after { display: none; }
+            .dynamic-content-area { order: 2; flex-grow: 1; min-height: 0; }
+            .details-panel, .tab-content-area { width: 100% !important; padding-right: 25px; } 
+            .next-up-container { order: 3; width: 98% !important; max-width: 98% !important; margin-top: auto; }
+            .top-nav-row { justify-content: center; }
+            .top-nav-right { justify-content: center; }
+            .timeline-container { height: 45vh; max-height: none; flex-shrink: 0; }
+            .editor-column-wrapper { flex-grow: 1; min-height: 0; }
+            .playback-toggle-btn { bottom: 10px; right: 10px; }
+        }
+    </style>
+</head>
+<body x-data="meetingApp()" x-init="initApp()">
+
+<div class="app-container">
+    <div class="presentation-view" 
+         @touchstart="handleTouchStart" 
+         @touchmove="handleTouchMove" 
+         @touchend="handleTouchEnd"
+         @click="userInteracted()">
+         
+        <button class="playback-toggle-btn" 
+                :class="isPlaying ? 'secondary' : 'contrast'" 
+                @click.stop="togglePlayback()">
+            <span x-text="isPlaying ? '▶ Auto' : '⏸ Paused'"></span>
+        </button>
+
+        <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
+            <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 15) : 0}px)`"><div class="swipe-icon">◀</div></div>
+        </div>
+        <div class="swipe-overlay swipe-right" :class="{ 'swipe-ready': swipeDirection === 'next' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'next' ? swipeProgress : 0}`">
+            <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'next' ? (-swipeProgress * 15) : 0}px)`"><div class="swipe-icon">▶</div></div>
+        </div>
+
+        <div class="tab-sidebar">
+            <button class="vertical-tab" 
+                    x-show="displaySequence.length > 1"
+                    :class="{ 'active': activeTabId === null, 'bounce': isBouncing === 'agenda' }"
+                    style="background-color: #475569;"
+                    @click.stop="userClickedTab('agenda')">
+                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
+                <span style="position:relative; z-index:2;">▶ Agenda</span>
+            </button>
+
+            <template x-for="tab in tabs" :key="tab.id">
+                <button class="vertical-tab" 
+                        x-show="tab.enabled"
+                        :class="{ 'active': activeTabId === tab.id, 'bounce': isBouncing === tab.id }"
+                        :style="`background-color: ${tab.color};`"
+                        @click.stop="userClickedTab(tab.id)">
+                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
+                    <span style="position:relative; z-index:2;" x-text="tab.title"></span>
+                </button>
+            </template>
+        </div>
+
+        <div class="presentation-grid">
+            
+            <header class="status-panel">
+                <div> 
+                    <div>
+                        <h1 class="meeting-title-bar" x-show="meetingTitle" x-text="meetingTitle"></h1>
+                    </div>
+                    <div class="current-meta">
+                        <span style="margin-right: 12px;">Now</span>
+                        <span class="system-clock" x-text="sysClockText">--:--:-- --</span>
+                    </div>
+                    <div>
+                        <div class="current-title" x-text="currentItem ? currentItem.title : 'No Active Agenda Item'"></div>
+                        <div class="current-time-box" x-text="currentItem ? `Scheduled: ${currentItem.time}` : '--:--'"></div>
+                    </div>
+                </div>
+                
+                <nav class="next-up-container">
+                    <button class="outline secondary prev-btn" @click.stop="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click.stop="shiftItem(1)" title="Advance to Next Topic">
+                        <div class="next-label">Next Up</div>
+                        <div class="next-title">
+                            <span x-text="nextItem ? nextItem.time : ''"></span>
+                            <span x-text="nextItem ? ' - ' + nextItem.title : 'Adjournment / Session Closed'"></span>
+                        </div>
+                    </article>
+                </nav>
+            </header>
+            
+            <div class="dynamic-content-area">
+                <section class="details-panel">
+                    <div class="details-viewport" id="viewport">
+                        <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
+                    </div>
+                </section>
+
+                <template x-for="tab in tabs" :key="tab.id">
+                    <section class="tab-content-area"
+                             :class="{ 'dealt': visibleTabs.includes(tab.id) }"
+                             :style="`
+                                 background-color: var(--pico-background-color);
+                                 background-image: linear-gradient(${tab.color}1A, ${tab.color}1A);
+                                 border-color: ${tab.color}40; 
+                                 z-index: ${visibleTabs.indexOf(tab.id) === -1 ? 10 : 20 + visibleTabs.indexOf(tab.id)};
+                             `">
+                        <h2 :style="`color: ${tab.color}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="tab.title"></h2>
+                        <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
+                             <div class="details-page active" x-html="parseMarkdown(tab.content)"></div>
+                        </div>
+                    </section>
+                </template>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="management-view">
+        <nav class="top-nav-row">
+            <div role="group" class="centered-button-group">
+                <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
+                <button class="secondary" @click="openImportModal()">📥 Import / Edit Raw</button>
+            </div>
+        </nav>
+
+        <nav class="top-nav-row top-nav-right">
+            <div role="group" class="centered-button-group">
+                <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
+                <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
+                <button class="secondary" @click="smartRefresh()" :disabled="isRefreshing">
+                    <span :class="{'spin-anim': isRefreshing}">🔄</span> 
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="timeline-container">
+            <article>
+                <label>Meeting Title
+                    <input type="text" x-model="meetingTitle" @change="updateTitle(); syncToURL()" placeholder="August 19, 2026">
+                </label>
+            </article>
+            
+            <article class="timeline-box">
+                <div class="timeline-header">
+                    <span>Elements & Agenda</span>
+                    <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="!isPlaying" @click="resumeAuto()">Resume Auto</button>
+                </div>
+                <div class="timeline-rows">
+                    <template x-for="tab in tabs" :key="'m_'+tab.id">
+                        <div class="timeline-item" :class="{ 'active': editingMode === 'tab' && currentEditTabId === tab.id }" @click="selectEditTab(tab.id)">
+                            <div class="item-status-col" :style="tab.enabled ? 'color: var(--pico-color);' : 'color: var(--pico-muted-color);'">
+                                <span x-text="tab.enabled ? '🟢 On' : '⭕ Off'"></span>
+                            </div>
+                            <div class="item-text" :style="`color: ${tab.color}; opacity: ${tab.enabled ? 1 : 0.6};`" x-text="tab.title"></div>
+                        </div>
+                    </template>
+                    
+                    <div style="height: 1px; background: var(--pico-muted-border-color); margin: 4px 0;"></div>
+                    
+                    <template x-for="(item, idx) in agenda" :key="idx">
+                        <div class="timeline-item" :class="{ 'active': editingMode === 'agenda' && idx === currentIndex }" @click="selectItem(idx)">
+                            <div class="item-time" x-text="item.time"></div>
+                            <div class="item-text" x-text="item.title"></div>
+                        </div>
+                    </template>
+                </div>
+            </article>
+        </div>
+        
+        <div class="editor-column-wrapper">
+            <article class="editor-article">
+                <div class="grid">
+                    <label x-show="editingMode === 'agenda'">Time 
+                        <input type="text" x-model="editTime" placeholder="10:45 AM">
+                    </label>
+                    <label x-show="editingMode === 'tab'">Display Status
+                        <div style="padding-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;">
+                                <input type="checkbox" x-model="editEnabled" style="margin-bottom: 0;"> Enabled in Rotation
+                            </label>
+                        </div>
+                    </label>
+                    
+                    <label>Title 
+                        <input type="text" x-model="editTitle" placeholder="Topic or Tab Title">
+                    </label>
+                </div>
+                <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Detail Content
+                    <textarea x-model="editDetails" placeholder="Overview details... Use - for lists, -- for sub-lists, **bold** and *italics*"></textarea>
+                </label>
+                
+                <nav class="control-bar" style="margin-top: 10px;">
+                    <div role="group">
+                        <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
+                        <button class="secondary outline" x-show="editingMode === 'agenda'" @click="deleteCurrentItem()">Delete</button>
+                        <button class="primary" @click="saveEditorValues()">Save</button>
+                        <button class="contrast" x-show="editingMode === 'agenda'" @click="addNewItemBelow()">+ Add</button>
+                    </div>
+                </nav>
+            </article>
+            
+            <div class="timestamp-text" style="padding-top: 4px;">
+                <span x-show="lastUpdatedText">Updated: <span x-text="lastUpdatedText"></span> &bull; </span>
+                <a href="#" class="debug-link" @click.prevent="$refs.debugModal.showModal()">⚙️ Debug</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<dialog x-ref="importModal">
+    <article style="max-width: 800px;">
+        <h3>Bulk Import / Edit Raw</h3>
+        <p>Edit the full raw text of the agenda and tabs below:</p>
+        <textarea x-model="importText" style="height: 40vh; min-height: 200px;" placeholder="..."></textarea>
+        <footer>
+            <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
+            <button class="primary" @click="processImportText(); $refs.importModal.close()">Save to Agenda</button>
+        </footer>
+    </article>
+</dialog>
+
+<dialog x-ref="debugModal">
+    <article style="max-width: 400px;">
+        <header><strong>Developer Debug</strong></header>
+        <fieldset>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" x-model="isFastMode" @change="displayTime = 0"> 
+                Fast Cycle Simulation
+            </label>
+        </fieldset>
+        <footer>
+            <button class="primary" @click="$refs.debugModal.close()">Close</button>
+        </footer>
+    </article>
+</dialog>
+
+<script>
+function meetingApp() {
+    return {
+        meetingTitle: '', agenda: [], currentIndex: 0, isAlertActive: false,
+        isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [],
+        editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
+
+        touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
+
+        tabs: [
+            { id: 'patrols', title: 'Patrols', content: '', enabled: true, color: '#16a34a' },
+            { id: 'dates', title: 'Dates', content: '', enabled: true, color: '#2563eb' },
+            { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#dc2626' }
+        ],
+        activeTabId: null, 
+        visibleTabs: [], 
+        
+        displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
+        isPlaying: true, isBouncing: null, isFastMode: false,
+        
+        editingMode: 'agenda', 
+        currentEditTabId: null, 
+
+        get currentItem() { return this.agenda[this.currentIndex] || null; },
+        get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
+        get canUndo() { return this.historyStack.length > 0; },
+        
+        get nextTabTarget() { return this.displaySequence.length > 1 ? this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length] : null; },
+        
+        get currentCycleDuration() { 
+            return this.isFastMode ? APP_CONFIG.timing.debugDuration : (this.activeTabId === null ? APP_CONFIG.timing.agendaDuration : APP_CONFIG.timing.cardDuration); 
+        },
+
+        async initApp() {
+            this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || 'light') === 'dark';
+            document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+            this.agenda = await this.loadInitialAgenda();
+            this.buildDisplaySequence();
+            this.syncToURL();
+            if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
+            
+            const modDate = new Date(document.lastModified);
+            if (!isNaN(modDate) && modDate.getFullYear() > 1970) this.lastUpdatedText = modDate.toLocaleString();
+
+            this.evaluateAutomatedTimeTrigger(this.getTimeString());
+            this.syncEditorInputs();
+            this.renderPresentationTextPages();
+            setInterval(() => this.updateSystemClock(), 1000);
+            setInterval(() => this.runDisplayLoop(), 1000); 
+            window.addEventListener('resize', () => this.renderPresentationTextPages());
+        },
+
+        buildDisplaySequence() {
+            let seq = ['agenda'];
+            if(this.tabs[0].enabled) seq.push('patrols');
+            if(this.tabs[1].enabled) seq.push('dates');
+            if(this.tabs[2].enabled) seq.push('announcements');
+            this.displaySequence = seq;
+            if(this.displayIndex >= this.displaySequence.length) this.displayIndex = 0;
+        },
+
+        togglePlayback() {
+            if (this.isPlaying) {
+                this.isPlaying = false;
+            } else {
+                this.resumeAuto();
+            }
+        },
+
+        resumeAuto() {
+            this.isPlaying = true;
+            this.displayTime = 0;
+            this.isAlertActive = false;
+            this.evaluateAutomatedTimeTrigger(this.getTimeString());
+        },
+
+        userInteracted() {
+            this.isPlaying = false;
+            this.displayTime = 0;
+        },
+
+        switchTabTo(targetId) {
+            this.activeTabId = targetId;
+            if (targetId === null) {
+                this.visibleTabs = [];
+            } else {
+                if (!this.visibleTabs.includes(targetId)) {
+                    this.visibleTabs.push(targetId);
+                } else {
+                    this.visibleTabs = this.visibleTabs.filter(id => id !== targetId);
+                    this.visibleTabs.push(targetId);
+                }
+            }
+        },
+
+        userClickedTab(id) {
+            this.userInteracted();
+            let targetId = (id === 'agenda' || this.activeTabId === id) ? null : id;
+            this.switchTabTo(targetId);
+            
+            let idx = this.displaySequence.indexOf(targetId === null ? 'agenda' : targetId);
+            if (idx !== -1) this.displayIndex = idx;
+        },
+
+        runDisplayLoop() {
+            if (!this.isPlaying || this.displaySequence.length <= 1) return; 
+
+            this.displayTime++;
+            
+            if (this.displayTime === (this.currentCycleDuration - APP_CONFIG.timing.bounceLeadTime)) {
+                let nextMode = this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length];
+                this.isBouncing = nextMode;
+                setTimeout(() => this.isBouncing = null, 850);
+            }
+
+            if (this.displayTime >= this.currentCycleDuration) {
+                this.displayTime = 0;
+                this.displayIndex = (this.displayIndex + 1) % this.displaySequence.length;
+                let target = this.displaySequence[this.displayIndex];
+                let targetId = target === 'agenda' ? null : target;
+                this.switchTabTo(targetId);
+            }
+        },
+
+        handleTouchStart(e) {
+            if (e.target.closest('.playback-toggle-btn') || e.target.closest('.vertical-tab')) return;
+            this.userInteracted();
+            this.touchStartX = e.touches[0].clientX;
+            this.touchStartY = e.touches[0].clientY;
+            this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; 
+            this.touchLocked = false; this.axisDetermined = false;
+        },
+        
+        handleTouchMove(e) {
+            if (this.touchLocked) return;
+            const deltaX = e.touches[0].clientX - this.touchStartX;
+            const deltaY = e.touches[0].clientY - this.touchStartY;
+
+            if (!this.axisDetermined) {
+                if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) return;
+                this.axisDetermined = true;
+                if (Math.abs(deltaY) > Math.abs(deltaX)) { this.touchLocked = true; return; } 
+                else { this.isSwiping = true; }
+            }
+
+            if (this.isSwiping) {
+                if (e.cancelable) e.preventDefault();
+                if (Math.abs(deltaX) > APP_CONFIG.swipe.deadzone) {
+                    this.swipeDirection = deltaX > 0 ? 'prev' : 'next';
+                    const rawProgress = (Math.abs(deltaX) - APP_CONFIG.swipe.deadzone) / APP_CONFIG.swipe.dragDistance;
+                    this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); 
+                } else {
+                    this.swipeProgress = 0;
+                }
+            }
+        },
+        
+        handleTouchEnd(e) {
+            if (this.isSwiping && this.swipeProgress >= 1) {
+                if (this.swipeDirection === 'prev') this.shiftItem(-1);
+                else if (this.swipeDirection === 'next') this.shiftItem(1);
+            }
+            this.isSwiping = false; this.swipeProgress = 0; this.swipeDirection = null; 
+            this.touchLocked = false; this.axisDetermined = false;
+        },
+
+        async syncToURL() {
+            try {
+                const minified = { 
+                    m: this.meetingTitle, 
+                    items: this.agenda.map(item => ([ item.time, item.title, item.details ])),
+                    t: this.tabs.map(tab => ([ tab.enabled ? 1 : 0, tab.content, tab.title ]))
+                };
+                const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
+                const hash = '#agenda=' + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                if (window.location.hash !== hash) history.replaceState(null, '', hash);
+                localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            } catch (e) {}
+        },
+
+        shareAgendaURL() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Live Share Link copied! (${url.length} chars)`);
+            }).catch(() => alert("Failed to copy link."));
+        },
+
+        openImportModal() {
+            this.importText = this.generateImportText();
+            this.$refs.importModal.showModal();
+        },
+
+        generateImportText() {
+            let text = `${this.meetingTitle}\n\n`;
+            this.agenda.forEach(item => {
+                text += `${item.time} ${item.title}\n`;
+                if (item.details) text += `${item.details}\n`;
+                text += `\n`;
+            });
+            text += `=== TABS ===\n`;
+            this.tabs.forEach(tab => {
+                text += `# ${tab.title} [${tab.enabled ? 'x' : ' '}]\n`;
+                if (tab.content) text += `${tab.content}\n`;
+                text += `\n`;
+            });
+            return text.trim();
+        },
+
+        parseMarkdown(text) {
+            if (!text) return '';
+            let parsed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+            let lines = parsed.split('\n'), html = '', inList = false;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) { if (inList) { html += '</ul>'; inList = false; } continue; }
+                if (line.startsWith('-- ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${line.substring(3)}</li>`;
+                } else if (line.startsWith('- ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li>${line.substring(2)}</li>`;
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p>${line}</p>`;
+                }
+            }
+            if (inList) html += '</ul>';
+            return html;
+        },
+
+        async smartRefresh() {
+            if (this.isRefreshing) return;
+            this.isRefreshing = true;
+            const currentMod = new Date(document.lastModified).getTime();
+            const startTime = Date.now();
+            const checkUpdate = async () => {
+                if (Date.now() - startTime > APP_CONFIG.timing.refreshTimeout) return this.isRefreshing = false; 
+                try {
+                    const res = await fetch(window.location.href.split('#')[0] + (window.location.href.includes('?') ? '&' : '?') + 'cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+                    if (res.headers.get('Last-Modified') && new Date(res.headers.get('Last-Modified')).getTime() > currentMod) return window.location.reload(true);
+                } catch(e) {}
+                setTimeout(checkUpdate, 5000);
+            };
+            checkUpdate();
+        },
+
+        toggleTheme() {
+            this.isDark = !this.isDark;
+            localStorage.setItem(APP_CONFIG.storage.themeKey, this.isDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+        },
+
+        getTimeString(d = new Date(), s = false) {
+            let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
+            return `${(h % 12 || 12).toString().padStart(2, '0')}:${m}${s ? ':' + d.getSeconds().toString().padStart(2, '0') : ''} ${h >= 12 ? 'PM' : 'AM'}`;
+        },
+        updateSystemClock() {
+            this.sysClockText = this.getTimeString(new Date(), true);
+            const check = this.getTimeString(new Date(), false);
+            if (check !== this.lastCheckedMilestoneTime) this.evaluateAutomatedTimeTrigger(check);
+        },
+        parseToMinutes(ts) {
+            let m = ts.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            return m ? (m[1] % 12 + (/PM/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 0;
+        },
+
+        evaluateAutomatedTimeTrigger(currentWallTime) {
+            let matched = 0; const currentMins = this.parseToMinutes(currentWallTime);
+            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
+
+            if (this.isPlaying && matched !== this.currentIndex) {
+                this.lastCheckedMilestoneTime = currentWallTime; 
+                this.currentIndex = matched; 
+                this.isAlertActive = false;
+                this.syncEditorInputs(); 
+                this.renderPresentationTextPages();
+            }
+        },
+
+        shiftItem(dir) {
+            this.userInteracted();
+            if (dir < 0 && this.currentIndex === 0) { this.isAlertActive = !this.isAlertActive; return; }
+            const target = this.currentIndex + dir;
+            if (target >= 0 && target < this.agenda.length) { 
+                this.currentIndex = target; 
+                this.isAlertActive = false; 
+                this.editingMode = 'agenda';
+                this.syncEditorInputs(); 
+                this.renderPresentationTextPages(); 
+            }
+        },
+        
+        selectItem(idx) { 
+            this.isPlaying = false;
+            this.editingMode = 'agenda';
+            this.currentIndex = idx; 
+            this.isAlertActive = false; 
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+        },
+
+        selectEditTab(id) {
+            this.isPlaying = false;
+            this.editingMode = 'tab';
+            this.currentEditTabId = id;
+            this.syncEditorInputs();
+        },
+
+        updateTitle() { document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting"; localStorage.setItem(APP_CONFIG.storage.titleKey, this.meetingTitle); },
+        
+        syncEditorInputs() {
+            if (this.editingMode === 'agenda') {
+                if (this.currentItem) { this.editTime = this.currentItem.time; this.editTitle = this.currentItem.title; this.editDetails = this.currentItem.details; }
+                else { this.editTime = ""; this.editTitle = ""; this.editDetails = ""; }
+            } else if (this.editingMode === 'tab') {
+                const tab = this.tabs.find(t => t.id === this.currentEditTabId);
+                if (tab) {
+                    this.editEnabled = tab.enabled;
+                    this.editTitle = tab.title;
+                    this.editDetails = tab.content;
+                }
+            }
+        },
+        
+        pushHistoryState() { 
+            this.historyStack.push({ 
+                agenda: JSON.parse(JSON.stringify(this.agenda)), 
+                tabs: JSON.parse(JSON.stringify(this.tabs)),
+                currentIndex: this.currentIndex,
+                editingMode: this.editingMode,
+                currentEditTabId: this.currentEditTabId
+            }); 
+            if (this.historyStack.length > APP_CONFIG.history.maxItems) this.historyStack.shift(); 
+        },
+        
+        undoLastAction() {
+            if (!this.canUndo) return; 
+            const prev = this.historyStack.pop();
+            this.agenda = prev.agenda; 
+            this.tabs = prev.tabs;
+            this.currentIndex = prev.currentIndex;
+            this.editingMode = prev.editingMode;
+            this.currentEditTabId = prev.currentEditTabId;
+            
+            this.buildDisplaySequence();
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
+            localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+            this.syncToURL();
+        },
+        
+        saveEditorValues() {
+            if (!this.editTitle.trim()) return alert("A title is required.");
+            
+            this.pushHistoryState();
+
+            if (this.editingMode === 'agenda') {
+                if (!this.editTime.trim()) return alert("A time is required for agenda items.");
+                const payload = { time: this.editTime.trim(), title: this.editTitle.trim(), details: this.editDetails.trim() };
+                if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
+                else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
+                this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+                localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
+                this.renderPresentationTextPages(); 
+            } else if (this.editingMode === 'tab') {
+                const tab = this.tabs.find(t => t.id === this.currentEditTabId);
+                if (tab) {
+                    tab.enabled = this.editEnabled;
+                    tab.title = this.editTitle.trim() || tab.title;
+                    tab.content = this.editDetails.trim();
+                }
+                this.buildDisplaySequence();
+                localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            }
+            this.syncToURL();
+        },
+        
+        addNewItemBelow() {
+            if (this.editingMode !== 'agenda') return;
+            this.pushHistoryState();
+            this.currentIndex++;
+            this.agenda.splice(this.currentIndex, 0, { time: this.editTime.trim() || "12:00 PM", title: this.editTitle.trim() || "New Topic", details: this.editDetails.trim() || "" });
+            this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
+        },
+        
+        deleteCurrentItem() {
+            if (this.editingMode !== 'agenda') return;
+            if (this.agenda.length <= 1) return alert("At least one agenda topic is required.");
+            this.pushHistoryState(); this.agenda.splice(this.currentIndex, 1);
+            this.currentIndex = Math.max(0, this.currentIndex - 1);
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
+        },
+
+        renderPresentationTextPages() {
+            const c = document.getElementById('viewport'); if (!c) return;
+            clearInterval(window.carouselInterval); c.innerHTML = "";
+            if (!this.agenda.length || !this.currentItem) return c.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
+
+            const t = document.createElement('div');
+            t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:1.25rem;line-height:1.6;`;
+            
+            t.innerHTML = this.parseMarkdown(this.currentItem.details); 
+            document.body.appendChild(t);
+
+            let p = [], h = "", ch = 0; const mh = c.clientHeight - 20;
+            [...t.childNodes].forEach(n => {
+                const b = document.createElement('div'); b.style.cssText = t.style.cssText; b.appendChild(n.cloneNode(true)); document.body.appendChild(b);
+                const nh = b.clientHeight; document.body.removeChild(b);
+                if (ch + nh > mh && h) { p.push(h); h = ""; ch = 0; }
+                h += n.nodeType === 3 ? n.textContent : n.outerHTML; ch += nh;
+            });
+            if (h) p.push(h); document.body.removeChild(t);
+
+            p.forEach((ht, i) => {
+                const d = document.createElement('div'); d.className = `details-page ${i === 0 ? 'active' : ''}`;
+                d.innerHTML = ht; c.appendChild(d);
+            });
+
+            if (p.length > 1) {
+                let a = 0; window.carouselInterval = setInterval(() => {
+                    const pgs = c.querySelectorAll('.details-page'); if (!pgs.length) return;
+                    pgs[a].classList.remove('active'); a = (a + 1) % pgs.length; pgs[a].classList.add('active');
+                }, APP_CONFIG.timing.carouselInterval);
+            }
+        },
+
+        async loadInitialAgenda() {
+            this.meetingTitle = localStorage.getItem(APP_CONFIG.storage.titleKey) || "August 19, 2026"; this.updateTitle();
+            if (window.location.hash.startsWith('#agenda=')) {
+                try {
+                    let base64 = window.location.hash.replace('#agenda=', '').replace(/-/g, '+').replace(/_/g, '/');
+                    while (base64.length % 4) base64 += '=';
+                    const binary = atob(base64); const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                    const minified = JSON.parse(await new Response(stream).text());
+                    if (minified.m !== undefined) { this.meetingTitle = minified.m; this.updateTitle(); }
+                    
+                    if (minified.t && Array.isArray(minified.t)) {
+                        minified.t.forEach((tData, i) => {
+                            if (this.tabs[i]) { 
+                                this.tabs[i].enabled = !!tData[0]; 
+                                this.tabs[i].content = tData[1] || ''; 
+                                if (tData[2]) this.tabs[i].title = tData[2];
+                            }
+                        });
+                    }
+                    
+                    const decoded = (minified.items || minified).map(item => ({ time: item[0], title: item[1], details: item[2] }));
+                    if (Array.isArray(decoded) && decoded.length) { localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(decoded)); return decoded; }
+                } catch (e) {}
+            }
+            const stored = localStorage.getItem(APP_CONFIG.storage.agendaKey);
+            const storedTabs = localStorage.getItem(APP_CONFIG.storage.tabsKey);
+            if (storedTabs) { try { this.tabs = JSON.parse(storedTabs); } catch(e){} }
+            if (stored) { try { return JSON.parse(stored); } catch (e) {} }
+            return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."}];
+        },
+
+        processImportText() {
+            if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
+            
+            const parts = this.importText.split(/===\s*TABS\s*===/i);
+            const agendaPart = parts[0].trim();
+            const tabsPart = parts.length > 1 ? parts[1].trim() : '';
+
+            const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, titleFound = false;
+            agendaPart.split('\n').forEach(line => {
+                const trimmed = line.trim(); if (!trimmed) return;
+                if (!titleFound && !newAgenda.length && !currentItem && !timePattern.test(trimmed)) { this.meetingTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, ''); this.updateTitle(); titleFound = true; return; }
+                const match = trimmed.match(timePattern);
+                if (match && (match[1].toUpperCase().includes('AM') || match[1].toUpperCase().includes('PM') || match[1].includes(':'))) {
+                    if (currentItem) newAgenda.push(currentItem);
+                    let timeStr = match[1].trim(); if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
+                    currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" };
+                } else if (currentItem) {
+                    currentItem.details += (currentItem.details ? '\n' : '') + trimmed;
+                }
+            });
+            if (currentItem) newAgenda.push(currentItem);
+            
+            if (newAgenda.length) {
+                if (tabsPart) {
+                    let currentTab = null;
+                    tabsPart.split('\n').forEach(line => {
+                        let l = line.trim();
+                        if (l.match(/^#.*\[\s*x?\s*\]/i)) {
+                            const isChecked = l.toLowerCase().includes('[x]');
+                            const titleRaw = l.replace(/^#/, '').replace(/\[.*?\]/, '').trim();
+                            
+                            if (this.tabs.some(t => t.title === titleRaw)) {
+                                currentTab = this.tabs.find(t => t.title === titleRaw);
+                            } else {
+                                if (!this.tabs[0]._touched) { currentTab = this.tabs[0]; this.tabs[0]._touched = true; }
+                                else if (!this.tabs[1]._touched) { currentTab = this.tabs[1]; this.tabs[1]._touched = true; }
+                                else if (!this.tabs[2]._touched) { currentTab = this.tabs[2]; this.tabs[2]._touched = true; }
+                            }
+                            if (currentTab) {
+                                currentTab.enabled = isChecked;
+                                currentTab.title = titleRaw || currentTab.title;
+                                currentTab.content = '';
+                            }
+                        }
+                        else if (currentTab && l) { currentTab.content += (currentTab.content ? '\n' : '') + line; }
+                    });
+                    this.tabs.forEach(t => delete t._touched);
+                }
+                
+                this.historyStack = []; 
+                this.agenda = newAgenda; this.currentIndex = 0; this.editingMode = 'agenda';
+                this.buildDisplaySequence();
+                localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
+                this.syncEditorInputs(); this.renderPresentationTextPages(); 
+                this.syncToURL();
+                this.importText = '';
+            } else alert("Could not parse time indexes.");
+        }
+    }
+}
+</script>
+
+</body>
+</html>
+
+    <style>
+        :root, html[data-theme="light"] {
+            --alert-bg: #ffedd5; --alert-border: #fed7aa; --alert-lbl: #9a3412; --alert-txt: #0f172a;
+            --active-bg: #bae6fd; --active-txt: #0369a1; --active-border: #0284c7;
+            --ts-color: #8ca3ba; --btn-border: #94a3b8;
+            --swipe-bg: rgba(3, 105, 161, 0.6);
+            --swipe-ready-color: #0284c7;
+        }
+        html[data-theme="dark"] {
+            --alert-bg: #431407; --alert-border: #f97316; --alert-lbl: #fed7aa; --alert-txt: #f8fafc;
+            --active-bg: #1e3a8a; --active-txt: #38bdf8; --active-border: #38bdf8;
+            --ts-color: #94a3b8; --btn-border: #475569;
+            --swipe-bg: rgba(56, 189, 248, 0.6);
+            --swipe-ready-color: #38bdf8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .app-container { display: flex; flex-direction: column; width: 100vw; }
+
+        .presentation-view, .management-view {
+            width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
+            padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
+        }
+        .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; touch-action: pan-y; }
+        
+        .swipe-overlay { position: absolute; top: 0; bottom: 0; width: 85px; display: flex; align-items: center; pointer-events: none; z-index: 50; transition: opacity 0.1s linear; }
+        .swipe-left { left: 0; justify-content: flex-start; padding-left: 15px; background: linear-gradient(to right, var(--swipe-bg), transparent); }
+        .swipe-right { right: 0; justify-content: flex-end; padding-right: 15px; background: linear-gradient(to left, var(--swipe-bg), transparent); }
+        .swipe-icon-wrapper { transition: transform 0.1s linear; }
+        .swipe-icon { font-size: 2.5rem; color: var(--ts-color); font-weight: 900; transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .swipe-ready .swipe-icon { transform: scale(1.4); color: var(--swipe-ready-color); filter: drop-shadow(0 0 6px var(--swipe-ready-color)); }
+
+        .playback-toggle-btn {
+            position: absolute; bottom: 20px; right: 55px; z-index: 100;
+            padding: 4px 14px; font-size: 0.8rem; font-weight: 800; border-radius: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; opacity: 0.7;
+        }
+        .playback-toggle-btn:hover { opacity: 1; transform: scale(1.05); }
+
+        .tab-sidebar { 
+            position: absolute; right: 0; top: 50%; transform: translateY(-50%); 
+            display: flex; flex-direction: column; gap: 16px; z-index: 100; 
+        }
+        .vertical-tab { 
+            writing-mode: vertical-rl; padding: 16px 8px; border: none; border-radius: 8px 0 0 8px; 
+            color: white; font-weight: 800; font-size: 0.9rem; cursor: pointer; opacity: 0.85; 
+            transition: all 0.2s, transform 0.2s; margin: 0; display: flex; align-items: center; 
+            justify-content: center; letter-spacing: 1px; box-shadow: -2px 0 6px rgba(0,0,0,0.1); 
+            position: relative; overflow: hidden;
+        }
+        .vertical-tab:hover, .vertical-tab.active { opacity: 1; transform: scale(1.05) translateX(-2px); box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
+        
+        .tab-progress { position: absolute; top: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.25); z-index: 1; }
+
+        @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+        .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        .presentation-grid { 
+            display: grid; 
+            grid-template-columns: minmax(260px, 35%) 1fr; 
+            gap: 24px; height: 100%; position: relative; z-index: 5; 
+        }
+
+        .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 16px; position: relative; z-index: 2; overflow: hidden; }
+        .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
+
+        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: clamp(0.85rem, 1.2vw, 1.1rem); font-weight: 800; margin-bottom: 16px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: clamp(0.75rem, 1.5vw, 0.9rem); text-transform: uppercase; }
+        .current-title { font-size: clamp(1.2rem, 3vw, 2.2rem); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
+        .current-time-box { font-size: clamp(0.9rem, 1.8vw, 1.2rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
+        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 1.2vw, 0.85rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
+
+        .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; width: 100%; }
+        .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; }
+        @media (min-width: 769px) { .prev-btn { display: none !important; } }
+        @media (max-width: 768px) and (orientation: landscape) { .prev-btn { display: none !important; } }
+        
+        .next-up-card { flex-grow: 1; min-width: 0; padding: 12px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
+        .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
+        .next-up-card.alert-active .next-label { color: var(--alert-lbl) !important; }
+        .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
+
+        @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
+        .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
+        .next-title { font-size: clamp(0.85rem, 1.8vw, 1.1rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
+
+        .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
+        
+        .details-panel { 
+            position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
+            display: flex; flex-direction: column; overflow: hidden; z-index: 1;
+        }
+
+        .tab-content-area { 
+            position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; 
+            border-radius: 12px; border: 2px solid var(--pico-muted-border-color); 
+            padding: 24px; overflow-y: auto; display: flex; flex-direction: column;
+            transform: translateX(110%);
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            box-shadow: -4px 0 16px rgba(0,0,0,0.2);
+        }
+        .tab-content-area.dealt { transform: translateX(0); }
+
+        .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; }
+        .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .details-page.active { opacity: 1; transform: translateY(0); }
+        .details-viewport ul { padding-left: 24px; margin-top: 8px; }
+        .details-viewport li { margin-bottom: 6px; }
+        .details-viewport strong { font-weight: 800; }
+        .details-viewport em { font-style: italic; }
+        .tab-content-area .details-page { position: static !important; opacity: 1 !important; transform: none !important; }
+
+        .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, 43%) 1fr; grid-template-rows: auto 1fr; position: relative; }
+        .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
+        .management-view label { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; margin-bottom: 0; }
+        .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 1.2vw, 0.95rem); }
+        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
+
+        .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+        .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); display: flex; flex-direction: column; }
+        .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-header span { font-size: clamp(0.75rem, 1.1vw, 0.85rem); font-weight: 700; }
+        .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
+        .timeline-item { display: flex; align-items: center; padding: 8px 16px 8px 11px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.3vw, 0.9rem); }
+        .timeline-item:hover { background: var(--pico-primary-hover-background); }
+        .timeline-item.active { background: var(--active-bg); color: var(--active-txt); border-left: 5px solid var(--active-border); font-weight: 700; }
+        .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
+        .item-status-col { width: 85px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0; }
+        .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .control-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; justify-content: flex-end; }
+        .control-bar [role="group"] { margin-bottom: 0; }
+        .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; }
+
+        .top-nav-row { display: flex; align-items: center; }
+        .top-nav-row [role="group"] { margin-bottom: 0; }
+        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1vw, 0.8rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--btn-border) !important; }
+        .top-nav-right { justify-content: flex-end; }
+        
+        .centered-button-group { display: flex !important; width: 100%; justify-content: center; flex-wrap: wrap; }
+        @keyframes spin-emoji { 100% { transform: rotate(360deg); } }
+        .spin-anim { display: inline-block; animation: spin-emoji 1s linear infinite; }
+
+        .editor-column-wrapper { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+        .editor-article { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; margin-bottom: 6px !important; }
+
+        .timestamp-text { text-align: right; font-size: 0.75rem; font-weight: 600; padding-right: 2px; color: var(--ts-color); }
+        .debug-link { color: inherit; text-decoration: none; opacity: 0.6; transition: opacity 0.2s; margin-left: 6px; }
+        .debug-link:hover { opacity: 1; text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+            .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+            .status-panel { display: contents; }
+            .status-panel::after { display: none; }
+            .dynamic-content-area { order: 2; flex-grow: 1; min-height: 0; }
+            .details-panel, .tab-content-area { width: 100% !important; padding-right: 25px; } 
+            .next-up-container { order: 3; width: 98% !important; max-width: 98% !important; margin-top: auto; }
+            .top-nav-row { justify-content: center; }
+            .top-nav-right { justify-content: center; }
+            .timeline-container { height: 45vh; max-height: none; flex-shrink: 0; }
+            .editor-column-wrapper { flex-grow: 1; min-height: 0; }
+            .playback-toggle-btn { bottom: 10px; right: 10px; }
+        }
+    </style>
+</head>
+<body x-data="meetingApp()" x-init="initApp()">
+
+<div class="app-container">
+    <div class="presentation-view" 
+         @touchstart="handleTouchStart" 
+         @touchmove="handleTouchMove" 
+         @touchend="handleTouchEnd"
+         @click="userInteracted()">
+         
+        <button class="playback-toggle-btn" 
+                :class="isPlaying ? 'secondary' : 'contrast'" 
+                @click.stop="togglePlayback()">
+            <span x-text="isPlaying ? '▶ Auto' : '⏸ Paused'"></span>
+        </button>
+
+        <div class="swipe-overlay swipe-left" :class="{ 'swipe-ready': swipeDirection === 'prev' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'prev' ? swipeProgress : 0}`">
+            <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'prev' ? (swipeProgress * 15) : 0}px)`"><div class="swipe-icon">◀</div></div>
+        </div>
+        <div class="swipe-overlay swipe-right" :class="{ 'swipe-ready': swipeDirection === 'next' && swipeProgress >= 1 }" :style="`opacity: ${swipeDirection === 'next' ? swipeProgress : 0}`">
+            <div class="swipe-icon-wrapper" :style="`transform: translateX(${swipeDirection === 'next' ? (-swipeProgress * 15) : 0}px)`"><div class="swipe-icon">▶</div></div>
+        </div>
+
+        <div class="tab-sidebar">
+            <button class="vertical-tab" 
+                    x-show="displaySequence.length > 1"
+                    :class="{ 'active': activeTabId === null, 'bounce': isBouncing === 'agenda' }"
+                    style="background-color: #475569;"
+                    @click.stop="userClickedTab('agenda')">
+                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
+                <span style="position:relative; z-index:2;">▶ Agenda</span>
+            </button>
+
+            <template x-for="tab in tabs" :key="tab.id">
+                <button class="vertical-tab" 
+                        x-show="tab.enabled"
+                        :class="{ 'active': activeTabId === tab.id, 'bounce': isBouncing === tab.id }"
+                        :style="`background-color: ${tab.color};`"
+                        @click.stop="userClickedTab(tab.id)">
+                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
+                    <span style="position:relative; z-index:2;" x-text="tab.title"></span>
+                </button>
+            </template>
+        </div>
+
+        <div class="presentation-grid">
+            
+            <header class="status-panel">
+                <div> 
+                    <div>
+                        <h1 class="meeting-title-bar" x-show="meetingTitle" x-text="meetingTitle"></h1>
+                    </div>
+                    <div class="current-meta">
+                        <span style="margin-right: 12px;">Now</span>
+                        <span class="system-clock" x-text="sysClockText">--:--:-- --</span>
+                    </div>
+                    <div>
+                        <div class="current-title" x-text="currentItem ? currentItem.title : 'No Active Agenda Item'"></div>
+                        <div class="current-time-box" x-text="currentItem ? `Scheduled: ${currentItem.time}` : '--:--'"></div>
+                    </div>
+                </div>
+                
+                <nav class="next-up-container">
+                    <button class="outline secondary prev-btn" @click.stop="shiftItem(-1)" title="Previous Topic">◀</button>
+                    <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click.stop="shiftItem(1)" title="Advance to Next Topic">
+                        <div class="next-label">Next Up</div>
+                        <div class="next-title">
+                            <span x-text="nextItem ? nextItem.time : ''"></span>
+                            <span x-text="nextItem ? ' - ' + nextItem.title : 'Adjournment / Session Closed'"></span>
+                        </div>
+                    </article>
+                </nav>
+            </header>
+            
+            <div class="dynamic-content-area">
+                <section class="details-panel">
+                    <div class="details-viewport" id="viewport">
+                        <div class="details-page active" id="fallbackPage"><p>No item details loaded.</p></div>
+                    </div>
+                </section>
+
+                <template x-for="tab in tabs" :key="tab.id">
+                    <section class="tab-content-area"
+                             :class="{ 'dealt': visibleTabs.includes(tab.id) }"
+                             :style="`
+                                 background-color: var(--pico-background-color);
+                                 background-image: linear-gradient(${tab.color}1A, ${tab.color}1A);
+                                 border-color: ${tab.color}40; 
+                                 z-index: ${visibleTabs.indexOf(tab.id) === -1 ? 10 : 20 + visibleTabs.indexOf(tab.id)};
+                             `">
+                        <h2 :style="`color: ${tab.color}; margin-top: 0; margin-bottom: 12px; font-weight: 900;`" x-text="tab.title"></h2>
+                        <div class="details-viewport" style="overflow-y: auto; overflow-x: hidden; position: relative;">
+                             <div class="details-page active" x-html="parseMarkdown(tab.content)"></div>
+                        </div>
+                    </section>
+                </template>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="management-view">
+        <nav class="top-nav-row">
+            <div role="group" class="centered-button-group">
+                <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
+                <button class="secondary" @click="openImportModal()">📥 Import / Edit Raw</button>
+            </div>
+        </nav>
+
+        <nav class="top-nav-row top-nav-right">
+            <div role="group" class="centered-button-group">
+                <button class="secondary" @click="toggleTheme()" x-text="isDark ? '☀️ Light' : '🌓 Dark'"></button>
+                <button class="secondary" @click="toggleFullscreen()">📺 Full</button>
+                <button class="secondary" @click="smartRefresh()" :disabled="isRefreshing">
+                    <span :class="{'spin-anim': isRefreshing}">🔄</span> 
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="timeline-container">
+            <article>
+                <label>Meeting Title
+                    <input type="text" x-model="meetingTitle" @change="updateTitle(); syncToURL()" placeholder="August 19, 2026">
+                </label>
+            </article>
+            
+            <article class="timeline-box">
+                <div class="timeline-header">
+                    <span>Elements & Agenda</span>
+                    <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1vw, 0.8rem); line-height: 1.2;" x-show="!isPlaying" @click="resumeAuto()">Resume Auto</button>
+                </div>
+                <div class="timeline-rows">
+                    <template x-for="tab in tabs" :key="'m_'+tab.id">
+                        <div class="timeline-item" :class="{ 'active': editingMode === 'tab' && currentEditTabId === tab.id }" @click="selectEditTab(tab.id)">
+                            <div class="item-status-col" :style="tab.enabled ? 'color: var(--pico-color);' : 'color: var(--pico-muted-color);'">
+                                <span x-text="tab.enabled ? '🟢 On' : '⭕ Off'"></span>
+                            </div>
+                            <div class="item-text" :style="`color: ${tab.color}; opacity: ${tab.enabled ? 1 : 0.6};`" x-text="tab.title"></div>
+                        </div>
+                    </template>
+                    
+                    <div style="height: 1px; background: var(--pico-muted-border-color); margin: 4px 0;"></div>
+                    
+                    <template x-for="(item, idx) in agenda" :key="idx">
+                        <div class="timeline-item" :class="{ 'active': editingMode === 'agenda' && idx === currentIndex }" @click="selectItem(idx)">
+                            <div class="item-time" x-text="item.time"></div>
+                            <div class="item-text" x-text="item.title"></div>
+                        </div>
+                    </template>
+                </div>
+            </article>
+        </div>
+        
+        <div class="editor-column-wrapper">
+            <article class="editor-article">
+                <div class="grid">
+                    <label x-show="editingMode === 'agenda'">Time 
+                        <input type="text" x-model="editTime" placeholder="10:45 AM">
+                    </label>
+                    <label x-show="editingMode === 'tab'">Display Status
+                        <div style="padding-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0; cursor: pointer;">
+                                <input type="checkbox" x-model="editEnabled" style="margin-bottom: 0;"> Enabled in Rotation
+                            </label>
+                        </div>
+                    </label>
+                    
+                    <label>Title 
+                        <input type="text" x-model="editTitle" placeholder="Topic or Tab Title">
+                    </label>
+                </div>
+                <label style="flex-grow:1; display:flex; flex-direction:column; min-height:0;">Detail Content
+                    <textarea x-model="editDetails" placeholder="Overview details... Use - for lists, -- for sub-lists, **bold** and *italics*"></textarea>
+                </label>
+                
+                <nav class="control-bar" style="margin-top: 10px;">
+                    <div role="group">
+                        <button class="secondary" :disabled="!canUndo" @click="undoLastAction()">↩ Undo</button>
+                        <button class="secondary outline" x-show="editingMode === 'agenda'" @click="deleteCurrentItem()">Delete</button>
+                        <button class="primary" @click="saveEditorValues()">Save</button>
+                        <button class="contrast" x-show="editingMode === 'agenda'" @click="addNewItemBelow()">+ Add</button>
+                    </div>
+                </nav>
+            </article>
+            
+            <div class="timestamp-text" style="padding-top: 4px;">
+                <span x-show="lastUpdatedText">Updated: <span x-text="lastUpdatedText"></span> &bull; </span>
+                <a href="#" class="debug-link" @click.prevent="$refs.debugModal.showModal()">⚙️ Debug</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<dialog x-ref="importModal">
+    <article style="max-width: 800px;">
+        <h3>Bulk Import / Edit Raw</h3>
+        <p>Edit the full raw text of the agenda and tabs below:</p>
+        <textarea x-model="importText" style="height: 40vh; min-height: 200px;" placeholder="..."></textarea>
+        <footer>
+            <button class="secondary" @click="$refs.importModal.close()">Cancel</button>
+            <button class="primary" @click="processImportText(); $refs.importModal.close()">Save to Agenda</button>
+        </footer>
+    </article>
+</dialog>
+
+<dialog x-ref="debugModal">
+    <article style="max-width: 400px;">
+        <header><strong>Developer Debug</strong></header>
+        <fieldset>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" x-model="isFastMode" @change="displayTime = 0"> 
+                Fast Cycle Simulation
+            </label>
+        </fieldset>
+        <footer>
+            <button class="primary" @click="$refs.debugModal.close()">Close</button>
+        </footer>
+    </article>
+</dialog>
+
+<script>
+function meetingApp() {
+    return {
+        meetingTitle: '', agenda: [], currentIndex: 0, isAlertActive: false,
+        isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [],
+        editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
+
+        touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
+
+        tabs: [
+            { id: 'patrols', title: 'Patrols', content: '', enabled: true, color: '#16a34a' },
+            { id: 'dates', title: 'Dates', content: '', enabled: true, color: '#2563eb' },
+            { id: 'announcements', title: 'Announcements', content: '', enabled: true, color: '#dc2626' }
+        ],
+        activeTabId: null, 
+        visibleTabs: [], 
+        
+        displaySequence: ['agenda'], displayIndex: 0, displayTime: 0, 
+        isPlaying: true, isBouncing: null, isFastMode: false,
+        
+        editingMode: 'agenda', 
+        currentEditTabId: null, 
+
+        get currentItem() { return this.agenda[this.currentIndex] || null; },
+        get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
+        get canUndo() { return this.historyStack.length > 0; },
+        
+        get nextTabTarget() { return this.displaySequence.length > 1 ? this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length] : null; },
+        
+        get currentCycleDuration() { 
+            return this.isFastMode ? APP_CONFIG.timing.debugDuration : (this.activeTabId === null ? APP_CONFIG.timing.agendaDuration : APP_CONFIG.timing.cardDuration); 
+        },
+
+        async initApp() {
+            this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || 'light') === 'dark';
+            document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+            this.agenda = await this.loadInitialAgenda();
+            this.buildDisplaySequence();
+            this.syncToURL();
+            if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) {} }
+            
+            const modDate = new Date(document.lastModified);
+            if (!isNaN(modDate) && modDate.getFullYear() > 1970) this.lastUpdatedText = modDate.toLocaleString();
+
+            this.evaluateAutomatedTimeTrigger(this.getTimeString());
+            this.syncEditorInputs();
+            this.renderPresentationTextPages();
+            setInterval(() => this.updateSystemClock(), 1000);
+            setInterval(() => this.runDisplayLoop(), 1000); 
+            window.addEventListener('resize', () => this.renderPresentationTextPages());
+        },
+
+        buildDisplaySequence() {
+            let seq = ['agenda'];
+            if(this.tabs[0].enabled) seq.push('patrols');
+            if(this.tabs[1].enabled) seq.push('dates');
+            if(this.tabs[2].enabled) seq.push('announcements');
+            this.displaySequence = seq;
+            if(this.displayIndex >= this.displaySequence.length) this.displayIndex = 0;
+        },
+
+        togglePlayback() {
+            if (this.isPlaying) {
+                this.isPlaying = false;
+            } else {
+                this.resumeAuto();
+            }
+        },
+
+        resumeAuto() {
+            this.isPlaying = true;
+            this.displayTime = 0;
+            this.isAlertActive = false;
+            this.evaluateAutomatedTimeTrigger(this.getTimeString());
+        },
+
+        userInteracted() {
+            this.isPlaying = false;
+            this.displayTime = 0;
+        },
+
+        switchTabTo(targetId) {
+            this.activeTabId = targetId;
+            if (targetId === null) {
+                this.visibleTabs = [];
+            } else {
+                if (!this.visibleTabs.includes(targetId)) {
+                    this.visibleTabs.push(targetId);
+                } else {
+                    this.visibleTabs = this.visibleTabs.filter(id => id !== targetId);
+                    this.visibleTabs.push(targetId);
+                }
+            }
+        },
+
+        userClickedTab(id) {
+            this.userInteracted();
+            let targetId = (id === 'agenda' || this.activeTabId === id) ? null : id;
+            this.switchTabTo(targetId);
+            
+            let idx = this.displaySequence.indexOf(targetId === null ? 'agenda' : targetId);
+            if (idx !== -1) this.displayIndex = idx;
+        },
+
+        runDisplayLoop() {
+            if (!this.isPlaying || this.displaySequence.length <= 1) return; 
+
+            this.displayTime++;
+            
+            if (this.displayTime === (this.currentCycleDuration - APP_CONFIG.timing.bounceLeadTime)) {
+                let nextMode = this.displaySequence[(this.displayIndex + 1) % this.displaySequence.length];
+                this.isBouncing = nextMode;
+                setTimeout(() => this.isBouncing = null, 850);
+            }
+
+            if (this.displayTime >= this.currentCycleDuration) {
+                this.displayTime = 0;
+                this.displayIndex = (this.displayIndex + 1) % this.displaySequence.length;
+                let target = this.displaySequence[this.displayIndex];
+                let targetId = target === 'agenda' ? null : target;
+                this.switchTabTo(targetId);
+            }
+        },
+
+        handleTouchStart(e) {
+            if (e.target.closest('.playback-toggle-btn') || e.target.closest('.vertical-tab')) return;
+            this.userInteracted();
+            this.touchStartX = e.touches[0].clientX;
+            this.touchStartY = e.touches[0].clientY;
+            this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; 
+            this.touchLocked = false; this.axisDetermined = false;
+        },
+        
+        handleTouchMove(e) {
+            if (this.touchLocked) return;
+            const deltaX = e.touches[0].clientX - this.touchStartX;
+            const deltaY = e.touches[0].clientY - this.touchStartY;
+
+            if (!this.axisDetermined) {
+                if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) return;
+                this.axisDetermined = true;
+                if (Math.abs(deltaY) > Math.abs(deltaX)) { this.touchLocked = true; return; } 
+                else { this.isSwiping = true; }
+            }
+
+            if (this.isSwiping) {
+                if (e.cancelable) e.preventDefault();
+                if (Math.abs(deltaX) > APP_CONFIG.swipe.deadzone) {
+                    this.swipeDirection = deltaX > 0 ? 'prev' : 'next';
+                    const rawProgress = (Math.abs(deltaX) - APP_CONFIG.swipe.deadzone) / APP_CONFIG.swipe.dragDistance;
+                    this.swipeProgress = Math.max(0, Math.min(rawProgress, 1)); 
+                } else {
+                    this.swipeProgress = 0;
+                }
+            }
+        },
+        
+        handleTouchEnd(e) {
+            if (this.isSwiping && this.swipeProgress >= 1) {
+                if (this.swipeDirection === 'prev') this.shiftItem(-1);
+                else if (this.swipeDirection === 'next') this.shiftItem(1);
+            }
+            this.isSwiping = false; this.swipeProgress = 0; this.swipeDirection = null; 
+            this.touchLocked = false; this.axisDetermined = false;
+        },
+
+        async syncToURL() {
+            try {
+                const minified = { 
+                    m: this.meetingTitle, 
+                    items: this.agenda.map(item => ([ item.time, item.title, item.details ])),
+                    t: this.tabs.map(tab => ([ tab.enabled ? 1 : 0, tab.content, tab.title ]))
+                };
+                const stream = new Blob([JSON.stringify(minified)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+                const buffer = await new Response(stream).arrayBuffer(); let binary = ''; new Uint8Array(buffer).forEach(b => binary += String.fromCharCode(b));
+                const hash = '#agenda=' + btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                if (window.location.hash !== hash) history.replaceState(null, '', hash);
+                localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            } catch (e) {}
+        },
+
+        shareAgendaURL() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Live Share Link copied! (${url.length} chars)`);
+            }).catch(() => alert("Failed to copy link."));
+        },
+
+        openImportModal() {
+            this.importText = this.generateImportText();
+            this.$refs.importModal.showModal();
+        },
+
+        generateImportText() {
+            let text = `${this.meetingTitle}\n\n`;
+            this.agenda.forEach(item => {
+                text += `${item.time} ${item.title}\n`;
+                if (item.details) text += `${item.details}\n`;
+                text += `\n`;
+            });
+            text += `=== TABS ===\n`;
+            this.tabs.forEach(tab => {
+                text += `# ${tab.title} [${tab.enabled ? 'x' : ' '}]\n`;
+                if (tab.content) text += `${tab.content}\n`;
+                text += `\n`;
+            });
+            return text.trim();
+        },
+
+        parseMarkdown(text) {
+            if (!text) return '';
+            let parsed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+            let lines = parsed.split('\n'), html = '', inList = false;
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) { if (inList) { html += '</ul>'; inList = false; } continue; }
+                if (line.startsWith('-- ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li class="sub-item" style="margin-left: 20px; list-style-type: circle;">${line.substring(3)}</li>`;
+                } else if (line.startsWith('- ')) {
+                    if (!inList) { html += '<ul>'; inList = true; }
+                    html += `<li>${line.substring(2)}</li>`;
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p>${line}</p>`;
+                }
+            }
+            if (inList) html += '</ul>';
+            return html;
+        },
+
+        async smartRefresh() {
+            if (this.isRefreshing) return;
+            this.isRefreshing = true;
+            const currentMod = new Date(document.lastModified).getTime();
+            const startTime = Date.now();
+            const checkUpdate = async () => {
+                if (Date.now() - startTime > APP_CONFIG.timing.refreshTimeout) return this.isRefreshing = false; 
+                try {
+                    const res = await fetch(window.location.href.split('#')[0] + (window.location.href.includes('?') ? '&' : '?') + 'cb=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+                    if (res.headers.get('Last-Modified') && new Date(res.headers.get('Last-Modified')).getTime() > currentMod) return window.location.reload(true);
+                } catch(e) {}
+                setTimeout(checkUpdate, 5000);
+            };
+            checkUpdate();
+        },
+
+        toggleTheme() {
+            this.isDark = !this.isDark;
+            localStorage.setItem(APP_CONFIG.storage.themeKey, this.isDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+        },
+
+        getTimeString(d = new Date(), s = false) {
+            let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
+            return `${(h % 12 || 12).toString().padStart(2, '0')}:${m}${s ? ':' + d.getSeconds().toString().padStart(2, '0') : ''} ${h >= 12 ? 'PM' : 'AM'}`;
+        },
+        updateSystemClock() {
+            this.sysClockText = this.getTimeString(new Date(), true);
+            const check = this.getTimeString(new Date(), false);
+            if (check !== this.lastCheckedMilestoneTime) this.evaluateAutomatedTimeTrigger(check);
+        },
+        parseToMinutes(ts) {
+            let m = ts.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            return m ? (m[1] % 12 + (/PM/i.test(m[3]) ? 12 : 0)) * 60 + +m[2] : 0;
+        },
+
+        evaluateAutomatedTimeTrigger(currentWallTime) {
+            let matched = 0; const currentMins = this.parseToMinutes(currentWallTime);
+            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
+
+            if (this.isPlaying && matched !== this.currentIndex) {
+                this.lastCheckedMilestoneTime = currentWallTime; 
+                this.currentIndex = matched; 
+                this.isAlertActive = false;
+                this.syncEditorInputs(); 
+                this.renderPresentationTextPages();
+            }
+        },
+
+        shiftItem(dir) {
+            this.userInteracted();
+            if (dir < 0 && this.currentIndex === 0) { this.isAlertActive = !this.isAlertActive; return; }
+            const target = this.currentIndex + dir;
+            if (target >= 0 && target < this.agenda.length) { 
+                this.currentIndex = target; 
+                this.isAlertActive = false; 
+                this.editingMode = 'agenda';
+                this.syncEditorInputs(); 
+                this.renderPresentationTextPages(); 
+            }
+        },
+        
+        selectItem(idx) { 
+            this.isPlaying = false;
+            this.editingMode = 'agenda';
+            this.currentIndex = idx; 
+            this.isAlertActive = false; 
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+        },
+
+        selectEditTab(id) {
+            this.isPlaying = false;
+            this.editingMode = 'tab';
+            this.currentEditTabId = id;
+            this.syncEditorInputs();
+        },
+
+        updateTitle() { document.title = this.meetingTitle ? `Meeting - ${this.meetingTitle}` : "Meeting"; localStorage.setItem(APP_CONFIG.storage.titleKey, this.meetingTitle); },
+        
+        syncEditorInputs() {
+            if (this.editingMode === 'agenda') {
+                if (this.currentItem) { this.editTime = this.currentItem.time; this.editTitle = this.currentItem.title; this.editDetails = this.currentItem.details; }
+                else { this.editTime = ""; this.editTitle = ""; this.editDetails = ""; }
+            } else if (this.editingMode === 'tab') {
+                const tab = this.tabs.find(t => t.id === this.currentEditTabId);
+                if (tab) {
+                    this.editEnabled = tab.enabled;
+                    this.editTitle = tab.title;
+                    this.editDetails = tab.content;
+                }
+            }
+        },
+        
+        pushHistoryState() { 
+            this.historyStack.push({ 
+                agenda: JSON.parse(JSON.stringify(this.agenda)), 
+                tabs: JSON.parse(JSON.stringify(this.tabs)),
+                currentIndex: this.currentIndex,
+                editingMode: this.editingMode,
+                currentEditTabId: this.currentEditTabId
+            }); 
+            if (this.historyStack.length > APP_CONFIG.history.maxItems) this.historyStack.shift(); 
+        },
+        
+        undoLastAction() {
+            if (!this.canUndo) return; 
+            const prev = this.historyStack.pop();
+            this.agenda = prev.agenda; 
+            this.tabs = prev.tabs;
+            this.currentIndex = prev.currentIndex;
+            this.editingMode = prev.editingMode;
+            this.currentEditTabId = prev.currentEditTabId;
+            
+            this.buildDisplaySequence();
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
+            localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            this.syncEditorInputs(); 
+            this.renderPresentationTextPages(); 
+            this.syncToURL();
+        },
+        
+        saveEditorValues() {
+            if (!this.editTitle.trim()) return alert("A title is required.");
+            
+            this.pushHistoryState();
+
+            if (this.editingMode === 'agenda') {
+                if (!this.editTime.trim()) return alert("A time is required for agenda items.");
+                const payload = { time: this.editTime.trim(), title: this.editTitle.trim(), details: this.editDetails.trim() };
+                if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
+                else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
+                this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+                localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
+                this.renderPresentationTextPages(); 
+            } else if (this.editingMode === 'tab') {
+                const tab = this.tabs.find(t => t.id === this.currentEditTabId);
+                if (tab) {
+                    tab.enabled = this.editEnabled;
+                    tab.title = this.editTitle.trim() || tab.title;
+                    tab.content = this.editDetails.trim();
+                }
+                this.buildDisplaySequence();
+                localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            }
+            this.syncToURL();
+        },
+        
+        addNewItemBelow() {
+            if (this.editingMode !== 'agenda') return;
+            this.pushHistoryState();
+            this.currentIndex++;
+            this.agenda.splice(this.currentIndex, 0, { time: this.editTime.trim() || "12:00 PM", title: this.editTitle.trim() || "New Topic", details: this.editDetails.trim() || "" });
+            this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
+        },
+        
+        deleteCurrentItem() {
+            if (this.editingMode !== 'agenda') return;
+            if (this.agenda.length <= 1) return alert("At least one agenda topic is required.");
+            this.pushHistoryState(); this.agenda.splice(this.currentIndex, 1);
+            this.currentIndex = Math.max(0, this.currentIndex - 1);
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); this.syncEditorInputs(); this.renderPresentationTextPages(); this.syncToURL();
+        },
+
+        renderPresentationTextPages() {
+            const c = document.getElementById('viewport'); if (!c) return;
+            clearInterval(window.carouselInterval); c.innerHTML = "";
+            if (!this.agenda.length || !this.currentItem) return c.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
+
+            const t = document.createElement('div');
+            t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:1.25rem;line-height:1.6;`;
+            
+            t.innerHTML = this.parseMarkdown(this.currentItem.details); 
+            document.body.appendChild(t);
+
+            let p = [], h = "", ch = 0; const mh = c.clientHeight - 20;
+            [...t.childNodes].forEach(n => {
+                const b = document.createElement('div'); b.style.cssText = t.style.cssText; b.appendChild(n.cloneNode(true)); document.body.appendChild(b);
+                const nh = b.clientHeight; document.body.removeChild(b);
+                if (ch + nh > mh && h) { p.push(h); h = ""; ch = 0; }
+                h += n.nodeType === 3 ? n.textContent : n.outerHTML; ch += nh;
+            });
+            if (h) p.push(h); document.body.removeChild(t);
+
+            p.forEach((ht, i) => {
+                const d = document.createElement('div'); d.className = `details-page ${i === 0 ? 'active' : ''}`;
+                d.innerHTML = ht; c.appendChild(d);
+            });
+
+            if (p.length > 1) {
+                let a = 0; window.carouselInterval = setInterval(() => {
+                    const pgs = c.querySelectorAll('.details-page'); if (!pgs.length) return;
+                    pgs[a].classList.remove('active'); a = (a + 1) % pgs.length; pgs[a].classList.add('active');
+                }, APP_CONFIG.timing.carouselInterval);
+            }
+        },
+
+        async loadInitialAgenda() {
+            this.meetingTitle = localStorage.getItem(APP_CONFIG.storage.titleKey) || "August 19, 2026"; this.updateTitle();
+            if (window.location.hash.startsWith('#agenda=')) {
+                try {
+                    let base64 = window.location.hash.replace('#agenda=', '').replace(/-/g, '+').replace(/_/g, '/');
+                    while (base64.length % 4) base64 += '=';
+                    const binary = atob(base64); const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                    const minified = JSON.parse(await new Response(stream).text());
+                    if (minified.m !== undefined) { this.meetingTitle = minified.m; this.updateTitle(); }
+                    
+                    if (minified.t && Array.isArray(minified.t)) {
+                        minified.t.forEach((tData, i) => {
+                            if (this.tabs[i]) { 
+                                this.tabs[i].enabled = !!tData[0]; 
+                                this.tabs[i].content = tData[1] || ''; 
+                                if (tData[2]) this.tabs[i].title = tData[2];
+                            }
+                        });
+                    }
+                    
+                    const decoded = (minified.items || minified).map(item => ({ time: item[0], title: item[1], details: item[2] }));
+                    if (Array.isArray(decoded) && decoded.length) { localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(decoded)); return decoded; }
+                } catch (e) {}
+            }
+            const stored = localStorage.getItem(APP_CONFIG.storage.agendaKey);
+            const storedTabs = localStorage.getItem(APP_CONFIG.storage.tabsKey);
+            if (storedTabs) { try { this.tabs = JSON.parse(storedTabs); } catch(e){} }
+            if (stored) { try { return JSON.parse(stored); } catch (e) {} }
+            return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."}];
+        },
+
+        processImportText() {
+            if (!this.importText.trim() || !confirm("Warning: Importing text will replace all existing agenda items. Continue?")) return;
+            
+            const parts = this.importText.split(/===\s*TABS\s*===/i);
+            const agendaPart = parts[0].trim();
+            const tabsPart = parts.length > 1 ? parts[1].trim() : '';
+
+            const timePattern = /^(\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?)\s*[-:]?\s*(.*)$/i; const newAgenda = []; let currentItem = null, titleFound = false;
+            agendaPart.split('\n').forEach(line => {
+                const trimmed = line.trim(); if (!trimmed) return;
+                if (!titleFound && !newAgenda.length && !currentItem && !timePattern.test(trimmed)) { this.meetingTitle = trimmed.replace(/^(?:Title|Meeting Title|#)\s*[:|-]?\s*/i, ''); this.updateTitle(); titleFound = true; return; }
+                const match = trimmed.match(timePattern);
+                if (match && (match[1].toUpperCase().includes('AM') || match[1].toUpperCase().includes('PM') || match[1].includes(':'))) {
+                    if (currentItem) newAgenda.push(currentItem);
+                    let timeStr = match[1].trim(); if (!/AM|PM/i.test(timeStr)) timeStr += " AM";
+                    currentItem = { time: timeStr.toUpperCase(), title: match[2].trim() || "Topic Item", details: "" };
+                } else if (currentItem) {
+                    currentItem.details += (currentItem.details ? '\n' : '') + trimmed;
+                }
+            });
+            if (currentItem) newAgenda.push(currentItem);
+            
+            if (newAgenda.length) {
+                if (tabsPart) {
+                    let currentTab = null;
+                    tabsPart.split('\n').forEach(line => {
+                        let l = line.trim();
+                        if (l.match(/^#.*\[\s*x?\s*\]/i)) {
+                            const isChecked = l.toLowerCase().includes('[x]');
+                            const titleRaw = l.replace(/^#/, '').replace(/\[.*?\]/, '').trim();
+                            
+                            if (this.tabs.some(t => t.title === titleRaw)) {
+                                currentTab = this.tabs.find(t => t.title === titleRaw);
+                            } else {
+                                if (!this.tabs[0]._touched) { currentTab = this.tabs[0]; this.tabs[0]._touched = true; }
+                                else if (!this.tabs[1]._touched) { currentTab = this.tabs[1]; this.tabs[1]._touched = true; }
+                                else if (!this.tabs[2]._touched) { currentTab = this.tabs[2]; this.tabs[2]._touched = true; }
+                            }
+                            if (currentTab) {
+                                currentTab.enabled = isChecked;
+                                currentTab.title = titleRaw || currentTab.title;
+                                currentTab.content = '';
+                            }
+                        }
+                        else if (currentTab && l) { currentTab.content += (currentTab.content ? '\n' : '') + line; }
+                    });
+                    this.tabs.forEach(t => delete t._touched);
+                }
+                
+                this.historyStack = []; 
+                this.agenda = newAgenda; this.currentIndex = 0; this.editingMode = 'agenda';
+                this.buildDisplaySequence();
+                localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
+                this.syncEditorInputs(); this.renderPresentationTextPages(); 
+                this.syncToURL();
+                this.importText = '';
+            } else alert("Could not parse time indexes.");
+        }
+    }
+}
+</script>
+
+</body>
+</html>
         body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
         .app-container { display: flex; flex-direction: column; width: 100vw; }
 
