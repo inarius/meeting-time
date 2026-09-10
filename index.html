@@ -68,11 +68,11 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body, html { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        body, html { height: 100%; height: 100dvh; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
         .app-container { display: flex; flex-direction: column; width: 100vw; }
 
         .presentation-view, .management-view {
-            width: 100%; height: 100vh; max-height: 100vh; scroll-snap-align: start; scroll-snap-stop: always;
+            width: 100%; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always;
             padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
         }
         .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; touch-action: pan-y; }
@@ -211,7 +211,7 @@
         .debug-link:hover { opacity: 1; text-decoration: underline; }
 
         @media (max-width: 768px) {
-            .presentation-view, .management-view { height: 100vh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+            .presentation-view, .management-view { height: 100vh; height: 100dvh; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
             .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
             .status-panel { display: contents; }
             .status-panel::after { display: none; }
@@ -506,7 +506,11 @@ function meetingApp() {
 
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
-            this.renderPresentationTextPages();
+            
+            // Wait slightly for mobile viewport (100dvh) settling before first pagination render
+            setTimeout(() => {
+                this.renderPresentationTextPages();
+            }, 150);
             
             // Always attempts to re-acquire when returning to browser so paused state remains awake
             document.addEventListener('visibilitychange', async () => {
@@ -517,7 +521,9 @@ function meetingApp() {
 
             setInterval(() => this.updateSystemClock(), 1000);
             setInterval(() => this.runDisplayLoop(), 1000); 
-            window.addEventListener('resize', () => this.renderPresentationTextPages());
+            window.addEventListener('resize', () => {
+                setTimeout(() => this.renderPresentationTextPages(), 150);
+            });
         },
         
         async requestWakeLock() {
@@ -558,7 +564,6 @@ function meetingApp() {
         togglePlayback() {
             if (this.isPlaying) {
                 this.isPlaying = false;
-                // Wake lock is NO LONGER released on pause, ensuring the screen stays active
             } else {
                 this.resumeAuto();
             }
@@ -579,6 +584,13 @@ function meetingApp() {
             
             this.switchTabTo(null); // Ensure side cards drop when playing the scheduled topic
             this.requestWakeLock();
+        },
+
+        userInteracted() {
+            // Unused as a generic touch handler now. Used for specific manual navigations.
+            this.isPlaying = false;
+            this.displayTime = 0;
+            this.requestWakeLock(); 
         },
 
         switchTabTo(targetId) {
