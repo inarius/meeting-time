@@ -7,6 +7,58 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Meeting</title>
+
+<!-- ==========================================
+    APP CONSTITUTION & INVARIANTS (TEST CONTRACTS)
+    Don't harm code that satisfies these rules without user consent. Suggest new or edited rules where appropriate.
+
+    1. PLAYBACK & NAVIGATION
+    - Touch/scroll: Touch / scroll alone MUST NOT pause auto-rotation.
+    - Intentional Pause: Navigating away from current timeline item (swipe, tab click, next/prev) MUST pause.
+    - Auto-Resume: Navigating back to the current scheduled agenda item MUST unpause.
+    - Time Sync: If unpaused, passing a real-time agenda milestone MUST auto-advance the presentation.
+    - Swipe Nav: Swiping left/right on the presentation view MUST shift to the prev/next agenda item.
+
+    2. WAKE LOCK & FULLSCREEN
+    - Acquisition: MUST request wake lock on play/resume.
+    - Persistence: Pausing the app MUST NOT release the wake lock.
+    - Recovery: MUST attempt to re-acquire wake lock on `visibilitychange` (return to foreground).
+    - Fullscreen Fallback: Fullscreen button should catch rejections and fallback to a graceful UI alert (add to homescreen / install app).
+
+    3. UI & LAYOUT
+    - Viewport Height: Height MUST be calculated via JS `window.innerHeight` to a `--vh` variable. Do not use raw 100vh/100dvh to prevent Android layout race conditions.
+    - Button Styling: Button borders MUST be retained, text contrast MUST remain high.
+    - Sticky Hovers: Button hover states MUST be wrapped in `@media (hover: hover)` to prevent stuck active states on touchscreens.
+    - Play/Pause Visibility: Pause button MUST default to 0.3 opacity (displayed while playing), "Resume" button MUST default to 0.9 opacity.
+    - Scroll Snap: The two main views (Presentation, Management) MUST use `scroll-snap-type: y mandatory` to lock the viewport entirely to one view or the other.
+    - Responsive Layout: Landscape mode MUST use a two-column grid (`grid-template-columns`). Portrait MUST collapse into a stacked flex layout (`flex-direction: column`).
+
+    4. SIDE CARDS / TABS
+    - Rendering: Displayed as vertical tabs anchored to the right edge.
+    - Cycle Behavior: When playing, the system defaults to displaying the main agenda for a set duration, then cycles through enabled side cards sequentially for a shorter duration before returning to the main agenda.
+    - Sliding: Content area slides in from the right (`translateX(0)`) when active, layering over the main agenda via z-index.
+    - Visual Cues: Progress bar background coloring fills the tab title based on time remaining before trigger; the tab softly bounces (`softTug` animation) right before rotating out.
+
+    5. DATA, STORAGE & IMPORT
+    - URL Compression: State exported to the URL hash MUST be minified and compressed using `CompressionStream` (deflate-raw).
+    - Undo Stack: Destructive edits (add, delete, update) MUST push the current state to the `historyStack` before saving.
+    - Import Formatting: Raw text uses standard `HH:MM AM/PM Topic` for agenda items, `-` for lists, `--` for sub-lists, and `=== TABS ===` with `# Tab Name [x]` for side cards.
+    - Bidirectional Import: The Import modal MUST open pre-populated with the currently active agenda and tab state in the exact raw format for easy editing.
+    - Destructive Import: Import wipes the undo stack during agenda overwrite and MUST warn the user via confirm dialog before saving.
+
+    6. BUTTON BEHAVIORS
+    - Share: Copies the current full URL (with compressed hash state) to the clipboard and reports copied URL length to user.
+    - Theme: Toggles `data-theme` (dark/light) on the root HTML element and saves to localStorage.
+    - Refresh: Performs a smart cache-busting `HEAD` request to check `Last-Modified` headers, reloading only if a newer server version exists.
+
+    7. DEBUG PANEL
+    - Fast Cycle: Replaces normal display duration with a rapid 5-second cycle for rapid visual testing of tab rotations and animations.
+    - Monitor: Real-time read-out of the Screen Wake Lock API status (Active, Released, Failed, Unsupported).
+    - Panic Button: Destructive "Clear All Local Storage" button.
+
+    8. RENDER TIMING
+    - Pagination Delay: The `renderPresentationTextPages()` function MUST wait at least 150ms on load/resize before measuring DOM nodes to allow mobile UI bars to settle.
+========================================== -->
     
     <!-- Link to the GitHub Pages specific manifest path -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
