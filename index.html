@@ -232,8 +232,7 @@
     <div class="presentation-view" 
          @touchstart="handleTouchStart" 
          @touchmove="handleTouchMove" 
-         @touchend="handleTouchEnd"
-         @click="userInteracted()">
+         @touchend="handleTouchEnd">
          
         <button class="playback-toggle-btn" 
                 :class="isPlaying ? 'playback-playing' : 'contrast'" 
@@ -509,8 +508,7 @@ function meetingApp() {
             this.syncEditorInputs();
             this.renderPresentationTextPages();
             
-            // Re-acquire wake lock seamlessly if app returns to foreground
-            // Always attempts to re-acquire when visible so paused state remains awake
+            // Always attempts to re-acquire when returning to browser so paused state remains awake
             document.addEventListener('visibilitychange', async () => {
                 if (document.visibilityState === 'visible') {
                     await this.requestWakeLock();
@@ -541,6 +539,13 @@ function meetingApp() {
             }
         },
 
+        getScheduledAgendaIndex() {
+            let matched = 0; 
+            const currentMins = this.parseToMinutes(this.getTimeString(new Date(), false));
+            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
+            return matched;
+        },
+
         buildDisplaySequence() {
             let seq = ['agenda'];
             if(this.tabs[0].enabled) seq.push('patrols');
@@ -557,21 +562,23 @@ function meetingApp() {
             } else {
                 this.resumeAuto();
             }
+            this.requestWakeLock(); // Grabs lock if button pressed directly upon load
         },
 
         resumeAuto() {
             this.isPlaying = true;
             this.displayTime = 0;
             this.isAlertActive = false;
-            this.evaluateAutomatedTimeTrigger(this.getTimeString());
-            this.requestWakeLock(); // Secures the wake lock on tap
-        },
-
-        userInteracted() {
-            // Drop to pause when touched, allowing manual control
-            this.isPlaying = false;
-            this.displayTime = 0;
-            this.requestWakeLock(); // Ensures any interaction also grabs/maintains the wake lock
+            
+            let matched = this.getScheduledAgendaIndex();
+            if (this.currentIndex !== matched) {
+                this.currentIndex = matched;
+                this.syncEditorInputs();
+                this.renderPresentationTextPages();
+            }
+            
+            this.switchTabTo(null); // Ensure side cards drop when playing the scheduled topic
+            this.requestWakeLock();
         },
 
         switchTabTo(targetId) {
@@ -589,9 +596,20 @@ function meetingApp() {
         },
 
         userClickedTab(id) {
-            this.userInteracted();
             let targetId = (id === 'agenda' || this.activeTabId === id) ? null : id;
             this.switchTabTo(targetId);
+            
+            if (targetId === null) {
+                if (this.currentIndex === this.getScheduledAgendaIndex()) {
+                    this.resumeAuto(); // Tab dropped back to currently scheduled item -> Resume Auto
+                } else {
+                    this.isPlaying = false;
+                    this.requestWakeLock();
+                }
+            } else {
+                this.isPlaying = false; // Custom tab selected -> Pause and lock
+                this.requestWakeLock();
+            }
             
             let idx = this.displaySequence.indexOf(targetId === null ? 'agenda' : targetId);
             if (idx !== -1) this.displayIndex = idx;
@@ -619,7 +637,6 @@ function meetingApp() {
 
         handleTouchStart(e) {
             if (e.target.closest('.playback-toggle-btn') || e.target.closest('.vertical-tab')) return;
-            this.userInteracted();
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
             this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; 
@@ -771,8 +788,7 @@ function meetingApp() {
         },
 
         evaluateAutomatedTimeTrigger(currentWallTime) {
-            let matched = 0; const currentMins = this.parseToMinutes(currentWallTime);
-            this.agenda.forEach((item, i) => { if (this.parseToMinutes(item.time) <= currentMins) matched = i; });
+            let matched = this.getScheduledAgendaIndex();
 
             if (this.isPlaying && matched !== this.currentIndex) {
                 this.lastCheckedMilestoneTime = currentWallTime; 
@@ -784,29 +800,42 @@ function meetingApp() {
         },
 
         shiftItem(dir) {
-            this.userInteracted();
             if (dir < 0 && this.currentIndex === 0) { this.isAlertActive = !this.isAlertActive; return; }
             const target = this.currentIndex + dir;
             if (target >= 0 && target < this.agenda.length) { 
                 this.currentIndex = target; 
                 this.isAlertActive = false; 
                 this.editingMode = 'agenda';
+                this.switchTabTo(null);
                 this.syncEditorInputs(); 
                 this.renderPresentationTextPages(); 
+                
+                if (this.currentIndex === this.getScheduledAgendaIndex()) {
+                    this.resumeAuto(); // Swiped back to schedule -> Resume Auto
+                } else {
+                    this.isPlaying = false; // Poked off schedule -> Pause
+                    this.requestWakeLock();
+                }
             }
         },
         
         selectItem(idx) { 
-            this.isPlaying = false;
             this.editingMode = 'agenda';
             this.currentIndex = idx; 
             this.isAlertActive = false; 
+            this.switchTabTo(null);
             this.syncEditorInputs(); 
             this.renderPresentationTextPages(); 
+            
+            if (this.currentIndex === this.getScheduledAgendaIndex()) {
+                this.resumeAuto(); // Jumped back to schedule -> Resume Auto
+            } else {
+                this.isPlaying = false; // Jumped off schedule -> Pause
+                this.requestWakeLock();
+            }
         },
 
         selectEditTab(id) {
-            this.isPlaying = false;
             this.editingMode = 'tab';
             this.currentEditTabId = id;
             this.syncEditorInputs();
