@@ -118,7 +118,36 @@ const APP_CONFIG = {
 
 ---
 
-## 5. Guidelines for Future AI Assistance
+## 5. Live UI Sizing Prototyper & Active Default Config
+
+To eliminate past trial-and-error around screen scaling, a **Live Sizing & Layout Prototyper** is embedded directly into the Developer Debug modal (`⚙️ Debug`).
+
+### Current Active Default Settings
+The app is currently configured with the **Harmonic Proportional** base profile and user-tuned scale overrides:
+```json
+{
+  "preset": "harmonic",
+  "scale": "100%",
+  "leftCol": "35%",
+  "titleScale": "95%",
+  "detailsScale": "95%",
+  "nextUpScale": "95%",
+  "mgmtContinuity": true
+}
+```
+- **CSS Custom Properties on `:root`**:
+  - `--proto-scale`: `1.0` (Global scale factor)
+  - `--proto-left-col`: `35%` (Left column width in landscape grid)
+  - `--proto-title-scale`: `0.95` (Title heading size multiplier)
+  - `--proto-details-scale`: `0.95` (Details body font multiplier)
+  - `--proto-nextup-scale`: `0.95` (Next Up card font/size multiplier)
+- **Management View Continuity (`body.proto-mgmt-continuity`)**: Active by default. Aligns Management View column width, card borders, and timeline row font sizing with the presentation styling.
+- **Dynamic Text Pagination**: `renderPresentationTextPages()` uses computed style font sizing and line height to guarantee accurate page splits across all scales.
+- **Further Prototyping on Mobile**: The user can open `⚙️ Debug` on their phone to adjust sliders, test in landscape/portrait, or tap `📋 Copy Config` to export updated values.
+
+---
+
+## 6. Guidelines for Future AI Assistance
 
 When interacting with the user or modifying this codebase:
 1. **Respect the App Contracts:** Review lines 11–69 of [`index.html`](file:///workspaces/meeting-time/index.html#L11-L69) before touching layout, state, or event handling.

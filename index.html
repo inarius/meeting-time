@@ -131,12 +131,12 @@
             --swipe-bg: rgba(3, 105, 161, 0.6);
             --swipe-ready-color: #0284c7;
 
-            /* Live Prototyping Design Tokens */
+            /* Live Prototyping Design Tokens (Default Config) */
             --proto-scale: 1;
             --proto-left-col: 35%;
-            --proto-title-scale: 1;
-            --proto-details-scale: 1;
-            --proto-nextup-scale: 1;
+            --proto-title-scale: 0.95;
+            --proto-details-scale: 0.95;
+            --proto-nextup-scale: 0.95;
         }
         html[data-theme="dark"] {
             --alert-bg: #431407; --alert-border: #f97316; --alert-lbl: #fed7aa; --alert-txt: #f8fafc;
@@ -350,7 +350,7 @@
         }
     </style>
 </head>
-<body x-data="meetingApp()" x-init="initApp()">
+<body class="proto-mgmt-continuity" x-data="meetingApp()" x-init="initApp()">
 
 <div class="app-container">
     <div class="presentation-view" 
@@ -563,8 +563,8 @@
             <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
                 <label style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0;">Preset Profile
                     <select x-model="protoPreset" @change="selectProtoPreset($event.target.value)" style="margin-top: 4px; font-size: 0.85rem; padding: 4px 8px;">
-                        <option value="baseline">Preset A: Baseline (Current Production)</option>
-                        <option value="harmonic">Preset B: Harmonic Proportional</option>
+                        <option value="harmonic">Preset B: Harmonic Proportional (Default)</option>
+                        <option value="baseline">Preset A: Legacy Baseline</option>
                         <option value="projector">Preset C: Projector Boost (High Legibility)</option>
                         <option value="compact">Preset D: Compact / Wide Details</option>
                         <option value="custom" disabled>Custom (Adjusted via sliders below)</option>
@@ -657,13 +657,13 @@ function meetingApp() {
         currentEditTabId: null, 
 
         /* Prototyping State */
-        protoPreset: 'baseline',
+        protoPreset: 'harmonic',
         protoScale: 100,
         protoLeftCol: 35,
-        protoTitleScale: 100,
-        protoDetailsScale: 100,
-        protoNextUpScale: 100,
-        protoMgmtContinuity: false,
+        protoTitleScale: 95,
+        protoDetailsScale: 95,
+        protoNextUpScale: 95,
+        protoMgmtContinuity: true,
 
         applyProtoStyles() {
             const root = document.documentElement;
@@ -690,20 +690,20 @@ function meetingApp() {
 
         selectProtoPreset(preset) {
             this.protoPreset = preset;
-            if (preset === 'baseline') {
+            if (preset === 'harmonic') {
+                this.protoScale = 100;
+                this.protoLeftCol = 35;
+                this.protoTitleScale = 95;
+                this.protoDetailsScale = 95;
+                this.protoNextUpScale = 95;
+                this.protoMgmtContinuity = true;
+            } else if (preset === 'baseline') {
                 this.protoScale = 100;
                 this.protoLeftCol = 35;
                 this.protoTitleScale = 100;
                 this.protoDetailsScale = 100;
                 this.protoNextUpScale = 100;
                 this.protoMgmtContinuity = false;
-            } else if (preset === 'harmonic') {
-                this.protoScale = 105;
-                this.protoLeftCol = 33;
-                this.protoTitleScale = 95;
-                this.protoDetailsScale = 110;
-                this.protoNextUpScale = 95;
-                this.protoMgmtContinuity = true;
             } else if (preset === 'projector') {
                 this.protoScale = 115;
                 this.protoLeftCol = 36;
@@ -724,7 +724,7 @@ function meetingApp() {
 
         resetProtoToBaseline() {
             sessionStorage.removeItem('boardProtoSettings');
-            this.selectProtoPreset('baseline');
+            this.selectProtoPreset('harmonic');
         },
 
         copyProtoSettings() {
@@ -756,7 +756,7 @@ function meetingApp() {
             this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || APP_CONFIG.appearance.defaultTheme) === 'dark';
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             
-            // Restore prototype settings if saved in current session
+            // Restore prototype settings if saved in current session, otherwise apply active default
             try {
                 const savedProto = sessionStorage.getItem('boardProtoSettings');
                 if (savedProto) {
@@ -764,13 +764,13 @@ function meetingApp() {
                     this.protoPreset = p.preset || 'custom';
                     this.protoScale = p.scale ?? 100;
                     this.protoLeftCol = p.leftCol ?? 35;
-                    this.protoTitleScale = p.titleScale ?? 100;
-                    this.protoDetailsScale = p.detailsScale ?? 100;
-                    this.protoNextUpScale = p.nextUpScale ?? 100;
-                    this.protoMgmtContinuity = !!p.mgmtContinuity;
-                    this.applyProtoStyles();
+                    this.protoTitleScale = p.titleScale ?? 95;
+                    this.protoDetailsScale = p.detailsScale ?? 95;
+                    this.protoNextUpScale = p.nextUpScale ?? 95;
+                    this.protoMgmtContinuity = p.mgmtContinuity !== undefined ? !!p.mgmtContinuity : true;
                 }
             } catch(e) {}
+            this.applyProtoStyles();
 
             this.agenda = await this.loadInitialAgenda();
             this.buildDisplaySequence();
