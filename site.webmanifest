@@ -1,5 +1,5 @@
 {
-  "name": "Meeting Command Center",
+  "name": "Meeting",
   "short_name": "Meeting",
   "start_url": "/meeting-time/",
   "scope": "/meeting-time/",
