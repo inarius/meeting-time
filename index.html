@@ -130,6 +130,13 @@
             --ts-color: #8ca3ba; --btn-border: #94a3b8;
             --swipe-bg: rgba(3, 105, 161, 0.6);
             --swipe-ready-color: #0284c7;
+
+            /* Live Prototyping Design Tokens */
+            --proto-scale: 1;
+            --proto-left-col: 35%;
+            --proto-title-scale: 1;
+            --proto-details-scale: 1;
+            --proto-nextup-scale: 1;
         }
         html[data-theme="dark"] {
             --alert-bg: #431407; --alert-border: #f97316; --alert-lbl: #fed7aa; --alert-txt: #f8fafc;
@@ -177,19 +184,19 @@
         .playback-toggle-btn {
             position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: clamp(4px, 1.5vh, 12px) clamp(14px, 3vh, 24px); 
-            font-size: clamp(0.8rem, 3vh, 2.5rem); font-weight: 800; border-radius: 20px; 
+            font-size: calc(clamp(0.8rem, 3vh, 2.5rem) * var(--proto-scale, 1)); font-weight: 800; border-radius: 20px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; 
             opacity: 0.9; 
         }
         .playback-toggle-btn:active { transform: scale(1.05); opacity: 1 !important; }
         @media (hover: hover) { .playback-toggle-btn:hover { transform: scale(1.05); opacity: 1 !important; } }
         
-        .playback-playing { background: transparent !important; box-shadow: none !important; font-size: clamp(1.4rem, 4.5vh, 3.5rem); padding: 0 8px; color: var(--ts-color) !important; opacity: 0.3 !important; }
+        .playback-playing { background: transparent !important; box-shadow: none !important; font-size: calc(clamp(1.4rem, 4.5vh, 3.5rem) * var(--proto-scale, 1)); padding: 0 8px; color: var(--ts-color) !important; opacity: 0.3 !important; }
 
         .tab-sidebar { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 16px); z-index: 100; }
         .vertical-tab { 
             writing-mode: vertical-rl; padding: clamp(12px, 3vh, 24px) clamp(6px, 1.5vh, 12px); border: none; border-radius: 8px 0 0 8px; 
-            color: white; font-weight: 800; font-size: clamp(0.9rem, 3.5vh, 2.5rem); cursor: pointer; opacity: 0.85; 
+            color: white; font-weight: 800; font-size: calc(clamp(0.9rem, 3.5vh, 2.5rem) * var(--proto-scale, 1)); cursor: pointer; opacity: 0.85; 
             transition: all 0.2s, transform 0.2s; margin: 0; display: flex; align-items: center; 
             justify-content: center; letter-spacing: 1px; box-shadow: -2px 0 6px rgba(0,0,0,0.1); 
             position: relative; overflow: hidden;
@@ -199,18 +206,18 @@
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
 
-        .presentation-grid { display: grid; grid-template-columns: minmax(260px, 35%) 1fr; gap: 24px; height: 100%; position: relative; z-index: 5; }
+        .presentation-grid { display: grid; grid-template-columns: minmax(260px, var(--proto-left-col, 35%)) 1fr; gap: 24px; height: 100%; position: relative; z-index: 5; }
         .status-panel { display: flex; flex-direction: column; justify-content: space-between; padding-right: 16px; position: relative; z-index: 2; overflow: hidden; }
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
-        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: clamp(0.85rem, 3.5vh, 2.5rem); font-weight: 800; margin-bottom: 16px; white-space: normal; line-height: 1.3; }
-        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: clamp(0.75rem, 2.5vh, 2rem); text-transform: uppercase; }
-        .current-title { font-size: clamp(1.2rem, 7vh, 6rem); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
-        .current-time-box { font-size: clamp(0.9rem, 4vh, 3.5rem); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
-        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: clamp(0.7rem, 2.5vh, 2rem); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
+        .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: calc(clamp(0.85rem, 3.5vh, 2.5rem) * var(--proto-scale, 1)); font-weight: 800; margin-bottom: 16px; white-space: normal; line-height: 1.3; }
+        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: calc(clamp(0.75rem, 2.5vh, 2rem) * var(--proto-scale, 1)); text-transform: uppercase; }
+        .current-title { font-size: calc(clamp(1.2rem, 7vh, 6rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
+        .current-time-box { font-size: calc(clamp(0.9rem, 4vh, 3.5rem) * var(--proto-scale, 1)); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
+        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: calc(clamp(0.7rem, 2.5vh, 2rem) * var(--proto-scale, 1)); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
         .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; width: 100%; }
-        .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; font-size: clamp(0.9rem, 3vh, 2rem); }
+        .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; font-size: calc(clamp(0.9rem, 3vh, 2rem) * var(--proto-scale, 1)); }
         @media (min-width: 769px) { .prev-btn { display: none !important; } }
         @media (max-width: 768px) and (orientation: landscape) { .prev-btn { display: none !important; } }
         
@@ -220,8 +227,8 @@
         .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
 
         @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
-        .next-label { font-size: clamp(0.7rem, 2.2vh, 1.8rem); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
-        .next-title { font-size: clamp(0.85rem, 3.5vh, 2.5rem); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
+        .next-label { font-size: calc(clamp(0.7rem, 2.2vh, 1.8rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
+        .next-title { font-size: calc(clamp(0.85rem, 3.5vh, 2.5rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
 
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         .details-panel { position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; display: flex; flex-direction: column; overflow: hidden; z-index: 1; }
@@ -236,7 +243,7 @@
         }
         .tab-content-area.dealt { transform: translateX(0); }
 
-        .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: clamp(0.95rem, 5vh, 4rem); line-height: 1.5; }
+        .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: calc(clamp(0.95rem, 5vh, 4rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); line-height: 1.5; }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
         .details-page.active { opacity: 1; transform: translateY(0); }
         .details-viewport ul { padding-left: 1.5em; margin-top: 0.5em; }
@@ -244,10 +251,23 @@
         .details-viewport strong { font-weight: 800; }
         .details-viewport em { font-style: italic; }
         .tab-content-area .details-page { position: static !important; opacity: 1 !important; transform: none !important; }
-        .tab-content-area h2 { font-size: clamp(1.2rem, 6vh, 5rem); margin-top: 0; margin-bottom: 12px; font-weight: 900; }
+        .tab-content-area h2 { font-size: calc(clamp(1.2rem, 6vh, 5rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); margin-top: 0; margin-bottom: 12px; font-weight: 900; }
 
         .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, 43%) 1fr; grid-template-rows: auto 1fr; position: relative; }
         .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
+
+        /* Prototype: Optional Management View Continuity */
+        body.proto-mgmt-continuity .management-view {
+            grid-template-columns: minmax(260px, var(--proto-left-col, 35%)) 1fr;
+        }
+        body.proto-mgmt-continuity .management-view article {
+            border-radius: 8px;
+            border: 1px solid var(--pico-muted-border-color);
+        }
+        body.proto-mgmt-continuity .timeline-item {
+            font-size: calc(clamp(0.8rem, 1.8vh, 1.4rem) * var(--proto-scale, 1));
+            padding: 9px 16px 9px 12px;
+        }
         .management-view label { font-size: clamp(0.75rem, 1.5vh, 1.2rem); font-weight: 700; margin-bottom: 0; }
         .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 2vh, 1.5rem); }
         .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
@@ -299,34 +319,34 @@
             .playback-toggle-btn { bottom: 10px; right: 10px; }
             
             /* Text Locks */
-            .meeting-title-bar { font-size: clamp(0.9rem, 3vw, 1.2rem); }
-            .current-meta { font-size: clamp(0.8rem, 2vw, 1rem); }
-            .current-title { font-size: clamp(1.8rem, 7vw, 2.5rem); }
-            .current-time-box { font-size: clamp(1rem, 4vw, 1.4rem); }
-            .system-clock { font-size: clamp(0.75rem, 2vw, 0.9rem); }
-            .next-label { font-size: clamp(0.7rem, 2vw, 0.85rem); }
-            .next-title { font-size: clamp(0.9rem, 3vw, 1.2rem); }
-            .details-viewport { font-size: clamp(1.25rem, 5.2vw, 1.6rem); }
-            .tab-content-area h2 { font-size: clamp(1.3rem, 6vw, 1.8rem) !important; margin-bottom: 8px !important; }
-            .vertical-tab { font-size: 1rem; padding: 16px 8px; }
-            .playback-toggle-btn { font-size: 0.9rem; padding: 6px 14px; }
-            .playback-playing { font-size: 1.5rem; }
+            .meeting-title-bar { font-size: calc(clamp(0.9rem, 3vw, 1.2rem) * var(--proto-scale, 1)); }
+            .current-meta { font-size: calc(clamp(0.8rem, 2vw, 1rem) * var(--proto-scale, 1)); }
+            .current-title { font-size: calc(clamp(1.8rem, 7vw, 2.5rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); }
+            .current-time-box { font-size: calc(clamp(1rem, 4vw, 1.4rem) * var(--proto-scale, 1)); }
+            .system-clock { font-size: calc(clamp(0.75rem, 2vw, 0.9rem) * var(--proto-scale, 1)); }
+            .next-label { font-size: calc(clamp(0.7rem, 2vw, 0.85rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
+            .next-title { font-size: calc(clamp(0.9rem, 3vw, 1.2rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
+            .details-viewport { font-size: calc(clamp(1.25rem, 5.2vw, 1.6rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
+            .tab-content-area h2 { font-size: calc(clamp(1.3rem, 6vw, 1.8rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)) !important; margin-bottom: 8px !important; }
+            .vertical-tab { font-size: calc(1rem * var(--proto-scale, 1)); padding: 16px 8px; }
+            .playback-toggle-btn { font-size: calc(0.9rem * var(--proto-scale, 1)); padding: 6px 14px; }
+            .playback-playing { font-size: calc(1.5rem * var(--proto-scale, 1)); }
         }
 
         /* MOBILE LANDSCAPE SCALING LOCK (Reverts to safe vw bounds for short phone screens) */
         @media (max-height: 600px) and (orientation: landscape) {
-            .meeting-title-bar { font-size: clamp(0.85rem, 1.5vw, 1.1rem); margin-bottom: 12px; }
-            .current-meta { font-size: clamp(0.75rem, 1.5vw, 0.9rem); }
-            .current-title { font-size: clamp(1.2rem, 3vw, 2.2rem); margin-top: 6px; }
-            .current-time-box { font-size: clamp(0.9rem, 1.8vw, 1.2rem); }
-            .system-clock { font-size: clamp(0.7rem, 1.2vw, 0.85rem); }
-            .next-label { font-size: clamp(0.7rem, 1.2vw, 0.8rem); }
-            .next-title { font-size: clamp(0.85rem, 1.8vw, 1.1rem); }
-            .details-viewport { font-size: clamp(1.1rem, 2.3vw, 1.45rem); }
-            .tab-content-area h2 { font-size: clamp(1.2rem, 3vw, 1.8rem); }
-            .vertical-tab { font-size: 0.9rem; padding: 16px 8px; }
-            .playback-toggle-btn { font-size: 0.8rem; padding: 4px 14px; }
-            .playback-playing { font-size: 1.4rem; }
+            .meeting-title-bar { font-size: calc(clamp(0.85rem, 1.5vw, 1.1rem) * var(--proto-scale, 1)); margin-bottom: 12px; }
+            .current-meta { font-size: calc(clamp(0.75rem, 1.5vw, 0.9rem) * var(--proto-scale, 1)); }
+            .current-title { font-size: calc(clamp(1.2rem, 3vw, 2.2rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); margin-top: 6px; }
+            .current-time-box { font-size: calc(clamp(0.9rem, 1.8vw, 1.2rem) * var(--proto-scale, 1)); }
+            .system-clock { font-size: calc(clamp(0.7rem, 1.2vw, 0.85rem) * var(--proto-scale, 1)); }
+            .next-label { font-size: calc(clamp(0.7rem, 1.2vw, 0.8rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
+            .next-title { font-size: calc(clamp(0.85rem, 1.8vw, 1.1rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
+            .details-viewport { font-size: calc(clamp(1.1rem, 2.3vw, 1.45rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
+            .tab-content-area h2 { font-size: calc(clamp(1.2rem, 3vw, 1.8rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); }
+            .vertical-tab { font-size: calc(0.9rem * var(--proto-scale, 1)); padding: 16px 8px; }
+            .playback-toggle-btn { font-size: calc(0.8rem * var(--proto-scale, 1)); padding: 4px 14px; }
+            .playback-playing { font-size: calc(1.4rem * var(--proto-scale, 1)); }
         }
     </style>
 </head>
@@ -535,8 +555,56 @@
 </dialog>
 
 <dialog x-ref="debugModal">
-    <article style="max-width: 400px;">
-        <header><strong>Developer Debug</strong></header>
+    <article style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
+        <header style="margin-bottom: 12px;"><strong>Developer Debug & Prototyping</strong></header>
+        
+        <details open style="margin-bottom: 12px; border: 1px solid var(--pico-muted-border-color); padding: 10px; border-radius: 8px;">
+            <summary style="font-weight: 700; cursor: pointer;">🎨 Sizing & Layout Prototyper</summary>
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
+                <label style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0;">Preset Profile
+                    <select x-model="protoPreset" @change="selectProtoPreset($event.target.value)" style="margin-top: 4px; font-size: 0.85rem; padding: 4px 8px;">
+                        <option value="baseline">Preset A: Baseline (Current Production)</option>
+                        <option value="harmonic">Preset B: Harmonic Proportional</option>
+                        <option value="projector">Preset C: Projector Boost (High Legibility)</option>
+                        <option value="compact">Preset D: Compact / Wide Details</option>
+                        <option value="custom" disabled>Custom (Adjusted via sliders below)</option>
+                    </select>
+                </label>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Global Scale: <strong x-text="protoScale + '%'"></strong>
+                        <input type="range" min="80" max="135" step="1" x-model.number="protoScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                    </label>
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Left Col Width: <strong x-text="protoLeftCol + '%'"></strong>
+                        <input type="range" min="25" max="45" step="1" x-model.number="protoLeftCol" @input="protoPreset = 'custom'; applyProtoStyles()">
+                    </label>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Heading Scale: <strong x-text="protoTitleScale + '%'"></strong>
+                        <input type="range" min="80" max="135" step="1" x-model.number="protoTitleScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                    </label>
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Details Text: <strong x-text="protoDetailsScale + '%'"></strong>
+                        <input type="range" min="80" max="135" step="1" x-model.number="protoDetailsScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                    </label>
+                </div>
+
+                <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Card Scale: <strong x-text="protoNextUpScale + '%'"></strong>
+                    <input type="range" min="80" max="135" step="1" x-model.number="protoNextUpScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.8rem; margin-top: 4px;">
+                    <input type="checkbox" x-model="protoMgmtContinuity" @change="applyProtoStyles()" style="margin-bottom: 0;">
+                    <span>Management View Continuity Improvements</span>
+                </label>
+
+                <div style="display: flex; gap: 8px; margin-top: 6px;">
+                    <button type="button" class="secondary outline" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;" @click="resetProtoToBaseline()">Reset Baseline</button>
+                    <button type="button" class="contrast outline" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;" @click="copyProtoSettings()">📋 Copy Config</button>
+                </div>
+            </div>
+        </details>
+
         <fieldset>
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                 <input type="checkbox" x-model="isFastMode" @change="displayTime = 0"> 
@@ -544,20 +612,20 @@
             </label>
         </fieldset>
         
-        <fieldset style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--pico-muted-border-color);">
+        <fieldset style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--pico-muted-border-color);">
             <label>Screen Wake Lock API: <br>
                 <strong x-text="wakeLockStatus" style="color: #0284c7;"></strong>
             </label>
         </fieldset>
 
-        <fieldset style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--pico-muted-border-color);">
-            <button class="outline" style="width: 100%; color: #dc2626; border-color: #dc2626;" @click="clearAllStorage()">
+        <fieldset style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--pico-muted-border-color);">
+            <button class="outline" style="width: 100%; color: #dc2626; border-color: #dc2626; font-size: 0.8rem; padding: 6px;" @click="clearAllStorage()">
                 ⚠️ Clear All Local Storage
             </button>
         </fieldset>
 
-        <footer>
-            <button class="primary" @click="$refs.debugModal.close()">Close</button>
+        <footer style="margin-top: 12px;">
+            <button class="primary" style="margin-bottom: 0; padding: 6px 16px;" @click="$refs.debugModal.close()">Close</button>
         </footer>
     </article>
 </dialog>
@@ -588,6 +656,92 @@ function meetingApp() {
         editingMode: 'agenda', 
         currentEditTabId: null, 
 
+        /* Prototyping State */
+        protoPreset: 'baseline',
+        protoScale: 100,
+        protoLeftCol: 35,
+        protoTitleScale: 100,
+        protoDetailsScale: 100,
+        protoNextUpScale: 100,
+        protoMgmtContinuity: false,
+
+        applyProtoStyles() {
+            const root = document.documentElement;
+            root.style.setProperty('--proto-scale', this.protoScale / 100);
+            root.style.setProperty('--proto-left-col', `${this.protoLeftCol}%`);
+            root.style.setProperty('--proto-title-scale', this.protoTitleScale / 100);
+            root.style.setProperty('--proto-details-scale', this.protoDetailsScale / 100);
+            root.style.setProperty('--proto-nextup-scale', this.protoNextUpScale / 100);
+            document.body.classList.toggle('proto-mgmt-continuity', !!this.protoMgmtContinuity);
+            
+            try {
+                sessionStorage.setItem('boardProtoSettings', JSON.stringify({
+                    preset: this.protoPreset,
+                    scale: this.protoScale,
+                    leftCol: this.protoLeftCol,
+                    titleScale: this.protoTitleScale,
+                    detailsScale: this.protoDetailsScale,
+                    nextUpScale: this.protoNextUpScale,
+                    mgmtContinuity: this.protoMgmtContinuity
+                }));
+            } catch(e) {}
+            this.renderPresentationTextPages();
+        },
+
+        selectProtoPreset(preset) {
+            this.protoPreset = preset;
+            if (preset === 'baseline') {
+                this.protoScale = 100;
+                this.protoLeftCol = 35;
+                this.protoTitleScale = 100;
+                this.protoDetailsScale = 100;
+                this.protoNextUpScale = 100;
+                this.protoMgmtContinuity = false;
+            } else if (preset === 'harmonic') {
+                this.protoScale = 105;
+                this.protoLeftCol = 33;
+                this.protoTitleScale = 95;
+                this.protoDetailsScale = 110;
+                this.protoNextUpScale = 95;
+                this.protoMgmtContinuity = true;
+            } else if (preset === 'projector') {
+                this.protoScale = 115;
+                this.protoLeftCol = 36;
+                this.protoTitleScale = 110;
+                this.protoDetailsScale = 115;
+                this.protoNextUpScale = 105;
+                this.protoMgmtContinuity = false;
+            } else if (preset === 'compact') {
+                this.protoScale = 95;
+                this.protoLeftCol = 30;
+                this.protoTitleScale = 90;
+                this.protoDetailsScale = 100;
+                this.protoNextUpScale = 90;
+                this.protoMgmtContinuity = true;
+            }
+            this.applyProtoStyles();
+        },
+
+        resetProtoToBaseline() {
+            sessionStorage.removeItem('boardProtoSettings');
+            this.selectProtoPreset('baseline');
+        },
+
+        copyProtoSettings() {
+            const summary = JSON.stringify({
+                preset: this.protoPreset,
+                scale: `${this.protoScale}%`,
+                leftCol: `${this.protoLeftCol}%`,
+                titleScale: `${this.protoTitleScale}%`,
+                detailsScale: `${this.protoDetailsScale}%`,
+                nextUpScale: `${this.protoNextUpScale}%`,
+                mgmtContinuity: this.protoMgmtContinuity
+            }, null, 2);
+            navigator.clipboard.writeText(summary).then(() => {
+                alert("Prototype settings copied to clipboard!\n\n" + summary);
+            }).catch(() => alert("Settings:\n" + summary));
+        },
+
         get currentItem() { return this.agenda[this.currentIndex] || null; },
         get nextItem() { return this.agenda[this.currentIndex + 1] || null; },
         get canUndo() { return this.historyStack.length > 0; },
@@ -601,6 +755,23 @@ function meetingApp() {
         async initApp() {
             this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || APP_CONFIG.appearance.defaultTheme) === 'dark';
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+            
+            // Restore prototype settings if saved in current session
+            try {
+                const savedProto = sessionStorage.getItem('boardProtoSettings');
+                if (savedProto) {
+                    const p = JSON.parse(savedProto);
+                    this.protoPreset = p.preset || 'custom';
+                    this.protoScale = p.scale ?? 100;
+                    this.protoLeftCol = p.leftCol ?? 35;
+                    this.protoTitleScale = p.titleScale ?? 100;
+                    this.protoDetailsScale = p.detailsScale ?? 100;
+                    this.protoNextUpScale = p.nextUpScale ?? 100;
+                    this.protoMgmtContinuity = !!p.mgmtContinuity;
+                    this.applyProtoStyles();
+                }
+            } catch(e) {}
+
             this.agenda = await this.loadInitialAgenda();
             this.buildDisplaySequence();
             this.syncToURL();
@@ -1055,8 +1226,9 @@ function meetingApp() {
             clearInterval(window.carouselInterval); c.innerHTML = "";
             if (!this.agenda.length || !this.currentItem) return c.innerHTML = '<div class="details-page active"><p>No item details loaded.</p></div>';
 
+            const compStyle = window.getComputedStyle(c);
             const t = document.createElement('div');
-            t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:1.25rem;line-height:1.6;`;
+            t.style.cssText = `width:${c.clientWidth}px;position:absolute;visibility:hidden;font-size:${compStyle.fontSize};line-height:${compStyle.lineHeight};font-family:${compStyle.fontFamily};`;
             
             t.innerHTML = this.parseMarkdown(this.currentItem.details); 
             document.body.appendChild(t);
