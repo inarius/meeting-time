@@ -84,6 +84,24 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <!-- Google Cast SDK (Dynamic: CAF Receiver on Chromecast/TV, Web Sender on Phone/Desktop) -->
+    <script>
+        (function() {
+            const isReceiver = navigator.userAgent.includes('CrKey') || new URLSearchParams(window.location.search).has('receiver');
+            const s = document.createElement('script');
+            if (isReceiver) {
+                s.src = 'https://www.gstatic.com/cast/sdk/libs/caf_receiver/v1/cast_receiver_framework.js';
+                s.onload = function() {
+                    window.__isCastReceiverReady = true;
+                    if (window.__triggerCastReceiverInit) window.__triggerCastReceiverInit();
+                };
+            } else {
+                s.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+            }
+            document.head.appendChild(s);
+        })();
+    </script>
+
     <!-- Viewport Height Fix for Mobile Apps -->
     <script>
         function setViewportHeight() {
@@ -123,7 +141,8 @@
                 castSessionKey: 'meeting_presentation_id'
             },
             cast: {
-                appId: '1909D2D6'        // Google Cast SDK Developer Console Custom Web Receiver Application ID
+                appId: '1909D2D6',       // Google Cast SDK Developer Console Custom Web Receiver Application ID
+                namespace: 'urn:x-cast:inarius.meetingtime'
             },
             history: {
                 maxItems: 20             // Undo history stack limit
@@ -687,6 +706,36 @@
 </dialog>
 
 <script>
+// Google Cast Web Sender SDK API Availability Hook
+window.__onGCastApiAvailable = function(isAvailable) {
+    if (isAvailable && window.cast && cast.framework) {
+        try {
+            const castContext = cast.framework.CastContext.getInstance();
+            castContext.setOptions({
+                receiverApplicationId: APP_CONFIG.cast.appId,
+                autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+            });
+
+            castContext.addEventListener(
+                cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                (event) => {
+                    const app = window.__meetingAppInstance;
+                    if (!app) return;
+                    if (event.sessionState === cast.framework.SessionState.SESSION_STARTED ||
+                        event.sessionState === cast.framework.SessionState.SESSION_RESUMED) {
+                        app.isCasting = true;
+                        app.sendStateToCast();
+                    } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED) {
+                        app.isCasting = false;
+                    }
+                }
+            );
+        } catch(e) {
+            console.warn("CastContext setup error:", e);
+        }
+    }
+};
+
 function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isAlertActive: false,
@@ -816,6 +865,8 @@ function meetingApp() {
         },
 
         async initApp() {
+            window.__meetingAppInstance = this;
+
             const urlParams = new URLSearchParams(window.location.search);
             const isChromecastDevice = navigator.userAgent.includes('CrKey');
             const isPresentationReceiver = !!('presentation' in navigator && navigator.presentation.receiver);
@@ -824,7 +875,11 @@ function meetingApp() {
                 document.body.classList.add('presentation-only');
             }
 
-            this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || APP_CONFIG.appearance.defaultTheme) === 'dark';
+            if (urlParams.get('theme')) {
+                this.isDark = (urlParams.get('theme') === 'dark');
+            } else {
+                this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || APP_CONFIG.appearance.defaultTheme) === 'dark';
+            }
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             
             // Restore prototype settings if saved in current session, otherwise apply active default
@@ -856,6 +911,26 @@ function meetingApp() {
             if (urlParams.get('autoplay') === '1' || isChromecastDevice || isPresentationReceiver) {
                 this.resumeAuto();
             }
+
+            // Initialize Cast Receiver SDK if on Chromecast device
+            if (isChromecastDevice || urlParams.has('receiver')) {
+                if (window.__isCastReceiverReady) {
+                    this.initCastReceiverSDK();
+                } else {
+                    window.__triggerCastReceiverInit = () => this.initCastReceiverSDK();
+                }
+            }
+
+            // Check if Cast sender SDK already has an active session
+            if (window.cast && cast.framework && cast.framework.CastContext) {
+                try {
+                    const session = cast.framework.CastContext.getInstance().getCurrentSession();
+                    if (session) {
+                        this.isCasting = true;
+                    }
+                } catch(e) {}
+            }
+
             this.initPresentationApi();
 
             // Handle incoming agenda sync if running as a presentation receiver
@@ -865,6 +940,10 @@ function meetingApp() {
                         conn.onmessage = async (event) => {
                             try {
                                 const data = JSON.parse(event.data);
+                                if (data.theme) {
+                                    this.isDark = (data.theme === 'dark');
+                                    document.documentElement.setAttribute('data-theme', data.theme);
+                                }
                                 if (data.hash && data.hash !== window.location.hash) {
                                     window.location.hash = data.hash;
                                     this.agenda = await this.loadInitialAgenda();
@@ -1151,6 +1230,9 @@ function meetingApp() {
             this.isDark = !this.isDark;
             localStorage.setItem(APP_CONFIG.storage.themeKey, this.isDark ? 'dark' : 'light');
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
+            if (this.isCasting) {
+                this.sendStateToCast();
+            }
         },
         
         toggleFullscreen() {
@@ -1354,9 +1436,13 @@ function meetingApp() {
 
         async loadInitialAgenda() {
             this.meetingTitle = localStorage.getItem(APP_CONFIG.storage.titleKey) || "August 19, 2026"; this.updateTitle();
-            if (window.location.hash.startsWith('#agenda=')) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryAgenda = urlParams.get('agenda');
+            const hasHashAgenda = window.location.hash.startsWith('#agenda=');
+
+            if (hasHashAgenda || queryAgenda) {
                 try {
-                    let base64 = window.location.hash.replace('#agenda=', '').replace(/-/g, '+').replace(/_/g, '/');
+                    let base64 = (queryAgenda || window.location.hash.replace('#agenda=', '')).replace(/-/g, '+').replace(/_/g, '/');
                     while (base64.length % 4) base64 += '=';
                     const binary = atob(base64); const bytes = new Uint8Array(binary.length);
                     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -1452,11 +1538,15 @@ function meetingApp() {
             }
         },
 
-        /* Cast Methods (W3C Presentation API - Minimal Option C) */
+        /* Cast Methods (Google Cast Web SDK & W3C Presentation API) */
         getCastURL() {
             const u = new URL(window.location.href);
             u.searchParams.set('view', 'presentation');
             u.searchParams.set('autoplay', '1');
+            u.searchParams.set('theme', this.isDark ? 'dark' : 'light');
+            if (window.location.hash.startsWith('#agenda=')) {
+                u.searchParams.set('agenda', window.location.hash.replace('#agenda=', ''));
+            }
             return u.href;
         },
 
@@ -1468,6 +1558,76 @@ function meetingApp() {
             }
             urls.push(rawUrl);
             return urls;
+        },
+
+        initCastReceiverSDK() {
+            if (!window.cast || !cast.framework || !cast.framework.CastReceiverContext) return;
+            try {
+                const context = cast.framework.CastReceiverContext.getInstance();
+                const options = new cast.framework.CastReceiverOptions();
+                // CRUCIAL: Disable idle timeout so Chromecast never auto-closes after 60 seconds!
+                options.disableIdleTimeout = true;
+                options.maxInactivity = 86400; // 24 hours
+
+                const namespace = APP_CONFIG.cast.namespace;
+                options.customNamespaces = {};
+                options.customNamespaces[namespace] = cast.framework.system.MessageType.JSON;
+
+                context.addCustomMessageListener(namespace, async (event) => {
+                    const data = event.data;
+                    if (!data) return;
+
+                    // Sync theme
+                    if (data.theme) {
+                        this.isDark = (data.theme === 'dark');
+                        document.documentElement.setAttribute('data-theme', data.theme);
+                        localStorage.setItem(APP_CONFIG.storage.themeKey, data.theme);
+                    }
+
+                    // Sync agenda hash
+                    if (data.hash && data.hash !== window.location.hash) {
+                        window.location.hash = data.hash;
+                        this.agenda = await this.loadInitialAgenda();
+                        this.buildDisplaySequence();
+                        this.renderPresentationTextPages();
+                    }
+                });
+
+                context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
+                    console.log("Sender disconnected, TV keeps presenting autonomously.");
+                });
+
+                context.start(options);
+                console.log("CastReceiverContext successfully started with disableIdleTimeout=true");
+            } catch(e) {
+                console.warn("CastReceiverContext start error:", e);
+            }
+        },
+
+        sendStateToCast() {
+            const payload = {
+                type: 'SYNC_STATE',
+                hash: window.location.hash,
+                theme: this.isDark ? 'dark' : 'light'
+            };
+
+            // Send via Google Cast Web SDK session
+            if (window.cast && cast.framework && cast.framework.CastContext) {
+                try {
+                    const session = cast.framework.CastContext.getInstance().getCurrentSession();
+                    if (session) {
+                        session.sendMessage(APP_CONFIG.cast.namespace, payload)
+                            .catch(err => console.warn("Cast sendMessage error:", err));
+                    }
+                } catch(e) {}
+            }
+
+            // Also send via PresentationConnection if active
+            if (this.castConnection && this.castConnection.state === 'connected') {
+                try {
+                    this.castConnection.send(JSON.stringify(payload));
+                } catch(e) {}
+            }
         },
 
         initPresentationApi() {
@@ -1514,18 +1674,12 @@ function meetingApp() {
             this.isCasting = (conn.state === 'connected');
             if (conn.id) localStorage.setItem(APP_CONFIG.storage.castSessionKey, conn.id);
 
-            const sendAgendaPayload = () => {
-                try {
-                    conn.send(JSON.stringify({ type: 'SYNC_HASH', hash: window.location.hash }));
-                } catch(e) {}
-            };
-
-            if (conn.state === 'connected') sendAgendaPayload();
+            if (conn.state === 'connected') this.sendStateToCast();
 
             conn.onconnect = () => {
                 this.castConnection = conn;
                 this.isCasting = true;
-                sendAgendaPayload();
+                this.sendStateToCast();
             };
             conn.onclose = () => {
                 this.castConnection = null;
@@ -1541,14 +1695,30 @@ function meetingApp() {
         async handleCastButtonClick() {
             if (this.isCasting) {
                 if (this.$refs.castModal) this.$refs.castModal.showModal();
-            } else {
-                await this.startCast();
+                return;
             }
+
+            // Priority 1: Google Cast Web SDK (Direct CAF integration)
+            if (window.cast && cast.framework && cast.framework.CastContext) {
+                try {
+                    const castContext = cast.framework.CastContext.getInstance();
+                    await castContext.requestSession();
+                    this.isCasting = true;
+                    this.sendStateToCast();
+                    return;
+                } catch (err) {
+                    if (err === 'cancel' || err === 'cancel_session') return;
+                    console.warn("Cast requestSession notice:", err);
+                }
+            }
+
+            // Priority 2: Standard Presentation API fallback
+            await this.startCast();
         },
 
         async startCast() {
-            if (!this.isCastSupported) {
-                alert("Google Cast / Presentation API is not supported in this browser. Please use Google Chrome on Android or Desktop.");
+            if (!this.isCastSupported && (!window.cast || !cast.framework)) {
+                alert("Google Cast is not supported in this browser. Please use Google Chrome on Android or Desktop.");
                 return;
             }
             try {
@@ -1563,40 +1733,39 @@ function meetingApp() {
         },
 
         stopCast() {
-            if (this.castConnection) {
+            if (window.cast && cast.framework && cast.framework.CastContext) {
                 try {
-                    this.castConnection.terminate();
+                    const castContext = cast.framework.CastContext.getInstance();
+                    castContext.endCurrentSession(true); // true = close receiver on TV
                 } catch(e) {}
             }
-            this.castConnection = null;
+            if (this.castConnection) {
+                try { this.castConnection.terminate(); } catch(e) {}
+                this.castConnection = null;
+            }
             this.isCasting = false;
             localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
             if (this.$refs.castModal) this.$refs.castModal.close();
         },
 
         disconnectPhone() {
-            if (this.castConnection) {
+            if (window.cast && cast.framework && cast.framework.CastContext) {
                 try {
-                    this.castConnection.close();
+                    const castContext = cast.framework.CastContext.getInstance();
+                    castContext.endCurrentSession(false); // false = keep receiver running on TV!
                 } catch(e) {}
             }
-            this.castConnection = null;
+            if (this.castConnection) {
+                try { this.castConnection.close(); } catch(e) {}
+                this.castConnection = null;
+            }
             this.isCasting = false;
             if (this.$refs.castModal) this.$refs.castModal.close();
         },
 
         pushAgendaToCast() {
+            this.sendStateToCast();
             if (this.$refs.castModal) this.$refs.castModal.close();
-            if (this.castConnection && this.castConnection.state === 'connected') {
-                try {
-                    this.castConnection.send(JSON.stringify({ type: 'SYNC_HASH', hash: window.location.hash }));
-                    return;
-                } catch(e) {}
-            }
-            this.stopCast();
-            setTimeout(async () => {
-                await this.startCast();
-            }, 300);
         },
 
         copyKioskURL() {
