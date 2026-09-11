@@ -119,7 +119,11 @@
                 agendaKey: 'boardAgenda',
                 tabsKey: 'boardTabs',
                 themeKey: 'boardTheme',
-                titleKey: 'boardMeetingTitle'
+                titleKey: 'boardMeetingTitle',
+                castSessionKey: 'meeting_presentation_id'
+            },
+            cast: {
+                appId: '1909D2D6'        // Google Cast SDK Developer Console Custom Web Receiver Application ID
             },
             history: {
                 maxItems: 20             // Undo history stack limit
@@ -813,7 +817,10 @@ function meetingApp() {
 
         async initApp() {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('view') === 'presentation') {
+            const isChromecastDevice = navigator.userAgent.includes('CrKey');
+            const isPresentationReceiver = !!('presentation' in navigator && navigator.presentation.receiver);
+
+            if (urlParams.get('view') === 'presentation' || isChromecastDevice || isPresentationReceiver) {
                 document.body.classList.add('presentation-only');
             }
 
@@ -846,10 +853,31 @@ function meetingApp() {
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
             
-            if (urlParams.get('autoplay') === '1') {
+            if (urlParams.get('autoplay') === '1' || isChromecastDevice || isPresentationReceiver) {
                 this.resumeAuto();
             }
             this.initPresentationApi();
+
+            // Handle incoming agenda sync if running as a presentation receiver
+            if (isPresentationReceiver) {
+                navigator.presentation.receiver.connectionList.then(list => {
+                    const attachReceiverConn = (conn) => {
+                        conn.onmessage = async (event) => {
+                            try {
+                                const data = JSON.parse(event.data);
+                                if (data.hash && data.hash !== window.location.hash) {
+                                    window.location.hash = data.hash;
+                                    this.agenda = await this.loadInitialAgenda();
+                                    this.buildDisplaySequence();
+                                    this.renderPresentationTextPages();
+                                }
+                            } catch(e) {}
+                        };
+                    };
+                    list.connections.forEach(attachReceiverConn);
+                    list.onconnectionavailable = (e) => attachReceiverConn(e.connection);
+                }).catch(() => {});
+            }
             
             // Staggered layout updates to combat Android PWA launch rendering race condition
             setTimeout(setViewportHeight, 100);
@@ -1432,6 +1460,16 @@ function meetingApp() {
             return u.href;
         },
 
+        getCastUrls() {
+            const rawUrl = this.getCastURL();
+            const urls = [];
+            if (APP_CONFIG.cast && APP_CONFIG.cast.appId) {
+                urls.push(`cast:${APP_CONFIG.cast.appId}`);
+            }
+            urls.push(rawUrl);
+            return urls;
+        },
+
         initPresentationApi() {
             if (!('PresentationRequest' in window) || !('presentation' in navigator)) {
                 this.isCastSupported = false;
@@ -1439,8 +1477,7 @@ function meetingApp() {
             }
             this.isCastSupported = true;
             try {
-                const castUrl = this.getCastURL();
-                this.presentationRequest = new PresentationRequest([castUrl]);
+                this.presentationRequest = new PresentationRequest(this.getCastUrls());
                 
                 if (this.presentationRequest.getAvailability) {
                     this.presentationRequest.getAvailability().then(avail => {
@@ -1455,14 +1492,14 @@ function meetingApp() {
                     this.isCastAvailable = true;
                 }
 
-                const savedId = localStorage.getItem('meeting_presentation_id');
+                const savedId = localStorage.getItem(APP_CONFIG.storage.castSessionKey);
                 if (savedId && this.presentationRequest.reconnect) {
                     this.presentationRequest.reconnect(savedId)
                         .then(conn => {
                             this.setupCastConnection(conn);
                         })
                         .catch(() => {
-                            localStorage.removeItem('meeting_presentation_id');
+                            localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
                             this.castConnection = null;
                             this.isCasting = false;
                         });
@@ -1475,11 +1512,20 @@ function meetingApp() {
         setupCastConnection(conn) {
             this.castConnection = conn;
             this.isCasting = (conn.state === 'connected');
-            if (conn.id) localStorage.setItem('meeting_presentation_id', conn.id);
+            if (conn.id) localStorage.setItem(APP_CONFIG.storage.castSessionKey, conn.id);
+
+            const sendAgendaPayload = () => {
+                try {
+                    conn.send(JSON.stringify({ type: 'SYNC_HASH', hash: window.location.hash }));
+                } catch(e) {}
+            };
+
+            if (conn.state === 'connected') sendAgendaPayload();
 
             conn.onconnect = () => {
                 this.castConnection = conn;
                 this.isCasting = true;
+                sendAgendaPayload();
             };
             conn.onclose = () => {
                 this.castConnection = null;
@@ -1488,7 +1534,7 @@ function meetingApp() {
             conn.onterminate = () => {
                 this.castConnection = null;
                 this.isCasting = false;
-                localStorage.removeItem('meeting_presentation_id');
+                localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
             };
         },
 
@@ -1506,8 +1552,7 @@ function meetingApp() {
                 return;
             }
             try {
-                const castUrl = this.getCastURL();
-                this.presentationRequest = new PresentationRequest([castUrl]);
+                this.presentationRequest = new PresentationRequest(this.getCastUrls());
                 const conn = await this.presentationRequest.start();
                 this.setupCastConnection(conn);
             } catch (err) {
@@ -1525,7 +1570,7 @@ function meetingApp() {
             }
             this.castConnection = null;
             this.isCasting = false;
-            localStorage.removeItem('meeting_presentation_id');
+            localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
             if (this.$refs.castModal) this.$refs.castModal.close();
         },
 
@@ -1540,16 +1585,15 @@ function meetingApp() {
             if (this.$refs.castModal) this.$refs.castModal.close();
         },
 
-        async pushAgendaToCast() {
+        pushAgendaToCast() {
             if (this.$refs.castModal) this.$refs.castModal.close();
-            if (this.castConnection) {
+            if (this.castConnection && this.castConnection.state === 'connected') {
                 try {
-                    this.castConnection.terminate();
+                    this.castConnection.send(JSON.stringify({ type: 'SYNC_HASH', hash: window.location.hash }));
+                    return;
                 } catch(e) {}
             }
-            this.castConnection = null;
-            this.isCasting = false;
-            localStorage.removeItem('meeting_presentation_id');
+            this.stopCast();
             setTimeout(async () => {
                 await this.startCast();
             }, 300);
