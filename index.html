@@ -975,13 +975,32 @@ function meetingApp() {
                                     this.isDark = (data.theme === 'dark');
                                     document.documentElement.setAttribute('data-theme', data.theme);
                                 }
-                                if (data.hash) {
+                                if (data.agenda && Array.isArray(data.agenda) && data.agenda.length > 0) {
+                                    this.agenda = JSON.parse(JSON.stringify(data.agenda));
+                                    localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda));
+                                    if (data.meetingTitle) {
+                                        this.meetingTitle = data.meetingTitle;
+                                        localStorage.setItem(APP_CONFIG.storage.titleKey, data.meetingTitle);
+                                        this.updateTitle();
+                                    }
+                                    if (data.tabs && Array.isArray(data.tabs)) {
+                                        this.tabs = JSON.parse(JSON.stringify(data.tabs));
+                                        localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+                                    }
+                                    if (data.hash) window.location.hash = data.hash;
+                                    this.currentIndex = this.getScheduledAgendaIndex();
+                                    this.buildDisplaySequence();
+                                    this.syncEditorInputs();
+                                    this.renderPresentationTextPages();
+                                    this.resumeAuto();
+                                } else if (data.hash) {
                                     window.location.hash = data.hash;
                                     this.agenda = await this.loadInitialAgenda();
                                     this.currentIndex = this.getScheduledAgendaIndex();
                                     this.buildDisplaySequence();
                                     this.syncEditorInputs();
                                     this.renderPresentationTextPages();
+                                    this.resumeAuto();
                                 }
                             } catch(e) {}
                         };
@@ -1620,14 +1639,33 @@ function meetingApp() {
                         localStorage.setItem(APP_CONFIG.storage.themeKey, data.theme);
                     }
 
-                    // Sync agenda hash
-                    if (data.hash) {
+                    // Sync full agenda and meeting state (Direct JSON payload - bypasses TV decompression limits)
+                    if (data.agenda && Array.isArray(data.agenda) && data.agenda.length > 0) {
+                        this.agenda = JSON.parse(JSON.stringify(data.agenda));
+                        localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda));
+                        if (data.meetingTitle) {
+                            this.meetingTitle = data.meetingTitle;
+                            localStorage.setItem(APP_CONFIG.storage.titleKey, data.meetingTitle);
+                            this.updateTitle();
+                        }
+                        if (data.tabs && Array.isArray(data.tabs)) {
+                            this.tabs = JSON.parse(JSON.stringify(data.tabs));
+                            localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+                        }
+                        if (data.hash) window.location.hash = data.hash;
+                        this.currentIndex = this.getScheduledAgendaIndex();
+                        this.buildDisplaySequence();
+                        this.syncEditorInputs();
+                        this.renderPresentationTextPages();
+                        this.resumeAuto();
+                    } else if (data.hash) {
                         window.location.hash = data.hash;
                         this.agenda = await this.loadInitialAgenda();
                         this.currentIndex = this.getScheduledAgendaIndex();
                         this.buildDisplaySequence();
                         this.syncEditorInputs();
                         this.renderPresentationTextPages();
+                        this.resumeAuto();
                     }
                 });
 
@@ -1657,8 +1695,11 @@ function meetingApp() {
         sendStateToCast() {
             const payload = {
                 type: 'SYNC_STATE',
-                hash: window.location.hash,
-                theme: this.isDark ? 'dark' : 'light'
+                meetingTitle: this.meetingTitle,
+                agenda: JSON.parse(JSON.stringify(this.agenda)),
+                tabs: JSON.parse(JSON.stringify(this.tabs)),
+                theme: this.isDark ? 'dark' : 'light',
+                hash: window.location.hash
             };
 
             // Send via Google Cast Web SDK session
