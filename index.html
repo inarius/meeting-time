@@ -67,6 +67,11 @@
 
     9. RENDER TIMING
     - Pagination Calculation: Any function measuring DOM nodes to calculate text pagination must wait for mobile browser UI bars and orientation shifts to fully settle before measuring available height.
+
+    10. CASTING & RECEIVER (W3C PRESENTATION API)
+    - Autonomous Receiver: Presentation URLs opened on external screens or receivers (?view=presentation&autoplay=1#agenda=...) run autonomously on their own local wall clock.
+    - Controller Lifecycle: connection.close() disconnects the phone without terminating the TV presentation; connection.terminate() actively commands the TV receiver to exit.
+    - Naming & Icon: Cast buttons are strictly labeled "Cast" (idle) and "Casting" (active), accompanied by the official Google Cast icon.
 ========================================== -->
     
     <!-- Link to the GitHub Pages specific manifest path -->
@@ -169,6 +174,11 @@
             padding: 2% 3.5%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden;
         }
         .presentation-view { background: var(--pico-background-color); border-bottom: 4px solid var(--pico-muted-border-color); position: relative; touch-action: pan-y; }
+        
+        /* Autonomous Kiosk Receiver (Presentation-Only Mode) */
+        body.presentation-only { overflow: hidden !important; height: 100vh !important; height: calc(var(--vh, 1vh) * 100) !important; }
+        body.presentation-only .presentation-view { height: 100vh !important; height: calc(var(--vh, 1vh) * 100) !important; max-height: calc(var(--vh, 1vh) * 100) !important; border-bottom: none !important; }
+        body.presentation-only .management-view { display: none !important; }
         
         /* Allowed internal scrollbars */
         .tab-content-area, .timeline-rows { scrollbar-width: auto; }
@@ -454,6 +464,14 @@
             <div role="group" class="centered-button-group">
                 <button class="secondary" @click="shareAgendaURL()">🔗 Share</button>
                 <button class="secondary" @click="openImportModal()">📥 Import / Edit Raw</button>
+                <button :class="isCasting ? 'primary' : 'secondary'" 
+                        @click="handleCastButtonClick()" 
+                        :title="isCasting ? 'Manage active cast session' : 'Cast presentation to TV/Chromecast'">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: -2px; display: inline-block;">
+                        <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.92-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                    <span x-text="isCasting ? 'Casting' : 'Cast'"></span>
+                </button>
             </div>
         </nav>
 
@@ -541,6 +559,40 @@
         </div>
     </div>
 </div>
+
+<dialog x-ref="castModal">
+    <article style="max-width: 480px; text-align: left;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color: var(--pico-primary);">
+                    <path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.92-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                </svg>
+                <strong>Google Cast Session</strong>
+            </div>
+            <button aria-label="Close" class="close" @click="$refs.castModal.close()" style="margin: 0; padding: 4px 8px;"></button>
+        </header>
+        <p style="font-size: 0.85rem; color: var(--pico-muted-color); margin-bottom: 16px;">
+            The presentation is running independently on your TV screen. You can disconnect your phone without stopping the display.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="primary" @click="pushAgendaToCast()">
+                🔄 Push Updated Agenda to TV
+            </button>
+            <button class="secondary" @click="disconnectPhone()">
+                🔌 Disconnect Phone (Keep TV Running)
+            </button>
+            <button style="background-color: #ef4444; border-color: #dc2626; color: white;" @click="stopCast()">
+                🛑 Stop Casting
+            </button>
+            <button class="outline secondary" style="font-size: 0.8rem; padding: 6px; margin-top: 4px;" @click="copyKioskURL()">
+                🔗 Copy Direct TV / Kiosk Link
+            </button>
+        </div>
+        <footer style="margin-top: 14px; text-align: right;">
+            <button class="outline secondary" style="padding: 4px 14px; font-size: 0.85rem;" @click="$refs.castModal.close()">Close</button>
+        </footer>
+    </article>
+</dialog>
 
 <dialog x-ref="importModal">
     <article style="max-width: 800px;">
@@ -656,6 +708,13 @@ function meetingApp() {
         editingMode: 'agenda', 
         currentEditTabId: null, 
 
+        /* Cast State (W3C Presentation API) */
+        isCastSupported: false,
+        isCastAvailable: false,
+        castConnection: null,
+        isCasting: false,
+        presentationRequest: null,
+
         /* Prototyping State */
         protoPreset: 'harmonic',
         protoScale: 100,
@@ -753,6 +812,11 @@ function meetingApp() {
         },
 
         async initApp() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('view') === 'presentation') {
+                document.body.classList.add('presentation-only');
+            }
+
             this.isDark = (localStorage.getItem(APP_CONFIG.storage.themeKey) || APP_CONFIG.appearance.defaultTheme) === 'dark';
             document.documentElement.setAttribute('data-theme', this.isDark ? 'dark' : 'light');
             
@@ -781,6 +845,11 @@ function meetingApp() {
 
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
             this.syncEditorInputs();
+            
+            if (urlParams.get('autoplay') === '1') {
+                this.resumeAuto();
+            }
+            this.initPresentationApi();
             
             // Staggered layout updates to combat Android PWA launch rendering race condition
             setTimeout(setViewportHeight, 100);
@@ -1353,6 +1422,144 @@ function meetingApp() {
                 window.location.hash = '';
                 window.location.reload();
             }
+        },
+
+        /* Cast Methods (W3C Presentation API - Minimal Option C) */
+        getCastURL() {
+            const u = new URL(window.location.href);
+            u.searchParams.set('view', 'presentation');
+            u.searchParams.set('autoplay', '1');
+            return u.href;
+        },
+
+        initPresentationApi() {
+            if (!('PresentationRequest' in window) || !('presentation' in navigator)) {
+                this.isCastSupported = false;
+                return;
+            }
+            this.isCastSupported = true;
+            try {
+                const castUrl = this.getCastURL();
+                this.presentationRequest = new PresentationRequest([castUrl]);
+                
+                if (this.presentationRequest.getAvailability) {
+                    this.presentationRequest.getAvailability().then(avail => {
+                        this.isCastAvailable = avail.value;
+                        avail.onchange = () => {
+                            this.isCastAvailable = avail.value;
+                        };
+                    }).catch(() => {
+                        this.isCastAvailable = true;
+                    });
+                } else {
+                    this.isCastAvailable = true;
+                }
+
+                const savedId = localStorage.getItem('meeting_presentation_id');
+                if (savedId && this.presentationRequest.reconnect) {
+                    this.presentationRequest.reconnect(savedId)
+                        .then(conn => {
+                            this.setupCastConnection(conn);
+                        })
+                        .catch(() => {
+                            localStorage.removeItem('meeting_presentation_id');
+                            this.castConnection = null;
+                            this.isCasting = false;
+                        });
+                }
+            } catch(e) {
+                console.warn("Presentation API init:", e);
+            }
+        },
+
+        setupCastConnection(conn) {
+            this.castConnection = conn;
+            this.isCasting = (conn.state === 'connected');
+            if (conn.id) localStorage.setItem('meeting_presentation_id', conn.id);
+
+            conn.onconnect = () => {
+                this.castConnection = conn;
+                this.isCasting = true;
+            };
+            conn.onclose = () => {
+                this.castConnection = null;
+                this.isCasting = false;
+            };
+            conn.onterminate = () => {
+                this.castConnection = null;
+                this.isCasting = false;
+                localStorage.removeItem('meeting_presentation_id');
+            };
+        },
+
+        async handleCastButtonClick() {
+            if (this.isCasting) {
+                if (this.$refs.castModal) this.$refs.castModal.showModal();
+            } else {
+                await this.startCast();
+            }
+        },
+
+        async startCast() {
+            if (!this.isCastSupported) {
+                alert("Google Cast / Presentation API is not supported in this browser. Please use Google Chrome on Android or Desktop.");
+                return;
+            }
+            try {
+                const castUrl = this.getCastURL();
+                this.presentationRequest = new PresentationRequest([castUrl]);
+                const conn = await this.presentationRequest.start();
+                this.setupCastConnection(conn);
+            } catch (err) {
+                if (err && err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+                    console.warn("Cast start error:", err);
+                }
+            }
+        },
+
+        stopCast() {
+            if (this.castConnection) {
+                try {
+                    this.castConnection.terminate();
+                } catch(e) {}
+            }
+            this.castConnection = null;
+            this.isCasting = false;
+            localStorage.removeItem('meeting_presentation_id');
+            if (this.$refs.castModal) this.$refs.castModal.close();
+        },
+
+        disconnectPhone() {
+            if (this.castConnection) {
+                try {
+                    this.castConnection.close();
+                } catch(e) {}
+            }
+            this.castConnection = null;
+            this.isCasting = false;
+            if (this.$refs.castModal) this.$refs.castModal.close();
+        },
+
+        async pushAgendaToCast() {
+            if (this.$refs.castModal) this.$refs.castModal.close();
+            if (this.castConnection) {
+                try {
+                    this.castConnection.terminate();
+                } catch(e) {}
+            }
+            this.castConnection = null;
+            this.isCasting = false;
+            localStorage.removeItem('meeting_presentation_id');
+            setTimeout(async () => {
+                await this.startCast();
+            }, 300);
+        },
+
+        copyKioskURL() {
+            const url = this.getCastURL();
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Kiosk Presentation Link copied! (${url.length} chars)`);
+            }).catch(() => alert("Failed to copy link."));
         }
     }
 }
