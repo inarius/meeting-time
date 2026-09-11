@@ -237,13 +237,41 @@
 
         .tab-sidebar { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: clamp(8px, 1.5vh, 16px); z-index: 100; }
         .vertical-tab { 
-            writing-mode: vertical-rl; padding: clamp(12px, 3vh, 24px) clamp(6px, 1.5vh, 12px); border: none; border-radius: 8px 0 0 8px; 
-            color: white; font-weight: 800; font-size: calc(clamp(0.9rem, 3.5vh, 2.5rem) * var(--proto-scale, 1)); cursor: pointer; opacity: 0.85; 
-            transition: all 0.2s, transform 0.2s; margin: 0; display: flex; align-items: center; 
-            justify-content: center; letter-spacing: 1px; box-shadow: -2px 0 6px rgba(0,0,0,0.1); 
-            position: relative; overflow: hidden;
+            -webkit-writing-mode: vertical-rl;
+            writing-mode: vertical-rl;
+            -webkit-text-orientation: mixed;
+            text-orientation: mixed;
+            padding: clamp(12px, 3vh, 24px) clamp(6px, 1.5vh, 12px);
+            border: none;
+            border-radius: 8px 0 0 8px; 
+            color: white;
+            font-weight: 800;
+            font-size: calc(clamp(0.9rem, 3.5vh, 2.5rem) * var(--proto-scale, 1));
+            cursor: pointer;
+            opacity: 0.85; 
+            transition: all 0.2s, transform 0.2s;
+            margin: 0;
+            display: inline-flex;
+            align-items: center; 
+            justify-content: center;
+            letter-spacing: 1px;
+            box-shadow: -2px 0 6px rgba(0,0,0,0.1); 
+            position: relative;
+            overflow: hidden;
+            width: auto;
+            max-width: clamp(28px, 6vh, 60px);
+            box-sizing: border-box;
         }
         .vertical-tab:hover, .vertical-tab.active { opacity: 1; transform: scale(1.05) translateX(-2px); box-shadow: -4px 0 12px rgba(0,0,0,0.2); }
+        .vertical-tab span, .vertical-tab .tab-text {
+            -webkit-writing-mode: vertical-rl;
+            writing-mode: vertical-rl;
+            -webkit-text-orientation: mixed;
+            text-orientation: mixed;
+            white-space: nowrap;
+            display: inline-block;
+            line-height: 1;
+        }
         .tab-progress { position: absolute; top: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.25); z-index: 1; }
         @keyframes softTug { 0% { transform: translateX(0); } 30% { transform: translateX(-16px); } 60% { transform: translateX(4px); } 100% { transform: translateX(0); } }
         .vertical-tab.bounce { animation: softTug 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -420,7 +448,7 @@
                     style="background-color: #475569;"
                     @click.stop="userClickedTab('agenda')">
                 <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
-                <span style="position:relative; z-index:2;">Agenda</span>
+                <span class="tab-text" style="position:relative; z-index:2;">Agenda</span>
             </button>
 
             <template x-for="tab in tabs" :key="tab.id">
@@ -430,7 +458,7 @@
                         :style="`background-color: ${tab.color};`"
                         @click.stop="userClickedTab(tab.id)">
                     <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
-                    <span style="position:relative; z-index:2;" x-text="tab.title"></span>
+                    <span class="tab-text" style="position:relative; z-index:2;" x-text="tab.title"></span>
                 </button>
             </template>
         </div>
@@ -1069,6 +1097,25 @@ function meetingApp() {
             if(this.tabs[2].enabled) seq.push('announcements');
             this.displaySequence = seq;
             if(this.displayIndex >= this.displaySequence.length) this.displayIndex = 0;
+            this.verifyVerticalTabOrientation();
+        },
+
+        verifyVerticalTabOrientation() {
+            setTimeout(() => {
+                const tabs = document.querySelectorAll('.vertical-tab');
+                tabs.forEach(tab => {
+                    const span = tab.querySelector('.tab-text, span');
+                    if (span && span.offsetWidth > span.offsetHeight * 1.1) {
+                        // TV WebView failed to render writing-mode: vertical-rl; apply rotate fallback
+                        span.style.writingMode = 'horizontal-tb';
+                        span.style.webkitWritingMode = 'horizontal-tb';
+                        span.style.transform = 'rotate(90deg)';
+                        span.style.transformOrigin = 'center center';
+                        span.style.display = 'inline-block';
+                        tab.style.minHeight = `${span.offsetWidth + 20}px`;
+                    }
+                });
+            }, 100);
         },
 
         togglePlayback() {
