@@ -211,6 +211,7 @@
         body.presentation-only { overflow: hidden !important; height: 100vh !important; height: calc(var(--vh, 1vh) * 100) !important; }
         body.presentation-only .presentation-view { height: 100vh !important; height: calc(var(--vh, 1vh) * 100) !important; max-height: calc(var(--vh, 1vh) * 100) !important; border-bottom: none !important; }
         body.presentation-only .management-view { display: none !important; }
+        body.presentation-only .playback-toggle-btn { display: none !important; }
         
         /* Allowed internal scrollbars */
         .tab-content-area, .timeline-rows { scrollbar-width: auto; }
@@ -429,6 +430,7 @@
          @touchend="handleTouchEnd">
          
         <button class="playback-toggle-btn" 
+                x-show="!isPresentationOnly"
                 :class="isPlaying ? 'playback-playing' : 'contrast'" 
                 @click.stop="togglePlayback()">
             <span x-text="isPlaying ? '⏸' : '▶ Resume'"></span>
@@ -824,6 +826,7 @@ function meetingApp() {
         castConnection: null,
         isCasting: false,
         presentationRequest: null,
+        isPresentationOnly: false,
 
         /* Prototyping State */
         protoPreset: 'harmonic',
@@ -930,7 +933,8 @@ function meetingApp() {
                                        urlParams.has('receiver');
             const isPresentationReceiver = !!('presentation' in navigator && navigator.presentation.receiver);
 
-            if (urlParams.get('view') === 'presentation' || isChromecastDevice || isPresentationReceiver) {
+            this.isPresentationOnly = !!(urlParams.get('view') === 'presentation' || isChromecastDevice || isPresentationReceiver);
+            if (this.isPresentationOnly) {
                 document.body.classList.add('presentation-only');
             }
 
