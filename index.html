@@ -80,20 +80,28 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="icon" href="favicon.ico">
     <link rel="manifest" href="site.webmanifest">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- Google Cast SDK (Dynamic: CAF Receiver on Chromecast/TV, Web Sender on Phone/Desktop) -->
+    <!-- Google Cast SDK (Dynamic: CAF Receiver v3 on Chromecast/TV, Web Sender on Phone/Desktop) -->
     <script>
         (function() {
-            const isReceiver = navigator.userAgent.includes('CrKey') || new URLSearchParams(window.location.search).has('receiver');
+            const isReceiver = navigator.userAgent.includes('CrKey') || 
+                               /Android.*TV|GoogleTV|SmartTV/i.test(navigator.userAgent) || 
+                               new URLSearchParams(window.location.search).has('receiver');
             const s = document.createElement('script');
             if (isReceiver) {
-                s.src = 'https://www.gstatic.com/cast/sdk/libs/caf_receiver/v1/cast_receiver_framework.js';
+                s.src = 'https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js';
                 s.onload = function() {
                     window.__isCastReceiverReady = true;
                     if (window.__triggerCastReceiverInit) window.__triggerCastReceiverInit();
+                };
+                s.onerror = function(e) {
+                    console.error("Failed to load Google Cast CAF Receiver SDK:", e);
                 };
             } else {
                 s.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
@@ -725,7 +733,27 @@ window.__onGCastApiAvailable = function(isAvailable) {
                     if (event.sessionState === cast.framework.SessionState.SESSION_STARTED ||
                         event.sessionState === cast.framework.SessionState.SESSION_RESUMED) {
                         app.isCasting = true;
+
+                        // Listen for TV ready message on custom namespace
+                        try {
+                            const session = castContext.getCurrentSession();
+                            if (session) {
+                                session.addMessageListener(APP_CONFIG.cast.namespace, (ns, msg) => {
+                                    let data = msg;
+                                    if (typeof data === 'string') {
+                                        try { data = JSON.parse(data); } catch(e) {}
+                                    }
+                                    if (data && data.type === 'RECEIVER_READY') {
+                                        app.sendStateToCast();
+                                    }
+                                });
+                            }
+                        } catch(e) {}
+
+                        // Send state immediately and with resilient retries
                         app.sendStateToCast();
+                        setTimeout(() => app.sendStateToCast(), 800);
+                        setTimeout(() => app.sendStateToCast(), 2000);
                     } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED) {
                         app.isCasting = false;
                     }
@@ -869,7 +897,9 @@ function meetingApp() {
             window.__meetingAppInstance = this;
 
             const urlParams = new URLSearchParams(window.location.search);
-            const isChromecastDevice = navigator.userAgent.includes('CrKey');
+            const isChromecastDevice = navigator.userAgent.includes('CrKey') || 
+                                       /Android.*TV|GoogleTV|SmartTV/i.test(navigator.userAgent) || 
+                                       urlParams.has('receiver');
             const isPresentationReceiver = !!('presentation' in navigator && navigator.presentation.receiver);
 
             if (urlParams.get('view') === 'presentation' || isChromecastDevice || isPresentationReceiver) {
@@ -945,10 +975,12 @@ function meetingApp() {
                                     this.isDark = (data.theme === 'dark');
                                     document.documentElement.setAttribute('data-theme', data.theme);
                                 }
-                                if (data.hash && data.hash !== window.location.hash) {
+                                if (data.hash) {
                                     window.location.hash = data.hash;
                                     this.agenda = await this.loadInitialAgenda();
+                                    this.currentIndex = this.getScheduledAgendaIndex();
                                     this.buildDisplaySequence();
+                                    this.syncEditorInputs();
                                     this.renderPresentationTextPages();
                                 }
                             } catch(e) {}
@@ -1575,7 +1607,10 @@ function meetingApp() {
                 options.customNamespaces[namespace] = cast.framework.system.MessageType.JSON;
 
                 context.addCustomMessageListener(namespace, async (event) => {
-                    const data = event.data;
+                    let data = event.data;
+                    if (typeof data === 'string') {
+                        try { data = JSON.parse(data); } catch(e) {}
+                    }
                     if (!data) return;
 
                     // Sync theme
@@ -1586,12 +1621,21 @@ function meetingApp() {
                     }
 
                     // Sync agenda hash
-                    if (data.hash && data.hash !== window.location.hash) {
+                    if (data.hash) {
                         window.location.hash = data.hash;
                         this.agenda = await this.loadInitialAgenda();
+                        this.currentIndex = this.getScheduledAgendaIndex();
                         this.buildDisplaySequence();
+                        this.syncEditorInputs();
                         this.renderPresentationTextPages();
                     }
+                });
+
+                context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (event) => {
+                    console.log("Sender connected:", event.senderId);
+                    try {
+                        context.sendCustomMessage(namespace, event.senderId, { type: 'RECEIVER_READY' });
+                    } catch(e) {}
                 });
 
                 context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
@@ -1600,6 +1644,11 @@ function meetingApp() {
 
                 context.start(options);
                 console.log("CastReceiverContext successfully started with disableIdleTimeout=true");
+
+                // Broadcast ready state to connected senders
+                try {
+                    context.sendCustomMessage(namespace, undefined, { type: 'RECEIVER_READY' });
+                } catch(e) {}
             } catch(e) {
                 console.warn("CastReceiverContext start error:", e);
             }
