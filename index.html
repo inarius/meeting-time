@@ -142,7 +142,8 @@
             },
             cast: {
                 appId: '1909D2D6',       // Google Cast SDK Developer Console Custom Web Receiver Application ID
-                namespace: 'urn:x-cast:inarius.meetingtime'
+                namespace: 'urn:x-cast:inarius.meetingtime',
+                maxInactivity: 10800     // Seconds (3 hours) of inactivity before receiver shuts down
             },
             history: {
                 maxItems: 20             // Undo history stack limit
@@ -1567,7 +1568,7 @@ function meetingApp() {
                 const options = new cast.framework.CastReceiverOptions();
                 // CRUCIAL: Disable idle timeout so Chromecast never auto-closes after 60 seconds!
                 options.disableIdleTimeout = true;
-                options.maxInactivity = 86400; // 24 hours
+                options.maxInactivity = APP_CONFIG.cast.maxInactivity || 10800; // 3 hours
 
                 const namespace = APP_CONFIG.cast.namespace;
                 options.customNamespaces = {};
