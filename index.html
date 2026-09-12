@@ -376,21 +376,8 @@
         .tab-content-area .details-page { position: static !important; opacity: 1 !important; transform: none !important; }
         .tab-content-area h2 { font-size: calc(clamp(1.2rem, 6vh, 5rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); margin-top: 0; margin-bottom: 12px; font-weight: 900; }
 
-        .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, 43%) 1fr; grid-template-rows: auto 1fr; position: relative; }
-        .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; }
-
-        /* Prototype: Optional Management View Continuity */
-        body.proto-mgmt-continuity .management-view {
-            grid-template-columns: minmax(260px, var(--proto-left-col, 35%)) 1fr;
-        }
-        body.proto-mgmt-continuity .management-view article {
-            border-radius: 8px;
-            border: 1px solid var(--pico-muted-border-color);
-        }
-        body.proto-mgmt-continuity .timeline-item {
-            font-size: calc(clamp(0.8rem, 1.8vh, 1.4rem) * var(--proto-scale, 1));
-            padding: 9px 16px 9px 12px;
-        }
+        .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, var(--proto-left-col, 35%)) 1fr; grid-template-rows: auto 1fr; position: relative; }
+        .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; border-radius: 8px; border: 1px solid var(--pico-muted-border-color); }
         .management-view label { font-size: clamp(0.75rem, 1.5vh, 1.2rem); font-weight: 700; margin-bottom: 0; }
         .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 2vh, 1.5rem); }
         .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
@@ -400,7 +387,7 @@
         .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
         .timeline-header span { font-size: clamp(0.75rem, 1.5vh, 1.2rem); font-weight: 700; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
-        .timeline-item { display: flex; align-items: center; padding: 8px 16px 8px 11px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: clamp(0.8rem, 1.8vh, 1.4rem); }
+        .timeline-item { display: flex; align-items: center; padding: 9px 16px 9px 12px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: calc(clamp(0.8rem, 1.8vh, 1.4rem) * var(--proto-scale, 1)); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
         .timeline-item.active { background: var(--active-bg); color: var(--active-txt); border-left: 5px solid var(--active-border); font-weight: 700; }
         .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
@@ -478,7 +465,7 @@
         }
     </style>
 </head>
-<body class="proto-mgmt-continuity" x-data="meetingApp()" x-init="initApp()">
+<body x-data="meetingApp()" x-init="initApp()">
 
 <div class="app-container">
     <div class="presentation-view" 
@@ -744,47 +731,32 @@
         <header style="margin-bottom: 12px;"><strong>Developer Debug & Prototyping</strong></header>
         
         <details open style="margin-bottom: 12px; border: 1px solid var(--pico-muted-border-color); padding: 10px; border-radius: 8px;">
-            <summary style="font-weight: 700; cursor: pointer;">🎨 Sizing & Layout Prototyper</summary>
+            <summary style="font-weight: 700; cursor: pointer;">🎨 Scaling & Layout Adjustments</summary>
             <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
-                <label style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0;">Preset Profile
-                    <select x-model="protoPreset" @change="selectProtoPreset($event.target.value)" style="margin-top: 4px; font-size: 0.85rem; padding: 4px 8px;">
-                        <option value="harmonic">Preset B: Harmonic Proportional (Default)</option>
-                        <option value="baseline">Preset A: Legacy Baseline</option>
-                        <option value="projector">Preset C: Projector Boost (High Legibility)</option>
-                        <option value="compact">Preset D: Compact / Wide Details</option>
-                        <option value="custom" disabled>Custom (Adjusted via sliders below)</option>
-                    </select>
-                </label>
-
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <label style="font-size: 0.75rem; margin-bottom: 0;">Global Scale: <strong x-text="protoScale + '%'"></strong>
-                        <input type="range" min="80" max="135" step="1" x-model.number="protoScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                        <input type="range" min="80" max="135" step="1" x-model.number="protoScale" @input="applyProtoStyles()">
                     </label>
                     <label style="font-size: 0.75rem; margin-bottom: 0;">Left Col Width: <strong x-text="protoLeftCol + '%'"></strong>
-                        <input type="range" min="25" max="45" step="1" x-model.number="protoLeftCol" @input="protoPreset = 'custom'; applyProtoStyles()">
+                        <input type="range" min="25" max="45" step="1" x-model.number="protoLeftCol" @input="applyProtoStyles()">
                     </label>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <label style="font-size: 0.75rem; margin-bottom: 0;">Heading Scale: <strong x-text="protoTitleScale + '%'"></strong>
-                        <input type="range" min="80" max="135" step="1" x-model.number="protoTitleScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                        <input type="range" min="80" max="135" step="1" x-model.number="protoTitleScale" @input="applyProtoStyles()">
                     </label>
                     <label style="font-size: 0.75rem; margin-bottom: 0;">Details Text: <strong x-text="protoDetailsScale + '%'"></strong>
-                        <input type="range" min="80" max="135" step="1" x-model.number="protoDetailsScale" @input="protoPreset = 'custom'; applyProtoStyles()">
+                        <input type="range" min="80" max="135" step="1" x-model.number="protoDetailsScale" @input="applyProtoStyles()">
                     </label>
                 </div>
 
                 <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Card Scale: <strong x-text="protoNextUpScale + '%'"></strong>
-                    <input type="range" min="80" max="135" step="1" x-model.number="protoNextUpScale" @input="protoPreset = 'custom'; applyProtoStyles()">
-                </label>
-
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.8rem; margin-top: 4px;">
-                    <input type="checkbox" x-model="protoMgmtContinuity" @change="applyProtoStyles()" style="margin-bottom: 0;">
-                    <span>Management View Continuity Improvements</span>
+                    <input type="range" min="80" max="135" step="1" x-model.number="protoNextUpScale" @input="applyProtoStyles()">
                 </label>
 
                 <div style="display: flex; gap: 8px; margin-top: 6px;">
-                    <button type="button" class="secondary outline" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;" @click="resetProtoToBaseline()">Reset Baseline</button>
+                    <button type="button" class="secondary outline" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;" @click="resetProtoToDefaults()">Reset Defaults</button>
                     <button type="button" class="contrast outline" style="flex: 1; padding: 4px 8px; font-size: 0.75rem;" @click="copyProtoSettings()">📋 Copy Config</button>
                 </div>
             </div>
@@ -900,14 +872,12 @@ function meetingApp() {
         presentationRequest: null,
         isPresentationOnly: false,
 
-        /* Prototyping State */
-        protoPreset: 'harmonic',
+        /* Scaling & Layout State */
         protoScale: 100,
         protoLeftCol: 35,
         protoTitleScale: 95,
         protoDetailsScale: 95,
         protoNextUpScale: 95,
-        protoMgmtContinuity: true,
 
         applyProtoStyles() {
             const root = document.documentElement;
@@ -916,73 +886,39 @@ function meetingApp() {
             root.style.setProperty('--proto-title-scale', this.protoTitleScale / 100);
             root.style.setProperty('--proto-details-scale', this.protoDetailsScale / 100);
             root.style.setProperty('--proto-nextup-scale', this.protoNextUpScale / 100);
-            document.body.classList.toggle('proto-mgmt-continuity', !!this.protoMgmtContinuity);
             
             try {
                 sessionStorage.setItem('boardProtoSettings', JSON.stringify({
-                    preset: this.protoPreset,
                     scale: this.protoScale,
                     leftCol: this.protoLeftCol,
                     titleScale: this.protoTitleScale,
                     detailsScale: this.protoDetailsScale,
-                    nextUpScale: this.protoNextUpScale,
-                    mgmtContinuity: this.protoMgmtContinuity
+                    nextUpScale: this.protoNextUpScale
                 }));
             } catch(e) {}
             this.renderPresentationTextPages();
         },
 
-        selectProtoPreset(preset) {
-            this.protoPreset = preset;
-            if (preset === 'harmonic') {
-                this.protoScale = 100;
-                this.protoLeftCol = 35;
-                this.protoTitleScale = 95;
-                this.protoDetailsScale = 95;
-                this.protoNextUpScale = 95;
-                this.protoMgmtContinuity = true;
-            } else if (preset === 'baseline') {
-                this.protoScale = 100;
-                this.protoLeftCol = 35;
-                this.protoTitleScale = 100;
-                this.protoDetailsScale = 100;
-                this.protoNextUpScale = 100;
-                this.protoMgmtContinuity = false;
-            } else if (preset === 'projector') {
-                this.protoScale = 115;
-                this.protoLeftCol = 36;
-                this.protoTitleScale = 110;
-                this.protoDetailsScale = 115;
-                this.protoNextUpScale = 105;
-                this.protoMgmtContinuity = false;
-            } else if (preset === 'compact') {
-                this.protoScale = 95;
-                this.protoLeftCol = 30;
-                this.protoTitleScale = 90;
-                this.protoDetailsScale = 100;
-                this.protoNextUpScale = 90;
-                this.protoMgmtContinuity = true;
-            }
-            this.applyProtoStyles();
-        },
-
-        resetProtoToBaseline() {
+        resetProtoToDefaults() {
             sessionStorage.removeItem('boardProtoSettings');
-            this.selectProtoPreset('harmonic');
+            this.protoScale = 100;
+            this.protoLeftCol = 35;
+            this.protoTitleScale = 95;
+            this.protoDetailsScale = 95;
+            this.protoNextUpScale = 95;
+            this.applyProtoStyles();
         },
 
         copyProtoSettings() {
             const summary = JSON.stringify({
-                preset: this.protoPreset,
                 scale: `${this.protoScale}%`,
                 leftCol: `${this.protoLeftCol}%`,
                 titleScale: `${this.protoTitleScale}%`,
                 detailsScale: `${this.protoDetailsScale}%`,
-                nextUpScale: `${this.protoNextUpScale}%`,
-                mgmtContinuity: this.protoMgmtContinuity
+                nextUpScale: `${this.protoNextUpScale}%`
             }, null, 2);
             navigator.clipboard.writeText(summary).then(() => {
-                alert("Prototype settings copied to clipboard!\n\n" + summary);
+                alert("Scale settings copied to clipboard!\n\n" + summary);
             }).catch(() => alert("Settings:\n" + summary));
         },
 
@@ -1022,13 +958,11 @@ function meetingApp() {
                 const savedProto = sessionStorage.getItem('boardProtoSettings');
                 if (savedProto) {
                     const p = JSON.parse(savedProto);
-                    this.protoPreset = p.preset || 'custom';
                     this.protoScale = p.scale ?? 100;
                     this.protoLeftCol = p.leftCol ?? 35;
                     this.protoTitleScale = p.titleScale ?? 95;
                     this.protoDetailsScale = p.detailsScale ?? 95;
                     this.protoNextUpScale = p.nextUpScale ?? 95;
-                    this.protoMgmtContinuity = p.mgmtContinuity !== undefined ? !!p.mgmtContinuity : true;
                 }
             } catch(e) {}
             this.applyProtoStyles();
@@ -1854,35 +1788,20 @@ function meetingApp() {
                     localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
                 }
                 if (data.hash) window.location.hash = data.hash;
-
-                this.buildDisplaySequence();
-                this.syncEditorInputs();
-                this.renderPresentationTextPages();
-
-                if (isFirstLoad) {
-                    this.currentIndex = this.getScheduledAgendaIndex();
-                    this.resumeAuto();
-                } else {
-                    // When reconnecting, DO NOT clobber current timeline or pause/play state!
-                    if (this.currentIndex >= this.agenda.length) {
-                        this.currentIndex = Math.max(0, this.agenda.length - 1);
-                    }
-                }
             } else if (data.hash) {
                 window.location.hash = data.hash;
                 this.agenda = await this.loadInitialAgenda();
-                this.buildDisplaySequence();
-                this.syncEditorInputs();
-                this.renderPresentationTextPages();
+            }
 
-                if (isFirstLoad) {
-                    this.currentIndex = this.getScheduledAgendaIndex();
-                    this.resumeAuto();
-                } else {
-                    if (this.currentIndex >= this.agenda.length) {
-                        this.currentIndex = Math.max(0, this.agenda.length - 1);
-                    }
-                }
+            this.buildDisplaySequence();
+            this.syncEditorInputs();
+            this.renderPresentationTextPages();
+
+            if (isFirstLoad) {
+                this.currentIndex = this.getScheduledAgendaIndex();
+                this.resumeAuto();
+            } else if (this.currentIndex >= this.agenda.length) {
+                this.currentIndex = Math.max(0, this.agenda.length - 1);
             }
         },
 
