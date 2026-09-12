@@ -164,7 +164,32 @@
             },
             history: {
                 maxItems: 20             // Undo history stack limit
-            }
+            },
+            seedAgenda: [
+                {
+                    time: "10:35 AM",
+                    title: "Call to Order & Roll Call",
+                    details: "Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."
+                },
+                {
+                    time: "10:45 AM",
+                    title: "Quarterly Financial Overview",
+                    details: "Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."
+                },
+                {
+                    time: "11:15 AM",
+                    title: "Facility Safety & Compliance",
+                    details: "Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."
+                }
+            ]
+        };
+
+        const PROTO_DEFAULTS = {
+            scale: 100,
+            leftCol: 35,
+            titleScale: 95,
+            detailsScale: 95,
+            nextUpScale: 95
         };
     </script>
     <!-- ========================================== -->
@@ -557,7 +582,7 @@
                     :class="{ 'active': activeTabId === null, 'bounce': isBouncing === 'agenda' }"
                     style="background-color: #475569;"
                     @click.stop="userClickedTab('agenda')">
-                <div class="tab-progress" :style="`height: ${nextTabTarget === 'agenda' ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === 'agenda' ? 'height 1s linear' : 'none'};`"></div>
+                <div class="tab-progress" :style="getTabProgressStyle('agenda')"></div>
                 <span class="tab-text" style="position:relative; z-index:2;">Agenda</span>
             </button>
 
@@ -566,7 +591,7 @@
                         :class="{ 'active': activeTabId === tab.id, 'bounce': isBouncing === tab.id }"
                         :style="`background-color: ${tab.color};`"
                         @click.stop="userClickedTab(tab.id)">
-                    <div class="tab-progress" :style="`height: ${nextTabTarget === tab.id ? (displayTime / currentCycleDuration) * 100 : 0}%; transition: ${nextTabTarget === tab.id ? 'height 1s linear' : 'none'};`"></div>
+                    <div class="tab-progress" :style="getTabProgressStyle(tab.id)"></div>
                     <span class="tab-text" style="position:relative; z-index:2;" x-text="tab.title"></span>
                 </button>
             </template>
@@ -658,7 +683,7 @@
         <div class="timeline-container">
             <article>
                 <label>Meeting Title
-                    <input type="text" x-model="meetingTitle" @change="updateTitle(); syncToURL()" placeholder="August 19, 2026">
+                    <input type="text" x-model="meetingTitle" @change="saveMeetingTitle()" placeholder="August 19, 2026">
                 </label>
             </article>
             
@@ -783,25 +808,25 @@
             <summary style="font-weight: 700; cursor: pointer;">🎨 Scaling & Layout Adjustments</summary>
             <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <label style="font-size: 0.75rem; margin-bottom: 0;">Global Scale: <strong x-text="protoScale + '%'"></strong>
-                        <input type="range" min="80" max="135" step="1" x-model.number="protoScale" @input="applyProtoStyles()">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Global Scale: <strong x-text="proto.scale + '%'"></strong>
+                        <input type="range" min="80" max="135" step="1" x-model.number="proto.scale" @input="applyProtoStyles()">
                     </label>
-                    <label style="font-size: 0.75rem; margin-bottom: 0;">Left Col Width: <strong x-text="protoLeftCol + '%'"></strong>
-                        <input type="range" min="25" max="45" step="1" x-model.number="protoLeftCol" @input="applyProtoStyles()">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Left Col Width: <strong x-text="proto.leftCol + '%'"></strong>
+                        <input type="range" min="25" max="45" step="1" x-model.number="proto.leftCol" @input="applyProtoStyles()">
                     </label>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <label style="font-size: 0.75rem; margin-bottom: 0;">Heading Scale: <strong x-text="protoTitleScale + '%'"></strong>
-                        <input type="range" min="80" max="135" step="1" x-model.number="protoTitleScale" @input="applyProtoStyles()">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Heading Scale: <strong x-text="proto.titleScale + '%'"></strong>
+                        <input type="range" min="80" max="135" step="1" x-model.number="proto.titleScale" @input="applyProtoStyles()">
                     </label>
-                    <label style="font-size: 0.75rem; margin-bottom: 0;">Details Text: <strong x-text="protoDetailsScale + '%'"></strong>
-                        <input type="range" min="80" max="135" step="1" x-model.number="protoDetailsScale" @input="applyProtoStyles()">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Details Text: <strong x-text="proto.detailsScale + '%'"></strong>
+                        <input type="range" min="80" max="135" step="1" x-model.number="proto.detailsScale" @input="applyProtoStyles()">
                     </label>
                 </div>
 
-                <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Card Scale: <strong x-text="protoNextUpScale + '%'"></strong>
-                    <input type="range" min="80" max="135" step="1" x-model.number="protoNextUpScale" @input="applyProtoStyles()">
+                <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Card Scale: <strong x-text="proto.nextUpScale + '%'"></strong>
+                    <input type="range" min="80" max="135" step="1" x-model.number="proto.nextUpScale" @input="applyProtoStyles()">
                 </label>
 
                 <div style="display: flex; gap: 8px; margin-top: 6px;">
@@ -921,53 +946,43 @@ function meetingApp() {
         isPresentationOnly: false,
 
         /* Scaling & Layout State */
-        protoScale: 100,
-        protoLeftCol: 35,
-        protoTitleScale: 95,
-        protoDetailsScale: 95,
-        protoNextUpScale: 95,
+        proto: { ...PROTO_DEFAULTS },
 
         applyProtoStyles() {
             const root = document.documentElement;
-            root.style.setProperty('--proto-scale', this.protoScale / 100);
-            root.style.setProperty('--proto-left-col', `${this.protoLeftCol}%`);
-            root.style.setProperty('--proto-title-scale', this.protoTitleScale / 100);
-            root.style.setProperty('--proto-details-scale', this.protoDetailsScale / 100);
-            root.style.setProperty('--proto-nextup-scale', this.protoNextUpScale / 100);
+            root.style.setProperty('--proto-scale', this.proto.scale / 100);
+            root.style.setProperty('--proto-left-col', `${this.proto.leftCol}%`);
+            root.style.setProperty('--proto-title-scale', this.proto.titleScale / 100);
+            root.style.setProperty('--proto-details-scale', this.proto.detailsScale / 100);
+            root.style.setProperty('--proto-nextup-scale', this.proto.nextUpScale / 100);
             
             try {
-                sessionStorage.setItem('boardProtoSettings', JSON.stringify({
-                    scale: this.protoScale,
-                    leftCol: this.protoLeftCol,
-                    titleScale: this.protoTitleScale,
-                    detailsScale: this.protoDetailsScale,
-                    nextUpScale: this.protoNextUpScale
-                }));
+                sessionStorage.setItem('boardProtoSettings', JSON.stringify(this.proto));
             } catch(e) {}
             this.renderPresentationTextPages();
         },
 
         resetProtoToDefaults() {
             sessionStorage.removeItem('boardProtoSettings');
-            this.protoScale = 100;
-            this.protoLeftCol = 35;
-            this.protoTitleScale = 95;
-            this.protoDetailsScale = 95;
-            this.protoNextUpScale = 95;
+            Object.assign(this.proto, PROTO_DEFAULTS);
             this.applyProtoStyles();
         },
 
         copyProtoSettings() {
             const summary = JSON.stringify({
-                scale: `${this.protoScale}%`,
-                leftCol: `${this.protoLeftCol}%`,
-                titleScale: `${this.protoTitleScale}%`,
-                detailsScale: `${this.protoDetailsScale}%`,
-                nextUpScale: `${this.protoNextUpScale}%`
+                scale: `${this.proto.scale}%`,
+                leftCol: `${this.proto.leftCol}%`,
+                titleScale: `${this.proto.titleScale}%`,
+                detailsScale: `${this.proto.detailsScale}%`,
+                nextUpScale: `${this.proto.nextUpScale}%`
             }, null, 2);
-            navigator.clipboard.writeText(summary).then(() => {
-                alert("Scale settings copied to clipboard!\n\n" + summary);
-            }).catch(() => alert("Settings:\n" + summary));
+            this.copyToClipboard(summary, "Scale settings copied to clipboard!\n\n" + summary);
+        },
+
+        copyToClipboard(text, successMsg) {
+            navigator.clipboard.writeText(text)
+                .then(() => alert(successMsg))
+                .catch(() => alert(`Copy failed. Value:\n${text}`));
         },
 
         get currentItem() { return this.agenda[this.currentIndex] || null; },
@@ -978,6 +993,18 @@ function meetingApp() {
         
         get currentCycleDuration() { 
             return this.isFastMode ? APP_CONFIG.timing.debugDuration : (this.activeTabId === null ? APP_CONFIG.timing.agendaDuration : APP_CONFIG.timing.cardDuration); 
+        },
+
+        getTabProgressStyle(tabId) {
+            const isTarget = this.nextTabTarget === tabId;
+            const pct = isTarget ? (this.displayTime / this.currentCycleDuration) * 100 : 0;
+            return `height: ${pct}%; transition: ${isTarget ? 'height 1s linear' : 'none'};`;
+        },
+
+        saveMeetingTitle() {
+            this.updateTitle();
+            this.syncToURL();
+            if (this.isCasting) this.sendStateToCast();
         },
 
         async initApp() {
@@ -1004,14 +1031,7 @@ function meetingApp() {
             // Restore prototype settings if saved in current session, otherwise apply active default
             try {
                 const savedProto = sessionStorage.getItem('boardProtoSettings');
-                if (savedProto) {
-                    const p = JSON.parse(savedProto);
-                    this.protoScale = p.scale ?? 100;
-                    this.protoLeftCol = p.leftCol ?? 35;
-                    this.protoTitleScale = p.titleScale ?? 95;
-                    this.protoDetailsScale = p.detailsScale ?? 95;
-                    this.protoNextUpScale = p.nextUpScale ?? 95;
-                }
+                if (savedProto) Object.assign(this.proto, JSON.parse(savedProto));
             } catch(e) {}
             this.applyProtoStyles();
 
@@ -1068,15 +1088,7 @@ function meetingApp() {
                             try {
                                 const data = JSON.parse(event.data);
                                 if (data && data.type === 'REQUEST_STATUS') {
-                                    if (conn.state === 'connected') {
-                                        conn.send(JSON.stringify({
-                                            type: 'RECEIVER_STATUS',
-                                            index: this.currentIndex,
-                                            isPlaying: this.isPlaying,
-                                            activeTabId: this.activeTabId,
-                                            isAlert: this.isAlertActive
-                                        }));
-                                    }
+                                    if (conn.state === 'connected') conn.send(JSON.stringify(this.getReceiverStatusPayload()));
                                     return;
                                 }
                                 await this.handleIncomingCastMessage(data);
@@ -1086,15 +1098,7 @@ function meetingApp() {
                             this.receiverConnections = this.receiverConnections.filter(c => c !== conn);
                         };
                         try {
-                            if (conn.state === 'connected') {
-                                conn.send(JSON.stringify({
-                                    type: 'RECEIVER_STATUS',
-                                    index: this.currentIndex,
-                                    isPlaying: this.isPlaying,
-                                    activeTabId: this.activeTabId,
-                                    isAlert: this.isAlertActive
-                                }));
-                            }
+                            if (conn.state === 'connected') conn.send(JSON.stringify(this.getReceiverStatusPayload()));
                         } catch(e) {}
                     };
                     list.connections.forEach(attachReceiverConn);
@@ -1125,8 +1129,10 @@ function meetingApp() {
                 else if (e.key === 'ArrowLeft') this.shiftItem(-1);
             });
 
-            setInterval(() => this.updateSystemClock(), 1000);
-            setInterval(() => this.runDisplayLoop(), 1000); 
+            setInterval(() => {
+                this.updateSystemClock();
+                this.runDisplayLoop();
+            }, 1000); 
             window.addEventListener('resize', () => {
                 setTimeout(() => this.renderPresentationTextPages(), 150);
             });
@@ -1348,9 +1354,7 @@ function meetingApp() {
 
         shareAgendaURL() {
             const url = window.location.href;
-            navigator.clipboard.writeText(url).then(() => {
-                alert(`Live Share Link copied! (${url.length} chars)`);
-            }).catch(() => alert("Failed to copy link."));
+            this.copyToClipboard(url, `Live Share Link copied! (${url.length} chars)`);
         },
 
         openImportModal() {
@@ -1653,7 +1657,7 @@ function meetingApp() {
             const storedTabs = localStorage.getItem(APP_CONFIG.storage.tabsKey);
             if (storedTabs) { try { this.tabs = JSON.parse(storedTabs); } catch(e){} }
             if (stored) { try { return JSON.parse(stored); } catch (e) {} }
-            return [{"time":"10:35 AM","title":"Call to Order & Roll Call","details":"Initial meeting protocols and legal establishment of the board quorum:\n- Approval of previous executive session minutes.\n- Introduction of community observers and external stakeholders."},{"time":"10:45 AM","title":"Quarterly Financial Overview","details":"Granular structural inspection of administrative balances across localized programs:\n- Review of paperless utility updates and water infrastructure accounts.\n- Evaluation of capital allocations targeting regional youth programs."},{"time":"11:15 AM","title":"Facility Safety & Compliance","details":"Ensuring full technical alignment with municipal regulatory framework criteria:\n- Verification of structural audit pipelines for regional asset installations.\n- Updates on background check procedures and safety clearances."}];
+            return JSON.parse(JSON.stringify(APP_CONFIG.seedAgenda));
         },
 
         processImportText() {
@@ -1762,15 +1766,7 @@ function meetingApp() {
                     }
                     if (!data) return;
                     if (data.type === 'REQUEST_STATUS') {
-                        try {
-                            context.sendCustomMessage(namespace, event.senderId, {
-                                type: 'RECEIVER_STATUS',
-                                index: this.currentIndex,
-                                isPlaying: this.isPlaying,
-                                activeTabId: this.activeTabId,
-                                isAlert: this.isAlertActive
-                            });
-                        } catch(e) {}
+                        this.broadcastReceiverStatus(event.senderId);
                         return;
                     }
                     await this.handleIncomingCastMessage(data);
@@ -1778,15 +1774,7 @@ function meetingApp() {
 
                 context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (event) => {
                     console.log("Sender connected:", event.senderId);
-                    try {
-                        context.sendCustomMessage(namespace, event.senderId, {
-                            type: 'RECEIVER_STATUS',
-                            index: this.currentIndex,
-                            isPlaying: this.isPlaying,
-                            activeTabId: this.activeTabId,
-                            isAlert: this.isAlertActive
-                        });
-                    } catch(e) {}
+                    this.broadcastReceiverStatus(event.senderId);
                 });
 
                 context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
@@ -1797,15 +1785,7 @@ function meetingApp() {
                 console.log("CastReceiverContext successfully started with disableIdleTimeout=true");
 
                 // Broadcast initial status to connected senders
-                try {
-                    context.sendCustomMessage(namespace, undefined, {
-                        type: 'RECEIVER_STATUS',
-                        index: this.currentIndex,
-                        isPlaying: this.isPlaying,
-                        activeTabId: this.activeTabId,
-                        isAlert: this.isAlertActive
-                    });
-                } catch(e) {}
+                this.broadcastReceiverStatus();
             } catch(e) {
                 console.warn("CastReceiverContext start error:", e);
             }
@@ -1986,18 +1966,22 @@ function meetingApp() {
             this.renderPresentationTextPages();
         },
 
-        broadcastReceiverStatus() {
-            const statusPayload = {
+        getReceiverStatusPayload() {
+            return {
                 type: 'RECEIVER_STATUS',
                 index: this.currentIndex,
                 isPlaying: this.isPlaying,
                 activeTabId: this.activeTabId,
                 isAlert: this.isAlertActive
             };
+        },
+
+        broadcastReceiverStatus(targetSenderId = undefined) {
+            const statusPayload = this.getReceiverStatusPayload();
             if (window.cast && cast.framework && cast.framework.CastReceiverContext) {
                 try {
                     const context = cast.framework.CastReceiverContext.getInstance();
-                    context.sendCustomMessage(APP_CONFIG.cast.namespace, undefined, statusPayload);
+                    context.sendCustomMessage(APP_CONFIG.cast.namespace, targetSenderId, statusPayload);
                 } catch(e) {}
             }
             if (this.receiverConnections && this.receiverConnections.length) {
@@ -2166,9 +2150,7 @@ function meetingApp() {
 
         copyKioskURL() {
             const url = this.getCastURL();
-            navigator.clipboard.writeText(url).then(() => {
-                alert(`Kiosk Presentation Link copied! (${url.length} chars)`);
-            }).catch(() => alert("Failed to copy link."));
+            this.copyToClipboard(url, `Kiosk Presentation Link copied! (${url.length} chars)`);
         }
     }
 }
