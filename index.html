@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -127,7 +127,7 @@
     <script>
         const APP_CONFIG = {
             appearance: {
-                defaultTheme: 'light'    // Options: 'light' or 'dark'
+                defaultTheme: 'dark'     // Options: 'dark' (default) or 'light'
             },
             timing: {
                 agendaDuration: 40,      // Seconds the main agenda is displayed
@@ -144,7 +144,7 @@
             storage: {
                 agendaKey: 'boardAgenda',
                 tabsKey: 'boardTabs',
-                themeKey: 'boardTheme',
+                themeKey: 'boardTheme_v2',
                 titleKey: 'boardMeetingTitle',
                 castSessionKey: 'meeting_presentation_id'
             },
@@ -168,6 +168,12 @@
             --swipe-bg: rgba(3, 105, 161, 0.6);
             --swipe-ready-color: #0284c7;
 
+            /* Casting Active Glow (Light Mode) */
+            --cast-edge-color: rgba(2, 132, 199, 0.85);
+            --cast-glow-core: rgba(2, 132, 199, 0.45);
+            --cast-glow-mid: rgba(2, 132, 199, 0.22);
+            --cast-glow-wide: rgba(2, 132, 199, 0.08);
+
             /* Live Prototyping Design Tokens (Default Config) */
             --proto-scale: 1;
             --proto-left-col: 35%;
@@ -181,6 +187,12 @@
             --ts-color: #94a3b8; --btn-border: #475569;
             --swipe-bg: rgba(56, 189, 248, 0.6);
             --swipe-ready-color: #38bdf8;
+
+            /* Casting Active Glow (Dark Mode) */
+            --cast-edge-color: rgba(56, 189, 248, 0.90);
+            --cast-glow-core: rgba(56, 189, 248, 0.55);
+            --cast-glow-mid: rgba(56, 189, 248, 0.28);
+            --cast-glow-wide: rgba(56, 189, 248, 0.10);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -211,24 +223,52 @@
         body.presentation-only { overflow: hidden !important; height: 100vh !important; height: calc(var(--vh, 1vh) * 100) !important; }
         body.presentation-only .presentation-view { height: 100vh !important; height: calc(var(--vh, 1vh) * 100) !important; max-height: calc(var(--vh, 1vh) * 100) !important; border-bottom: none !important; }
         body.presentation-only .management-view { display: none !important; }
-        body.presentation-only .playback-toggle-btn,
-        body.presentation-only .presentation-controls-cluster { display: none !important; }
-        body.presentation-only .presentation-view.is-casting { box-shadow: none !important; animation: none !important; }
+        body.presentation-only .presentation-view.is-casting::before { display: none !important; }
         
-        /* Casting visual indicator on phone presentation view (Pulsing gradient border) */
-        @keyframes castPulse {
+        /* Casting visual indicator on phone/controller (Wide inward gradient glow) */
+        @keyframes castGlowPulse {
             0%, 100% {
-                box-shadow: inset 0 0 0 4px var(--pico-primary),
-                            inset 0 0 14px 2px color-mix(in srgb, var(--pico-primary) 35%, transparent);
+                opacity: 0.55;
+                box-shadow: inset 0 0 25px 2px var(--cast-glow-core),
+                            inset 0 0 65px 10px var(--cast-glow-mid),
+                            inset 0 0 120px 25px var(--cast-glow-wide);
             }
             50% {
-                box-shadow: inset 0 0 0 5px var(--pico-primary),
-                            inset 0 0 24px 6px color-mix(in srgb, var(--pico-primary) 12%, transparent);
+                opacity: 1;
+                box-shadow: inset 0 0 42px 6px var(--cast-glow-core),
+                            inset 0 0 100px 20px var(--cast-glow-mid),
+                            inset 0 0 165px 45px var(--cast-glow-wide);
             }
         }
-        .presentation-view.is-casting {
-            box-shadow: inset 0 0 0 4px var(--pico-primary);
-            animation: castPulse 3s ease-in-out infinite;
+        @keyframes castGlowPulsePortrait {
+            0%, 100% {
+                opacity: 0.55;
+                box-shadow: inset 0 0 18px 2px var(--cast-glow-core),
+                            inset 0 0 45px 8px var(--cast-glow-mid),
+                            inset 0 0 85px 18px var(--cast-glow-wide);
+            }
+            50% {
+                opacity: 1;
+                box-shadow: inset 0 0 30px 4px var(--cast-glow-core),
+                            inset 0 0 72px 14px var(--cast-glow-mid),
+                            inset 0 0 125px 28px var(--cast-glow-wide);
+            }
+        }
+        .presentation-view.is-casting::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 50;
+            border: 1.5px solid var(--cast-edge-color);
+            box-shadow: inset 0 0 30px 4px var(--cast-glow-core),
+                        inset 0 0 80px 15px var(--cast-glow-mid),
+                        inset 0 0 140px 35px var(--cast-glow-wide);
+            animation: castGlowPulse 2.8s ease-in-out infinite;
         }
 
         /* TV Kiosk Paused Indicator */
@@ -429,6 +469,7 @@
             .presentation-controls-cluster { bottom: 10px; right: 10px; gap: 6px; }
             .presentation-cast-btn { width: 34px; height: 34px; }
             .tv-paused-badge { bottom: 10px; right: 10px; font-size: calc(0.85rem * var(--proto-scale, 1)); padding: 6px 14px; }
+            .presentation-view.is-casting::before { animation-name: castGlowPulsePortrait; }
             
             /* Text Locks */
             .meeting-title-bar { font-size: calc(clamp(0.9rem, 3vw, 1.2rem) * var(--proto-scale, 1)); }
@@ -767,6 +808,10 @@
                 <input type="checkbox" x-model="isFastMode" @change="displayTime = 0"> 
                 Fast Cycle Simulation
             </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
+                <input type="checkbox" x-model="isCasting"> 
+                Simulate Cast Active (Preview Inward Glow)
+            </label>
         </fieldset>
         
         <fieldset style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--pico-muted-border-color);">
@@ -841,7 +886,7 @@ window.__onGCastApiAvailable = function(isAvailable) {
 function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isAlertActive: false,
-        isDark: false, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [],
+        isDark: true, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [],
         editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
 
         touchStartX: 0, touchStartY: 0, isSwiping: false, swipeDirection: null, swipeProgress: 0, touchLocked: false, axisDetermined: false,
