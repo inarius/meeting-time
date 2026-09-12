@@ -18,7 +18,7 @@
 The app was created specifically for **Scout Troop meetings** (and board-meeting-style agendas) where youth leadership and adult advisors run structured, multi-topic schedules together. 
 
 ### Hardware & Environment Constraints
-1. **Partially Illuminated Rooms:** Meetings happen in lighted halls, gyms, or classrooms. On a projector screen, black is simply the absence of light and appears washed out gray. A light background (off-white/light gray) forces the projector to output maximum lumens, creating crisp contrast, reducing light bleed (halation), and contracting human pupils for sharp text reading. **Light mode is the deliberate default** (with a Dark mode toggle for dim rooms).
+1. **Display & Lighting Environments:** Meetings happen in halls, classrooms, or dim boardrooms. **Dark mode is the default application theme** (providing high-contrast legibility, energy efficiency on OLED displays, and an ambient presentation glow), with a **Light mode toggle** available for high-ambient projector environments where maximum lumens are desired.
 2. **Projector Displays (4:3 and 16:9):** The app is projected onto a large screen, typically driven by a mobile phone, tablet, or laptop plugged into an HDMI cable or wireless casting receiver.
 3. **Passive Ambient Display:** During the meeting, attendees and leaders should not have to manually advance slides or fiddle with a computer. The screen operates hands-off:
    - Displays **"Now"**: The current agenda item, its scheduled time, system clock, and detailed markdown notes.
@@ -67,6 +67,16 @@ Over hundreds of iterations, multiple AI coding sessions suffered from recurring
 - Format: `HH:MM AM/PM Topic Name` followed by `-` bullets, `--` sub-bullets, and `=== TABS ===` with `# Tab Name [x]` for side-cards.
 - Destructive imports wipe the in-memory undo stack and require a confirmation dialog.
 
+### 8. Casting & Dual Authority Remote Control (CAF & W3C Presentation API)
+- **Dual Authority Model:**
+  - **Playing / Unpaused State:** The TV presentation is autonomous and is the primary Source of Truth, driven by its local wall clock. Whenever it advances to a new agenda milestone, it broadcasts `RECEIVER_STATUS` to the phone controller so an awake phone immediately mirrors the active topic.
+  - **Interaction / Paused State:** When an intentional user action occurs on the phone controller (tapping a side tab, clicking next/prev, or toggling pause), both the TV and phone transition to `isPlaying: false`. In this paused state, the phone controller is authoritative, and the TV presentation faithfully follows every manual navigation step.
+  - **Unpausing / Resuming:** Resuming playback restores the TV presentation as the autonomous authority on wall-clock time.
+- **Screen Wake Lock Delegation:** When actively casting, the phone explicitly bypasses/releases its screen wake lock so the mobile device can sleep normally in the user's pocket to conserve battery. The TV presentation receiver independently maintains its own keep-alive.
+- **Non-Clobbering Status Exchange (`REQUEST_STATUS` & `RECEIVER_STATUS`):** When a sleeping or backgrounded controller wakes up, or when the user performs a pull-down refresh while casting, the phone controller sends `REQUEST_STATUS` to the TV. The TV responds with `RECEIVER_STATUS` containing its active index, play state, and active tab. This prevents stale controller state from resetting the live presentation.
+- **Receiver Kiosk Experience:** In presentation-only / receiver view (`?view=presentation`), interactive controls (play/pause buttons, cast buttons, edit triggers) are stripped from the DOM. If paused by the controller, an unobtrusive non-interactive `⏸ Paused` status badge is displayed.
+- **Disabled Tab DOM Exclusion:** Disabled/unchecked side tabs are completely excluded from the presentation DOM so they do not show buttons or interfere with automated card cycling on either device.
+
 ---
 
 ## 4. Technical Architecture & Tech Stack
@@ -79,27 +89,35 @@ Over hundreds of iterations, multiple AI coding sessions suffered from recurring
 Located at lines 96–121 in [`index.html`](file:///workspaces/meeting-time/index.html#L96-L121):
 ```javascript
 const APP_CONFIG = {
-    appearance: { defaultTheme: 'light' },
+    appearance: {
+        defaultTheme: 'dark'     // Options: 'dark' (default) or 'light'
+    },
     timing: {
         agendaDuration: 40,      // Seconds the main agenda is displayed
         cardDuration: 20,        // Seconds each sidecard tab is displayed
         debugDuration: 5,        // Seconds for fast cycle simulation mode
-        bounceLeadTime: 3,       // Seconds before transition to trigger bounce/tug
-        carouselInterval: 8000,  // Milliseconds between flipping long text pages
-        refreshTimeout: 180000   // Milliseconds before auto-refresh check stops
+        bounceLeadTime: 3,       // Seconds before tab transition to trigger the "bounce/tug" animation
+        carouselInterval: 8000,  // Milliseconds between flipping pages of long text
+        refreshTimeout: 180000   // Milliseconds before auto-refresh check gives up
     },
     swipe: {
-        deadzone: 25,            // Pixels before swipe registers
-        dragDistance: 70         // Pixels to complete transition
+        deadzone: 25,            // Pixels to swipe before registering the action
+        dragDistance: 70         // Pixels to swipe to complete the transition
     },
     storage: {
         agendaKey: 'boardAgenda',
         tabsKey: 'boardTabs',
-        themeKey: 'boardTheme',
-        titleKey: 'boardMeetingTitle'
+        themeKey: 'boardTheme_v2',
+        titleKey: 'boardMeetingTitle',
+        castSessionKey: 'meeting_presentation_id'
+    },
+    cast: {
+        appId: '1909D2D6',       // Google Cast SDK Developer Console Custom Web Receiver Application ID
+        namespace: 'urn:x-cast:inarius.meetingtime',
+        maxInactivity: 10800     // Seconds (3 hours) of inactivity before receiver shuts down
     },
     history: {
-        maxItems: 20             // Undo history limit
+        maxItems: 20             // Undo history stack limit
     }
 };
 ```

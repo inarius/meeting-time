@@ -22,21 +22,22 @@
     - Keyboard Nav: Left and Right arrow keys navigate to prev/next.
 
     2. WAKE LOCK & FULLSCREEN
-    - Acquisition: Request wake lock on play/resume.
-    - Persistence: Prevent the device screen from sleeping while actively playing or paused. 
-    - Recovery: Re-acquire wake lock when returned to foreground (from the background).
+    - Standalone Persistence: In standalone mode, acquire wake lock on play/resume and prevent the device screen from sleeping while actively playing or paused.
+    - Cast Wake Lock Delegation: When actively casting, the phone MUST bypass/release its screen wake lock so the phone can sleep normally to conserve battery. The TV presentation receiver independently maintains its own keep-alive.
+    - Recovery: In standalone mode, re-acquire wake lock when returning to the foreground. In casting mode, foreground return requests live status from the TV instead of claiming wake lock.
     - Graceful Degradation: If a browser rejects fullscreen requests (e.g., iOS Safari), the app must catch the error and advise the user to add the app to their home screen.
 
     3. UI & LAYOUT
     - Viewport Integrity: Match the visible screen height. Account for mobile browser UI bars appearing/disappearing and avoid Android PWA rendering race conditions upon launch.
     - View Snapping: Vertical scroll locks to either the Presentation view or the Management view, never resting halfway between them.
     - Button Accessibility: Buttons retain visible borders and high contrast.
-    - Play/Pause Visibility: Pause button defaults to semi-transparent (displayed while playing), "Resume" button defaults to opaque (displayed while paused).
+    - Play/Pause Visibility: In standalone controller views, pause button defaults to semi-transparent (while playing) and "Resume" button defaults to opaque (while paused).
     - Responsive: Landscape mode uses a two-column grid. Portrait mode collapses into a stacked single-column flex layout.
 
     4. SIDE CARDS / TABS
     - Tab buttons: Displayed as vertical tabs anchored to the right edge.
     - Rotation: The presentation cycles between the main agenda (shown longer) and enabled side cards (shown briefly).
+    - Disabled Tabs: Unchecked / disabled side cards MUST NOT render tab buttons or card bodies in the presentation DOM on either controller or receiver. Only enabled tabs participate in rotation.
     - Sliding: Card content areas slide in from the right when activated, layering over the main agenda. Cycling back to agenda unslides them back out to the right.
     - Visual Cues: Tabs provide a visual time-remaining indicator (progress fill) and physically animate (bounce/tug) before sliding out.
 
@@ -47,9 +48,9 @@
     - Import Formatting: Raw text uses standard `HH:MM AM/PM Topic` for agenda items, `-` for lists, `--` for sub-lists, and `=== TABS ===` with `# Tab Name [x]` for side cards.
     - Destructive Import: Import wipes the undo stack during agenda overwrite and MUST warn the user via confirm dialog before saving.
 
-    6. BUTTON BEHAVIORS
+    6. BUTTON BEHAVIORS & THEME
+    - Theme: Dark theme is the application default across fresh launches and cast receivers. Light theme is the alternate toggle option. Stored in local storage (`boardTheme_v2`).
     - Share: Copies the current full URL (with compressed hash state) to the clipboard and reports copied URL length to user.
-    - Theme: Toggles dark/light and saves to local storage.
     - Refresh: Twirls the refresh icon, checks the document modified headers, and reloads page once a newer server version exists.
 
     7. DEBUG PANEL
@@ -58,20 +59,28 @@
     - Clear: Destructive button clears all local storage.
 
     8. PRESENTATION DISPLAY & SCALING
-    - Landscape Scaling: Text and UI elements scale proportionally, should look similar and fill all landscape devices both large and small resolution.
-    - Mobile Portrait Lock: In portrait mode, text sizing must decouple from screen height to prevent oversized text, maintaining a compact, readable layout.
-    - Fluid Indentation: Padding and margins on lists must scale proportionally with the font size so that bullets are never pushed outside the visible container when text enlarges.
-    - Wrapping: Meeting title and agenda item titles wrap to multiple lines if needed. The Next Up section does not wrap and truncates to ellipses when required.
-    - Scrollbars: Main horizontal and vertical scrollbars MUST be hidden on root and main containers to prevent double-scrollbar overflow, though inner elements (like long sidecards) MAY still scroll natively.
-
+    - Landscape Scaling: Text and UI elements scale proportionally, looking harmonious and filling landscape screens of all resolutions.
+    - Mobile Portrait Lock: In portrait mode, text sizing decouples from screen height to maintain a compact, readable layout.
+    - Fluid Indentation: Padding and margins on lists scale proportionally with font size so bullets never push outside the visible container.
+    - Wrapping: Meeting title and agenda item titles wrap to multiple lines if needed. Next Up truncates to ellipses when required.
+    - Scrollbars: Main horizontal and vertical scrollbars MUST be hidden on root and main containers.
+    - Receiver Kiosk Mode: In presentation-only / receiver view (`?view=presentation`), interactive controls (play/pause, cast buttons) are omitted from the DOM. A non-interactive status badge (`⏸ Paused`) displays during pauses.
+    - Controller Cast Indicator: Active casting on the controller displays an animated inward gradient glow with a breathing pulse around the presentation container.
 
     9. RENDER TIMING
     - Pagination Calculation: Any function measuring DOM nodes to calculate text pagination must wait for mobile browser UI bars and orientation shifts to fully settle before measuring available height.
 
-    10. CASTING & RECEIVER (W3C PRESENTATION API)
-    - Autonomous Receiver: Presentation URLs opened on external screens or receivers (?view=presentation&autoplay=1#agenda=...) run autonomously on their own local wall clock.
-    - Controller Lifecycle: connection.close() disconnects the phone without terminating the TV presentation; connection.terminate() actively commands the TV receiver to exit.
-    - Naming & Icon: Cast buttons are strictly labeled "Cast" (idle) and "Casting" (active), accompanied by the official Google Cast icon.
+    10. CASTING, RECEIVER & CONTROLLER AUTHORITY (CAF & W3C PRESENTATION API)
+    - Dual Authority Model:
+      * Autonomous TV (Unpaused): When playback is active (`isPlaying: true`), the TV receiver presentation is the autonomous Source of Truth running on local wall-clock time. Milestone advances broadcast to the controller in real-time.
+      * Authoritative Phone (Paused): When intentional navigation or pause occurs on the controller, both TV and controller enter paused mode (`isPlaying: false`). The controller is authoritative over milestone position and tab views; the TV mirrors the controller until resumed.
+      * Resume: Resuming playback restores the TV presentation as autonomous timekeeper.
+    - Non-Clobbering Sync & Reconnect:
+      * Controller reconnection or page refresh MUST NOT reset or clobber the TV presentation state.
+      * Controllers issue `REQUEST_STATUS` upon session start or visibility restore; receivers respond with `RECEIVER_STATUS` containing current index, playing state, and active tab.
+    - Autonomous Receiver: Receiver URLs (`?view=presentation&autoplay=1#agenda=...`) run autonomously on their own local wall clock without requiring an active sender.
+    - Controller Lifecycle: Disconnecting the phone session (`connection.close()` or Cast SDK disconnect) detaches the controller without terminating the TV presentation. Explicit stop commands receiver termination.
+    - Visuals: Cast icon reflects connection status. TV displays clean kiosk presentation.
 ========================================== -->
     
     <!-- Link to the GitHub Pages specific manifest path -->
@@ -1470,6 +1479,9 @@ function meetingApp() {
                 this.isAlertActive = false;
                 this.syncEditorInputs(); 
                 this.renderPresentationTextPages();
+                if (this.isPresentationOnly) {
+                    this.broadcastReceiverStatus();
+                }
             }
         },
 
