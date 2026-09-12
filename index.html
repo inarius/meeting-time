@@ -326,7 +326,6 @@
         @media (hover: hover) { .presentation-cast-btn:hover { transform: scale(1.08); opacity: 1 !important; } }
 
         .playback-toggle-btn {
-            position: absolute; bottom: 20px; right: 55px; z-index: 100;
             padding: clamp(4px, 1.5vh, 12px) clamp(14px, 3vh, 24px); 
             font-size: calc(clamp(0.8rem, 3vh, 2.5rem) * var(--proto-scale, 1)); font-weight: 800; border-radius: 20px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; border: none; margin: 0; 
@@ -862,24 +861,10 @@ window.__onGCastApiAvailable = function(isAvailable) {
                         app.isCasting = true;
 
                         // Listen for TV messages on custom namespace
-                        try {
-                            const session = castContext.getCurrentSession();
-                            if (session) {
-                                session.addMessageListener(APP_CONFIG.cast.namespace, (ns, msg) => {
-                                    let data = msg;
-                                    if (typeof data === 'string') {
-                                        try { data = JSON.parse(data); } catch(e) {}
-                                    }
-                                    if (data) {
-                                        if (data.type === 'RECEIVER_READY') {
-                                            app.sendStateToCast();
-                                        } else if (data.type === 'RECEIVER_STATUS') {
-                                            app.handleReceiverStatus(data);
-                                        }
-                                    }
-                                });
-                            }
-                        } catch(e) {}
+                        const session = castContext.getCurrentSession();
+                        if (session && app.attachSenderCastListener) {
+                            app.attachSenderCastListener(session);
+                        }
 
                         if (event.sessionState === cast.framework.SessionState.SESSION_RESUMED) {
                             // Phone reconnecting/refreshed: fetch TV's live presentation position
@@ -1063,21 +1048,7 @@ function meetingApp() {
                     const session = cast.framework.CastContext.getInstance().getCurrentSession();
                     if (session) {
                         this.isCasting = true;
-                        try {
-                            session.addMessageListener(APP_CONFIG.cast.namespace, (ns, msg) => {
-                                let data = msg;
-                                if (typeof data === 'string') {
-                                    try { data = JSON.parse(data); } catch(e) {}
-                                }
-                                if (data) {
-                                    if (data.type === 'RECEIVER_READY') {
-                                        this.sendStateToCast();
-                                    } else if (data.type === 'RECEIVER_STATUS') {
-                                        this.handleReceiverStatus(data);
-                                    }
-                                }
-                            });
-                        } catch(e) {}
+                        this.attachSenderCastListener(session);
                         this.requestCastStatus();
                     }
                 } catch(e) {}
@@ -1273,26 +1244,30 @@ function meetingApp() {
 
         userClickedTab(id) {
             let targetId = (id === 'agenda' || this.activeTabId === id) ? null : id;
+            this.setActiveTab(targetId, true);
+        },
+
+        setActiveTab(targetId, isUserAction = false) {
             this.switchTabTo(targetId);
-            
             if (targetId === null) {
                 if (this.currentIndex === this.getScheduledAgendaIndex()) {
-                    this.resumeAuto(); // Tab dropped back to currently scheduled item -> Resume Auto
+                    this.resumeAuto();
                 } else {
                     this.isPlaying = false;
                     this.displayIndex = 0;
                     this.displayTime = 0;
-                    this.requestWakeLock();
+                    if (isUserAction) this.requestWakeLock();
                 }
             } else {
-                this.isPlaying = false; // Custom tab selected -> Pause and lock
+                this.isPlaying = false;
                 let idx = this.displaySequence.indexOf(targetId);
                 if (idx !== -1) this.displayIndex = idx;
                 this.displayTime = 0;
-                this.requestWakeLock();
+                if (isUserAction) this.requestWakeLock();
             }
-
-            this.sendCastAction({ type: 'SWITCH_TAB', activeTabId: this.activeTabId, isPlaying: this.isPlaying });
+            if (isUserAction) {
+                this.sendCastAction({ type: 'SWITCH_TAB', activeTabId: this.activeTabId, isPlaying: this.isPlaying });
+            }
         },
 
         runDisplayLoop() {
@@ -1316,7 +1291,7 @@ function meetingApp() {
         },
 
         handleTouchStart(e) {
-            if (e.target.closest('.presentation-controls-cluster') || e.target.closest('.playback-toggle-btn') || e.target.closest('.presentation-cast-btn') || e.target.closest('.vertical-tab')) return;
+            if (e.target.closest('.presentation-controls-cluster') || e.target.closest('.vertical-tab')) return;
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
             this.isSwiping = false; this.swipeDirection = null; this.swipeProgress = 0; 
@@ -1493,20 +1468,7 @@ function meetingApp() {
             }
             const target = this.currentIndex + dir;
             if (target >= 0 && target < this.agenda.length) { 
-                this.currentIndex = target; 
-                this.isAlertActive = false; 
-                this.editingMode = 'agenda';
-                this.switchTabTo(null);
-                this.syncEditorInputs(); 
-                this.renderPresentationTextPages(); 
-                
-                if (this.currentIndex === this.getScheduledAgendaIndex()) {
-                    this.resumeAuto(); // Swiped back to schedule -> Resume Auto
-                } else {
-                    this.isPlaying = false; // Poked off schedule -> Pause
-                    this.requestWakeLock();
-                }
-                this.sendCastAction({ type: 'NAVIGATE_ITEM', index: this.currentIndex, isAlert: this.isAlertActive, isPlaying: this.isPlaying });
+                this.selectItem(target);
             }
         },
         
@@ -1560,6 +1522,18 @@ function meetingApp() {
             if (this.historyStack.length > APP_CONFIG.history.maxItems) this.historyStack.shift(); 
         },
         
+        commitAgendaChanges(syncTabs = false) {
+            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda));
+            if (syncTabs) {
+                this.buildDisplaySequence();
+                localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+            }
+            this.syncEditorInputs();
+            this.renderPresentationTextPages();
+            this.syncToURL();
+            if (this.isCasting) this.sendStateToCast();
+        },
+
         undoLastAction() {
             if (!this.canUndo) return; 
             const prev = this.historyStack.pop();
@@ -1568,20 +1542,13 @@ function meetingApp() {
             this.currentIndex = prev.currentIndex;
             this.editingMode = prev.editingMode;
             this.currentEditTabId = prev.currentEditTabId;
-            
-            this.buildDisplaySequence();
-            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
-            localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
-            this.syncEditorInputs(); 
-            this.renderPresentationTextPages(); 
-            this.syncToURL();
-            if (this.isCasting) this.sendStateToCast();
+            this.commitAgendaChanges(true);
         },
         
         saveEditorValues() {
             if (!this.editTitle.trim()) return alert("A title is required.");
-            
             this.pushHistoryState();
+            let syncTabs = false;
 
             if (this.editingMode === 'agenda') {
                 if (!this.editTime.trim()) return alert("A time is required for agenda items.");
@@ -1589,8 +1556,6 @@ function meetingApp() {
                 if (this.agenda[this.currentIndex]) this.agenda[this.currentIndex] = payload;
                 else { this.agenda.push(payload); this.currentIndex = this.agenda.length - 1; }
                 this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
-                localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
-                this.renderPresentationTextPages(); 
             } else if (this.editingMode === 'tab') {
                 const tab = this.tabs.find(t => t.id === this.currentEditTabId);
                 if (tab) {
@@ -1598,11 +1563,9 @@ function meetingApp() {
                     tab.title = this.editTitle.trim() || tab.title;
                     tab.content = this.editDetails.trim();
                 }
-                this.buildDisplaySequence();
-                localStorage.setItem(APP_CONFIG.storage.tabsKey, JSON.stringify(this.tabs));
+                syncTabs = true;
             }
-            this.syncToURL();
-            if (this.isCasting) this.sendStateToCast();
+            this.commitAgendaChanges(syncTabs);
         },
         
         addNewItemBelow() {
@@ -1611,11 +1574,7 @@ function meetingApp() {
             this.currentIndex++;
             this.agenda.splice(this.currentIndex, 0, { time: this.editTime.trim() || "12:00 PM", title: this.editTitle.trim() || "New Topic", details: this.editDetails.trim() || "" });
             this.agenda.sort((a, b) => this.parseToMinutes(a.time) - this.parseToMinutes(b.time));
-            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
-            this.syncEditorInputs(); 
-            this.renderPresentationTextPages(); 
-            this.syncToURL();
-            if (this.isCasting) this.sendStateToCast();
+            this.commitAgendaChanges();
         },
         
         deleteCurrentItem() {
@@ -1623,11 +1582,7 @@ function meetingApp() {
             if (this.agenda.length <= 1) return alert("At least one agenda topic is required.");
             this.pushHistoryState(); this.agenda.splice(this.currentIndex, 1);
             this.currentIndex = Math.max(0, this.currentIndex - 1);
-            localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
-            this.syncEditorInputs(); 
-            this.renderPresentationTextPages(); 
-            this.syncToURL();
-            if (this.isCasting) this.sendStateToCast();
+            this.commitAgendaChanges();
         },
 
         renderPresentationTextPages() {
@@ -1752,11 +1707,7 @@ function meetingApp() {
                 
                 this.historyStack = []; 
                 this.agenda = newAgenda; this.currentIndex = 0; this.editingMode = 'agenda';
-                this.buildDisplaySequence();
-                localStorage.setItem(APP_CONFIG.storage.agendaKey, JSON.stringify(this.agenda)); 
-                this.syncEditorInputs(); this.renderPresentationTextPages(); 
-                this.syncToURL();
-                if (this.isCasting) this.sendStateToCast();
+                this.commitAgendaChanges(true);
                 this.importText = '';
             } else alert("Could not parse time indexes.");
         },
@@ -1913,21 +1864,7 @@ function meetingApp() {
             // Remote Control: Switch Sidecard Tab
             if (data.type === 'SWITCH_TAB') {
                 const target = data.activeTabId !== undefined ? data.activeTabId : (data.tabId === 'agenda' ? null : data.tabId);
-                this.switchTabTo(target);
-                if (target === null) {
-                    if (this.currentIndex === this.getScheduledAgendaIndex()) {
-                        this.resumeAuto();
-                    } else {
-                        this.isPlaying = false;
-                        this.displayIndex = 0;
-                        this.displayTime = 0;
-                    }
-                } else {
-                    this.isPlaying = false;
-                    let idx = this.displaySequence.indexOf(target);
-                    if (idx !== -1) this.displayIndex = idx;
-                    this.displayTime = 0;
-                }
+                this.setActiveTab(target, false);
                 return;
             }
 
@@ -2007,6 +1944,27 @@ function meetingApp() {
             this.sendCastAction({ type: 'REQUEST_STATUS' });
             setTimeout(() => this.sendCastAction({ type: 'REQUEST_STATUS' }), 600);
             setTimeout(() => this.sendCastAction({ type: 'REQUEST_STATUS' }), 1500);
+        },
+
+        handleSenderCastMessage(data) {
+            if (!data) return;
+            if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch(e) { return; }
+            }
+            if (data.type === 'RECEIVER_READY') {
+                this.sendStateToCast();
+            } else if (data.type === 'RECEIVER_STATUS') {
+                this.handleReceiverStatus(data);
+            }
+        },
+
+        attachSenderCastListener(session) {
+            if (!session) return;
+            try {
+                session.addMessageListener(APP_CONFIG.cast.namespace, (ns, msg) => {
+                    this.handleSenderCastMessage(msg);
+                });
+            } catch(e) {}
         },
 
         handleReceiverStatus(data) {
@@ -2172,33 +2130,31 @@ function meetingApp() {
         },
 
         stopCast() {
-            if (window.cast && cast.framework && cast.framework.CastContext) {
-                try {
-                    const castContext = cast.framework.CastContext.getInstance();
-                    castContext.endCurrentSession(true); // true = close receiver on TV
-                } catch(e) {}
-            }
-            if (this.castConnection) {
-                try { this.castConnection.terminate(); } catch(e) {}
-                this.castConnection = null;
-            }
-            this.isCasting = false;
-            localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
-            if (this.$refs.castModal) this.$refs.castModal.close();
+            this.endCastSession(true);
         },
 
         disconnectPhone() {
+            this.endCastSession(false);
+        },
+
+        endCastSession(terminateReceiver = false) {
             if (window.cast && cast.framework && cast.framework.CastContext) {
                 try {
                     const castContext = cast.framework.CastContext.getInstance();
-                    castContext.endCurrentSession(false); // false = keep receiver running on TV!
+                    castContext.endCurrentSession(terminateReceiver);
                 } catch(e) {}
             }
             if (this.castConnection) {
-                try { this.castConnection.close(); } catch(e) {}
+                try {
+                    if (terminateReceiver) this.castConnection.terminate();
+                    else this.castConnection.close();
+                } catch(e) {}
                 this.castConnection = null;
             }
             this.isCasting = false;
+            if (terminateReceiver) {
+                localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
+            }
             if (this.$refs.castModal) this.$refs.castModal.close();
         },
 
