@@ -33,6 +33,8 @@
     - Button Accessibility: Buttons retain visible borders and high contrast.
     - Play/Pause Visibility: In standalone controller views, pause button defaults to semi-transparent (while playing) and "Resume" button defaults to opaque (while paused).
     - Responsive: Landscape mode uses a two-column grid. Portrait mode collapses into a stacked single-column flex layout.
+    - Mobile Input Stability: Input fields and textareas lock to a 16px base font size to prevent mobile browser auto-zoom, and `--vh` recalculation is suppressed while text editing is active to avoid keyboard open/close viewport bouncing.
+    - Management Portrait Usability: Management view uses dedicated compact font sizes and tightened padding in portrait orientation to match the usability and ergonomics of landscape view.
 
     4. SIDE CARDS / TABS
     - Tab buttons: Displayed as vertical tabs anchored to the right edge.
@@ -122,12 +124,21 @@
     <!-- Viewport Height Fix for Mobile Apps -->
     <script>
         function setViewportHeight() {
+            // Avoid shrinking viewport and reflowing layout while virtual keyboard is open
+            if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
         }
         setViewportHeight();
         window.addEventListener('resize', setViewportHeight);
-        window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 100));
+        window.addEventListener('orientationchange', () => setTimeout(setViewportHeight, 150));
+        window.addEventListener('focusout', (e) => {
+            if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                setTimeout(setViewportHeight, 200);
+            }
+        });
     </script>
 
     <!-- ========================================== -->
@@ -452,29 +463,29 @@
 
         .management-view { background: var(--pico-secondary-background); gap: 12px; display: grid; grid-template-columns: minmax(260px, var(--proto-left-col, 35%)) 1fr; grid-template-rows: auto 1fr; position: relative; }
         .management-view article { margin-bottom: 0; padding: 12px 16px; display: flex; flex-direction: column; border-radius: 8px; border: 1px solid var(--pico-muted-border-color); }
-        .management-view label { font-size: clamp(0.75rem, 1.5vh, 1.2rem); font-weight: 700; margin-bottom: 0; }
-        .management-view input, .management-view textarea { margin-bottom: 0; padding: 4px 8px; height: auto; font-size: clamp(0.8rem, 2vh, 1.5rem); }
-        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; }
+        .management-view label { font-size: clamp(0.75rem, 1.2vh, 0.95rem); font-weight: 700; margin-bottom: 2px; }
+        .management-view input, .management-view textarea { margin-bottom: 0; padding: 5px 8px; height: auto; font-size: 16px; }
+        .management-view textarea { padding: 6px 8px; flex-grow: 1; min-height: 60px; resize: none; white-space: pre-wrap; font-size: 16px; }
 
         .timeline-container { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
         .timeline-box { flex-grow: 1; overflow: hidden; padding: 0 !important; min-height: 0; border: 1px solid var(--pico-muted-border-color); display: flex; flex-direction: column; }
-        .timeline-header { padding: 10px 16px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
-        .timeline-header span { font-size: clamp(0.75rem, 1.5vh, 1.2rem); font-weight: 700; }
+        .timeline-header { padding: 8px 14px; background: var(--pico-table-row-stripped-background-color); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--pico-muted-border-color); flex-shrink: 0; }
+        .timeline-header span { font-size: clamp(0.75rem, 1.2vh, 0.95rem); font-weight: 700; }
         .timeline-rows { flex-grow: 1; overflow-y: auto; min-height: 0; }
-        .timeline-item { display: flex; align-items: center; padding: 9px 16px 9px 12px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: calc(clamp(0.8rem, 1.8vh, 1.4rem) * var(--proto-scale, 1)); }
+        .timeline-item { display: flex; align-items: center; padding: 8px 14px 8px 10px; border-left: 5px solid transparent; border-bottom: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: background 0.2s; font-size: calc(clamp(0.78rem, 1.3vh, 1.05rem) * var(--proto-scale, 1)); }
         .timeline-item:hover { background: var(--pico-primary-hover-background); }
         .timeline-item.active { background: var(--active-bg); color: var(--active-txt); border-left: 5px solid var(--active-border); font-weight: 700; }
-        .item-time { width: 85px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
-        .item-status-col { width: 85px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0; }
+        .item-time { width: 80px; font-weight: 700; color: #0284c7; flex-shrink: 0; }
+        .item-status-col { width: 80px; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; flex-shrink: 0; }
         .item-text { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .control-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; justify-content: flex-end; }
+        .control-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; flex-shrink: 0; justify-content: flex-end; }
         .control-bar [role="group"] { margin-bottom: 0; }
-        .control-bar button { padding: 6px 12px; font-size: clamp(0.68rem, 1.5vh, 1.2rem); font-weight: 700; }
+        .control-bar button { padding: 5px 12px; font-size: clamp(0.7rem, 1.2vh, 0.95rem); font-weight: 700; }
 
         .top-nav-row { display: flex; align-items: center; }
         .top-nav-row [role="group"] { margin-bottom: 0; }
-        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.68rem, 1.5vh, 1.2rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--btn-border) !important; }
+        .top-nav-row button { padding: 4px 12px; font-size: clamp(0.7rem, 1.2vh, 0.95rem); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--btn-border) !important; }
         .top-nav-right { justify-content: flex-end; }
         
         .centered-button-group { display: flex !important; width: 100%; justify-content: center; flex-wrap: wrap; }
@@ -490,7 +501,8 @@
 
         /* PORTRAIT SCALING LOCK (Reverts vh scaling back to safe readable limits on mobile portrait) */
         @media (orientation: portrait) {
-            .presentation-view, .management-view { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+            .presentation-view { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+            .management-view { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
             .presentation-grid { display: flex; flex-direction: column; gap: 12px; height: 100%; }
             .status-panel { display: contents; }
             .status-panel::after { display: none; }
@@ -498,7 +510,7 @@
             .details-panel, .tab-content-area { width: 100% !important; padding-right: 25px; } 
             .next-up-container { order: 3; width: 98% !important; max-width: 98% !important; margin-top: auto; }
             .top-nav-row, .top-nav-right { justify-content: center; }
-            .timeline-container { height: 45%; max-height: none; flex-shrink: 0; }
+            .timeline-container { height: 42%; max-height: none; flex-shrink: 0; }
             .editor-column-wrapper { flex-grow: 1; min-height: 0; }
             .presentation-controls-cluster { bottom: 10px; right: 10px; gap: 6px; }
             .presentation-cast-btn { width: 34px; height: 34px; }
@@ -518,6 +530,24 @@
             .vertical-tab { font-size: calc(1rem * var(--proto-scale, 1)); padding: 16px 8px; }
             .playback-toggle-btn { font-size: calc(0.9rem * var(--proto-scale, 1)); padding: 6px 14px; }
             .playback-playing { font-size: calc(1.5rem * var(--proto-scale, 1)); }
+
+            /* Management View Portrait Locks (Clean, compact typography matching landscape usability) */
+            .management-view article { padding: 8px 12px; gap: 4px; }
+            .management-view label { font-size: 0.78rem; font-weight: 700; margin-bottom: 2px; }
+            .management-view input, .management-view textarea { font-size: 16px; padding: 4px 8px; }
+            .management-view textarea { min-height: 55px; }
+            .timeline-box { gap: 0; }
+            .timeline-header { padding: 6px 12px; }
+            .timeline-header span { font-size: 0.78rem; font-weight: 700; }
+            .timeline-item { padding: 6px 10px; font-size: calc(0.78rem * var(--proto-scale, 1)); }
+            .item-time { width: 72px; font-size: 0.78rem; }
+            .item-status-col { width: 70px; font-size: 0.7rem; }
+            .item-text { font-size: 0.78rem; }
+            .top-nav-row { margin-bottom: 2px; }
+            .top-nav-row button { padding: 3px 8px; font-size: 0.72rem; }
+            .control-bar { gap: 6px; margin-top: 6px; }
+            .control-bar button { padding: 4px 10px; font-size: 0.75rem; }
+            .timestamp-text { font-size: 0.7rem; }
         }
 
         /* MOBILE LANDSCAPE SCALING LOCK (Reverts to safe vw bounds for short phone screens) */
@@ -537,6 +567,18 @@
             .tv-paused-badge { bottom: 10px; right: 25px; font-size: calc(0.8rem * var(--proto-scale, 1)); padding: 4px 12px; }
             .playback-toggle-btn { font-size: calc(0.8rem * var(--proto-scale, 1)); padding: 4px 14px; }
             .playback-playing { font-size: calc(1.4rem * var(--proto-scale, 1)); }
+
+            /* Management View Landscape Locks */
+            .management-view article { padding: 6px 10px; }
+            .management-view label { font-size: 0.72rem; }
+            .management-view input, .management-view textarea { font-size: 16px; padding: 3px 6px; }
+            .timeline-header { padding: 4px 10px; }
+            .timeline-header span { font-size: 0.72rem; }
+            .timeline-item { padding: 4px 8px; font-size: calc(0.75rem * var(--proto-scale, 1)); }
+            .item-time { width: 70px; font-size: 0.75rem; }
+            .item-status-col { width: 68px; font-size: 0.68rem; }
+            .control-bar button { padding: 3px 8px; font-size: 0.72rem; }
+            .top-nav-row button { padding: 2px 8px; font-size: 0.7rem; }
         }
     </style>
 </head>
@@ -691,7 +733,7 @@
             <article class="timeline-box">
                 <div class="timeline-header">
                     <span>Elements & Agenda</span>
-                    <button class="primary" style="padding: 4px 10px; margin-bottom: 0; font-size: clamp(0.7rem, 1.5vh, 1.2rem); line-height: 1.2;" x-show="!isPlaying" @click="resumeAuto()">Resume Auto</button>
+                    <button class="primary" style="padding: 3px 10px; margin-bottom: 0; font-size: 0.75rem; line-height: 1.2;" x-show="!isPlaying" @click="resumeAuto()">Resume Auto</button>
                 </div>
                 <div class="timeline-rows">
                     <template x-for="tab in tabs" :key="'m_'+tab.id">

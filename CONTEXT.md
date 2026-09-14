@@ -131,6 +131,8 @@ const APP_CONFIG = {
 ### Typography & Mobile Responsiveness
 - **Landscape Scaling:** Text and UI scale proportionally via `clamp()` and `vh` units so projector displays (low or high res) remain legible.
 - **Portrait Lock:** In portrait orientation (used when editing on a phone), typography decouples from `vh` to prevent oversized text from overflowing the viewport.
+- **Management View Usability:** In mobile portrait, the Management View uses dedicated compact typography and tightened padding matching landscape usability to maximize screen real estate for the timeline and editor.
+- **Mobile Input Stability & Keyboard Protection:** Form inputs and textareas use a fixed base font size (16px) to eliminate mobile browser auto-zoom, and `--vh` calculation is suppressed while text inputs are actively focused to prevent keyboard open/close viewport bouncing and scroll re-snapping.
 - **Fluid Lists:** List indents scale with font size so bullets never clip outside containers.
 - **Mobile Viewport Fix (`--vh`):** A custom JS handler calculates real viewport height on resize and orientation shifts to counteract mobile browser UI address bars and Android PWA launch rendering races.
 
