@@ -1459,6 +1459,7 @@ function meetingApp() {
         },
         
         toggleFullscreen() {
+            this.requestWakeLock();
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
                     alert(`Error attempting to enable fullscreen: ${err.message}. (Note: iOS does not support true fullscreen in the browser, please use 'Add to Home Screen' via the share menu instead.)`);
