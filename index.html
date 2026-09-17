@@ -66,7 +66,7 @@
 
     8. PRESENTATION DISPLAY & SCALING
     - Landscape Scaling: Text and UI elements scale proportionally, looking harmonious and filling landscape screens of all resolutions.
-    - TV Details Viewport: Sized proportionally via `clamp(0.95rem, 3.8vh, 3.0rem)` to prevent excessive pagination blowouts on large TV displays.
+    - TV Details Viewport: Sized proportionally via `clamp(0.95rem, 4.4vh, 3.5rem)` specifically on `body.presentation-only`, rendering at ~47.5px on 1080p displays for optimal viewing distance without multi-page pagination blowouts.
     - Twemoji Polyfill: Twemoji dynamically converts emoji characters to inline SVGs so legacy Cast devices (e.g. 2018 Chromecast 3rd Gen) without native OS emoji glyphs render emojis consistently without tofu boxes.
     - Next Up Two-Line Layout: Next Up card splits into Line 1 (flex row: `NEXT UP` label + scheduled time) and Line 2 (agenda title, falling back to 'Adjournment').
     - Mobile Portrait Lock: In portrait mode, text sizing decouples from screen height to maintain a compact, readable layout.
@@ -89,6 +89,7 @@
     - Ghost State Purging & Permanent Disconnect Detection:
       * If TV is powered off, or user leaves Wi-Fi (`NO_DEVICES_AVAILABLE`, probe timeout of 3s, or socket action error), phone immediately purges `isCasting = false` and clears cached session keys. The app never pretends to be casting when disconnected.
     - Live Prototyper Sizing Sync: Slider adjustments made on a connected controller synchronize to the casted TV in real-time, allowing live on-screen tuning.
+    - Remote Side-Tab Control: Clicking "Agenda" tab normalizes to null/agenda, cleanly clears visibleTabs via array mutation and DOM cleanup, and signals the TV receiver to collapse any active sidecards back to agenda milestone details.
     - Autonomous Receiver: Receiver URLs (`?view=presentation&autoplay=1#agenda=...`) run autonomously on their own local wall clock without requiring an active sender.
     - Controller Lifecycle: Disconnecting the phone session detaches the controller without terminating the TV presentation. Explicit stop commands receiver termination.
 ========================================== -->
@@ -488,7 +489,7 @@
         .tab-content-area.dealt { transform: translateX(0); }
 
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: calc(clamp(0.95rem, 5vh, 4rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); line-height: 1.5; }
-        body.presentation-only .details-panel .details-viewport { font-size: calc(clamp(0.95rem, 3.8vh, 3.0rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
+        body.presentation-only .details-panel .details-viewport { font-size: calc(clamp(0.95rem, 4.4vh, 3.5rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
         .details-page.active { opacity: 1; transform: translateY(0); }
         .details-viewport ul { padding-left: 1.5em; margin-top: 0.5em; }
@@ -1418,15 +1419,21 @@ function meetingApp() {
         },
 
         switchTabTo(targetId) {
-            this.activeTabId = targetId;
-            if (targetId === null) {
+            const cleanTarget = (targetId === 'agenda' || targetId === '' || !targetId) ? null : targetId;
+            this.activeTabId = cleanTarget;
+            if (cleanTarget === null) {
+                if (this.visibleTabs && this.visibleTabs.splice) {
+                    this.visibleTabs.splice(0, this.visibleTabs.length);
+                }
                 this.visibleTabs = [];
+                // Direct DOM safeguard to guarantee sidecard slide-out transition even if outside Alpine tick
+                document.querySelectorAll('.tab-content-area').forEach(el => el.classList.remove('dealt'));
             } else {
-                if (!this.visibleTabs.includes(targetId)) {
-                    this.visibleTabs.push(targetId);
+                if (!this.visibleTabs.includes(cleanTarget)) {
+                    this.visibleTabs.push(cleanTarget);
                 } else {
-                    this.visibleTabs = this.visibleTabs.filter(id => id !== targetId);
-                    this.visibleTabs.push(targetId);
+                    this.visibleTabs = this.visibleTabs.filter(id => id !== cleanTarget);
+                    this.visibleTabs.push(cleanTarget);
                 }
                 setTimeout(() => this.triggerTwemojiParse(), 50);
             }
@@ -1438,14 +1445,20 @@ function meetingApp() {
         },
 
         setActiveTab(targetId, isUserAction = false) {
-            this.switchTabTo(targetId);
+            const cleanTarget = (targetId === 'agenda' || targetId === '' || !targetId) ? null : targetId;
+            this.switchTabTo(cleanTarget);
             this.isPlaying = false;
-            let idx = targetId === null ? 0 : this.displaySequence.indexOf(targetId);
+            let idx = cleanTarget === null ? 0 : this.displaySequence.indexOf(cleanTarget);
             if (idx !== -1) this.displayIndex = idx;
             this.displayTime = 0;
             if (isUserAction) {
                 this.requestWakeLock();
-                this.sendCastAction({ type: 'SWITCH_TAB', activeTabId: this.activeTabId, isPlaying: this.isPlaying });
+                this.sendCastAction({ 
+                    type: 'SWITCH_TAB', 
+                    activeTabId: this.activeTabId, 
+                    tabId: this.activeTabId === null ? 'agenda' : this.activeTabId, 
+                    isPlaying: this.isPlaying 
+                });
             }
         },
 
@@ -1466,6 +1479,9 @@ function meetingApp() {
                 let target = this.displaySequence[this.displayIndex];
                 let targetId = target === 'agenda' ? null : target;
                 this.switchTabTo(targetId);
+                if (this.isPresentationOnly) {
+                    this.broadcastReceiverStatus();
+                }
             }
         },
 
@@ -2023,8 +2039,12 @@ function meetingApp() {
 
             // Remote Control: Switch Sidecard Tab
             if (data.type === 'SWITCH_TAB') {
-                const target = data.activeTabId !== undefined ? data.activeTabId : (data.tabId === 'agenda' ? null : data.tabId);
+                let rawTarget = data.activeTabId !== undefined ? data.activeTabId : data.tabId;
+                const target = (rawTarget === 'agenda' || rawTarget === '' || !rawTarget) ? null : rawTarget;
                 this.setActiveTab(target, false);
+                if (target === null) {
+                    this.renderPresentationTextPages();
+                }
                 this.triggerTwemojiParse();
                 if (data.isPlaying !== undefined) {
                     this.isPlaying = !!data.isPlaying;

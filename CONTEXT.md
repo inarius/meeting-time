@@ -150,10 +150,12 @@ const APP_CONFIG = {
 - Three fixed tabs: **Patrols** (`#16a34a` green), **Dates** (`#2563eb` blue), and **Announcements** (`#ea580c` orange).
 - **Deck-Dealing Animation:** Enabled side cards slide in from the right edge (`translateX(0)`), overlaying the main agenda, and slide back out when returning to the agenda.
 - **Visual Cues:** Tab progress bars fill during the display cycle; a `@keyframes softTug` bounce triggers 3 seconds before transition as a visual notice.
+- **Remote Side-Tab Control:** Clicking the "Agenda" tab on a connected controller normalizes target to `null`/`agenda`, clears `visibleTabs` on both phone and TV, and applies direct DOM `.dealt` cleanup to immediately collapse side-cards on the TV.
 - **Debug Panel:** Includes a "Fast Cycle Simulation" (5s mode) accessible via the discreet `⚙️ Debug` link in the Management View to quickly test tab rotations.
 
 ### Typography & Mobile Responsiveness
 - **Landscape Scaling:** Text and UI scale proportionally via `clamp()` and `vh` units so projector displays (low or high res) remain legible.
+- **TV Details Viewport:** Dedicated sizing on `body.presentation-only .details-panel .details-viewport` via `clamp(0.95rem, 4.4vh, 3.5rem)`, producing ~47.5px at 1080p. This hits the ideal balance between long-distance readability and preventing multi-page carousel blowouts.
 - **Portrait Lock:** In portrait orientation (used when editing on a phone), typography decouples from `vh` to prevent oversized text from overflowing the viewport.
 - **Management View Usability:** In mobile portrait, the Management View uses dedicated compact typography and tightened padding matching landscape usability to maximize screen real estate for the timeline and editor.
 - **Mobile Input Stability & Keyboard Protection:** Form inputs and textareas use a fixed base font size (16px) to eliminate mobile browser auto-zoom, and `--vh` calculation is suppressed while text inputs are actively focused to prevent keyboard open/close viewport bouncing and scroll re-snapping.
