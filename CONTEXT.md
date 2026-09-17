@@ -192,6 +192,7 @@ The app is currently configured with the **Harmonic Proportional** base profile 
   - `--proto-nextup-scale`: `0.95` (Legacy Next Up card multiplier)
 - **Management View Continuity (`body.proto-mgmt-continuity`)**: Active by default. Aligns Management View column width, card borders, and timeline row font sizing with the presentation styling.
 - **Dynamic Text Pagination**: `renderPresentationTextPages()` uses computed style font sizing and line height to guarantee accurate page splits across all scales.
+- **Live TV Synchronization over Cast**: When actively connected to a TV (`isCasting`), slider adjustments and default resets stream to the cast receiver in real-time (`SET_PROTO` with a 50ms trailing debounce) and are bundled into `SYNC_STATE`. This allows hands-on tuning of TV presentation typography and layout directly from a phone controller.
 - **Further Prototyping on Mobile**: The user can open `⚙️ Debug` on their phone to adjust sliders, test in landscape/portrait, or tap `📋 Copy Config` to export updated values.
 
 ---

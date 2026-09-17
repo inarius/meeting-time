@@ -61,6 +61,7 @@
     - Fast Cycle: Replaces normal display duration with a rapid 5-second cycle for rapid visual testing of tab rotations and animations.
     - Monitor: Real-time read-out of the Screen Wake Lock API status (Active, Released, Failed, Unsupported).
     - Scaling Sliders: Global, Left Column, Heading, Details, NOW & Clock, Next Up Header/Time, and Next Up Title scaling sliders.
+    - Live TV Sync: When casting, slider movements and default resets stream in real-time (`SET_PROTO`) to the casted TV presentation for live visual tuning.
     - Clear: Destructive button clears all local storage.
 
     8. PRESENTATION DISPLAY & SCALING
@@ -87,6 +88,7 @@
       * Upon phone wake (`visibilitychange`), phone silently probes the Cast connection and syncs state (`REQUEST_STATUS`).
     - Ghost State Purging & Permanent Disconnect Detection:
       * If TV is powered off, or user leaves Wi-Fi (`NO_DEVICES_AVAILABLE`, probe timeout of 3s, or socket action error), phone immediately purges `isCasting = false` and clears cached session keys. The app never pretends to be casting when disconnected.
+    - Live Prototyper Sizing Sync: Slider adjustments made on a connected controller synchronize to the casted TV in real-time, allowing live on-screen tuning.
     - Autonomous Receiver: Receiver URLs (`?view=presentation&autoplay=1#agenda=...`) run autonomously on their own local wall clock without requiring an active sender.
     - Controller Lifecycle: Disconnecting the phone session detaches the controller without terminating the TV presentation. Explicit stop commands receiver termination.
 ========================================== -->
@@ -906,7 +908,7 @@
         <header style="margin-bottom: 12px;"><strong>Developer Debug & Prototyping</strong></header>
         
         <details open style="margin-bottom: 12px; border: 1px solid var(--pico-muted-border-color); padding: 10px; border-radius: 8px;">
-            <summary style="font-weight: 700; cursor: pointer;">🎨 Scaling & Layout Adjustments</summary>
+            <summary style="font-weight: 700; cursor: pointer;">🎨 Scaling & Layout Adjustments <span x-show="isCasting" style="font-size: 0.72rem; color: #0284c7; font-weight: normal; margin-left: 6px;">(📡 Live TV Sync Active)</span></summary>
             <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <label style="font-size: 0.75rem; margin-bottom: 0;">Global Scale: <strong x-text="proto.scale + '%'"></strong>
@@ -1073,6 +1075,8 @@ function meetingApp() {
 
         /* Scaling & Layout State */
         proto: { ...PROTO_DEFAULTS },
+        _protoSyncTimer: null,
+        _lastProtoSync: 0,
 
         applyProtoStyles() {
             const root = document.documentElement;
@@ -1089,12 +1093,44 @@ function meetingApp() {
                 sessionStorage.setItem('boardProtoSettings', JSON.stringify(this.proto));
             } catch(e) {}
             this.renderPresentationTextPages();
+
+            if (this.isCasting && !this.isPresentationOnly) {
+                this.syncProtoToCast();
+            }
+        },
+
+        syncProtoToCast(immediate = false) {
+            if (!this.isCasting || this.isPresentationOnly) return;
+            if (this._protoSyncTimer) {
+                clearTimeout(this._protoSyncTimer);
+                this._protoSyncTimer = null;
+            }
+            const doSend = () => {
+                this._lastProtoSync = Date.now();
+                this.sendCastAction({ 
+                    type: 'SET_PROTO', 
+                    proto: JSON.parse(JSON.stringify(this.proto)) 
+                });
+            };
+            if (immediate) {
+                doSend();
+                return;
+            }
+            const now = Date.now();
+            if (!this._lastProtoSync || (now - this._lastProtoSync > 50)) {
+                doSend();
+            } else {
+                this._protoSyncTimer = setTimeout(doSend, 50);
+            }
         },
 
         resetProtoToDefaults() {
             sessionStorage.removeItem('boardProtoSettings');
             Object.assign(this.proto, PROTO_DEFAULTS);
             this.applyProtoStyles();
+            if (this.isCasting && !this.isPresentationOnly) {
+                this.syncProtoToCast(true);
+            }
         },
 
         copyProtoSettings() {
@@ -1940,6 +1976,13 @@ function meetingApp() {
                 return;
             }
 
+            // Remote Control: Live Prototyper Scale Sync
+            if (data.type === 'SET_PROTO' && data.proto) {
+                Object.assign(this.proto, data.proto);
+                this.applyProtoStyles();
+                return;
+            }
+
             // Sync theme
             if (data.theme) {
                 this.isDark = (data.theme === 'dark');
@@ -1999,6 +2042,11 @@ function meetingApp() {
             // Full State Sync (SYNC_STATE)
             const isFirstLoad = !this.hasReceivedCastState;
             this.hasReceivedCastState = true;
+
+            if (data.proto) {
+                Object.assign(this.proto, data.proto);
+                this.applyProtoStyles();
+            }
 
             if (data.agenda && Array.isArray(data.agenda) && data.agenda.length > 0) {
                 this.agenda = JSON.parse(JSON.stringify(data.agenda));
@@ -2100,7 +2148,7 @@ function meetingApp() {
         },
 
         sendCastAction(payload) {
-            if (!this.isCasting) return;
+            if (!this.isCasting || this.isPresentationOnly) return;
             // Send via Google Cast Web SDK session
             if (window.cast && cast.framework && cast.framework.CastContext) {
                 try {
@@ -2134,7 +2182,8 @@ function meetingApp() {
                 agenda: JSON.parse(JSON.stringify(this.agenda)),
                 tabs: JSON.parse(JSON.stringify(this.tabs)),
                 theme: this.isDark ? 'dark' : 'light',
-                hash: window.location.hash
+                hash: window.location.hash,
+                proto: JSON.parse(JSON.stringify(this.proto))
             };
             this.sendCastAction(payload);
         },
