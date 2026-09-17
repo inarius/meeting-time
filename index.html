@@ -206,10 +206,10 @@
             scale: 100,
             leftCol: 35,
             titleScale: 95,
-            detailsScale: 95,
-            nowScale: 115,
-            nextUpHeaderScale: 100,
-            nextUpTitleScale: 100,
+            detailsScale: 100,
+            nowScale: 140,
+            nextUpHeaderScale: 140,
+            nextUpTitleScale: 130,
             nextUpScale: 95
         };
     </script>
@@ -233,7 +233,10 @@
             --proto-scale: 1;
             --proto-left-col: 35%;
             --proto-title-scale: 0.95;
-            --proto-details-scale: 0.95;
+            --proto-details-scale: 1;
+            --proto-now-scale: 1.4;
+            --proto-nextup-header-scale: 1.4;
+            --proto-nextup-title-scale: 1.3;
             --proto-nextup-scale: 0.95;
         }
         html[data-theme="dark"] {
@@ -448,10 +451,10 @@
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
         .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: calc(clamp(0.85rem, 3.5vh, 2.5rem) * var(--proto-scale, 1)); font-weight: 800; margin-bottom: 16px; white-space: normal; line-height: 1.3; }
-        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: calc(clamp(0.75rem, 2.5vh, 2rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); text-transform: uppercase; }
+        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: calc(clamp(0.75rem, 2.5vh, 2rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.4)); text-transform: uppercase; }
         .current-title { font-size: calc(clamp(1.2rem, 7vh, 6rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
         .current-time-box { font-size: calc(clamp(0.9rem, 4vh, 3.5rem) * var(--proto-scale, 1)); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
-        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: calc(clamp(0.7rem, 2.5vh, 2rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
+        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: calc(clamp(0.7rem, 2.5vh, 2rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.4)); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
         .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; width: 100%; }
         .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; font-size: calc(clamp(0.9rem, 3vh, 2rem) * var(--proto-scale, 1)); }
@@ -465,9 +468,9 @@
 
         @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
         .next-header-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%; }
-        .next-label { font-size: calc(clamp(0.75rem, 2.6vh, 2.0rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
-        .next-time { font-size: calc(clamp(0.75rem, 2.6vh, 2.0rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); color: #7e22ce; font-weight: 800; }
-        .next-title { font-size: calc(clamp(0.85rem, 3.2vh, 2.3rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.0)); font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .next-label { font-size: calc(clamp(0.75rem, 2.6vh, 2.0rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.4)); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
+        .next-time { font-size: calc(clamp(0.75rem, 2.6vh, 2.0rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.4)); color: #7e22ce; font-weight: 800; }
+        .next-title { font-size: calc(clamp(0.85rem, 3.2vh, 2.3rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.3)); font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         .details-panel { position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; display: flex; flex-direction: column; overflow: hidden; z-index: 1; }
@@ -551,12 +554,12 @@
             
             /* Text Locks */
             .meeting-title-bar { font-size: calc(clamp(0.9rem, 3vw, 1.2rem) * var(--proto-scale, 1)); }
-            .current-meta { font-size: calc(clamp(0.8rem, 2vw, 1rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
+            .current-meta { font-size: calc(clamp(0.8rem, 2vw, 1rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.4)); }
             .current-title { font-size: calc(clamp(1.8rem, 7vw, 2.5rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); }
             .current-time-box { font-size: calc(clamp(1rem, 4vw, 1.4rem) * var(--proto-scale, 1)); }
-            .system-clock { font-size: calc(clamp(0.75rem, 2vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
-            .next-label, .next-time { font-size: calc(clamp(0.75rem, 2.2vw, 0.95rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); }
-            .next-title { font-size: calc(clamp(0.85rem, 2.8vw, 1.15rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.0)); }
+            .system-clock { font-size: calc(clamp(0.75rem, 2vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.4)); }
+            .next-label, .next-time { font-size: calc(clamp(0.75rem, 2.2vw, 0.95rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.4)); }
+            .next-title { font-size: calc(clamp(0.85rem, 2.8vw, 1.15rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.3)); }
             .details-viewport { font-size: calc(clamp(1.25rem, 5.2vw, 1.6rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
             .tab-content-area h2 { font-size: calc(clamp(1.3rem, 6vw, 1.8rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)) !important; margin-bottom: 8px !important; }
             .vertical-tab { font-size: calc(1rem * var(--proto-scale, 1)); padding: 16px 8px; }
@@ -585,12 +588,12 @@
         /* MOBILE LANDSCAPE SCALING LOCK (Reverts to safe vw bounds for short phone screens) */
         @media (max-height: 600px) and (orientation: landscape) {
             .meeting-title-bar { font-size: calc(clamp(0.85rem, 1.5vw, 1.1rem) * var(--proto-scale, 1)); margin-bottom: 12px; }
-            .current-meta { font-size: calc(clamp(0.75rem, 1.5vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
+            .current-meta { font-size: calc(clamp(0.75rem, 1.5vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.4)); }
             .current-title { font-size: calc(clamp(1.2rem, 3vw, 2.2rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); margin-top: 6px; }
             .current-time-box { font-size: calc(clamp(0.9rem, 1.8vw, 1.2rem) * var(--proto-scale, 1)); }
-            .system-clock { font-size: calc(clamp(0.7rem, 1.2vw, 0.85rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
-            .next-label, .next-time { font-size: calc(clamp(0.72rem, 1.4vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); }
-            .next-title { font-size: calc(clamp(0.8rem, 1.6vw, 1.05rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.0)); }
+            .system-clock { font-size: calc(clamp(0.7rem, 1.2vw, 0.85rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.4)); }
+            .next-label, .next-time { font-size: calc(clamp(0.72rem, 1.4vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.4)); }
+            .next-title { font-size: calc(clamp(0.8rem, 1.6vw, 1.05rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.3)); }
             .details-viewport { font-size: calc(clamp(1.1rem, 2.3vw, 1.45rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
             .tab-content-area h2 { font-size: calc(clamp(1.2rem, 3vw, 1.8rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); }
             .vertical-tab { font-size: calc(0.9rem * var(--proto-scale, 1)); padding: 16px 8px; }
@@ -925,15 +928,15 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <label style="font-size: 0.75rem; margin-bottom: 0;">NOW & Clock: <strong x-text="proto.nowScale + '%'"></strong>
-                        <input type="range" min="80" max="140" step="1" x-model.number="proto.nowScale" @input="applyProtoStyles()">
+                        <input type="range" min="80" max="170" step="1" x-model.number="proto.nowScale" @input="applyProtoStyles()">
                     </label>
                     <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Header/Time: <strong x-text="proto.nextUpHeaderScale + '%'"></strong>
-                        <input type="range" min="80" max="140" step="1" x-model.number="proto.nextUpHeaderScale" @input="applyProtoStyles()">
+                        <input type="range" min="80" max="170" step="1" x-model.number="proto.nextUpHeaderScale" @input="applyProtoStyles()">
                     </label>
                 </div>
 
                 <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Title: <strong x-text="proto.nextUpTitleScale + '%'"></strong>
-                    <input type="range" min="70" max="130" step="1" x-model.number="proto.nextUpTitleScale" @input="applyProtoStyles()">
+                    <input type="range" min="70" max="160" step="1" x-model.number="proto.nextUpTitleScale" @input="applyProtoStyles()">
                 </label>
 
                 <div style="display: flex; gap: 8px; margin-top: 6px;">
@@ -1076,10 +1079,10 @@ function meetingApp() {
             root.style.setProperty('--proto-scale', this.proto.scale / 100);
             root.style.setProperty('--proto-left-col', `${this.proto.leftCol}%`);
             root.style.setProperty('--proto-title-scale', this.proto.titleScale / 100);
-            root.style.setProperty('--proto-details-scale', this.proto.detailsScale / 100);
-            root.style.setProperty('--proto-now-scale', (this.proto.nowScale || 115) / 100);
-            root.style.setProperty('--proto-nextup-header-scale', (this.proto.nextUpHeaderScale || 100) / 100);
-            root.style.setProperty('--proto-nextup-title-scale', (this.proto.nextUpTitleScale || 100) / 100);
+            root.style.setProperty('--proto-details-scale', (this.proto.detailsScale || 100) / 100);
+            root.style.setProperty('--proto-now-scale', (this.proto.nowScale || 140) / 100);
+            root.style.setProperty('--proto-nextup-header-scale', (this.proto.nextUpHeaderScale || 140) / 100);
+            root.style.setProperty('--proto-nextup-title-scale', (this.proto.nextUpTitleScale || 130) / 100);
             root.style.setProperty('--proto-nextup-scale', this.proto.nextUpScale / 100);
             
             try {
@@ -1099,10 +1102,10 @@ function meetingApp() {
                 scale: `${this.proto.scale}%`,
                 leftCol: `${this.proto.leftCol}%`,
                 titleScale: `${this.proto.titleScale}%`,
-                detailsScale: `${this.proto.detailsScale}%`,
-                nowScale: `${this.proto.nowScale || 115}%`,
-                nextUpHeaderScale: `${this.proto.nextUpHeaderScale || 100}%`,
-                nextUpTitleScale: `${this.proto.nextUpTitleScale || 100}%`
+                detailsScale: `${this.proto.detailsScale || 100}%`,
+                nowScale: `${this.proto.nowScale || 140}%`,
+                nextUpHeaderScale: `${this.proto.nextUpHeaderScale || 140}%`,
+                nextUpTitleScale: `${this.proto.nextUpTitleScale || 130}%`
             }, null, 2);
             this.copyToClipboard(summary, "Scale settings copied to clipboard!\n\n" + summary);
         },

@@ -174,10 +174,10 @@ The app is currently configured with the **Harmonic Proportional** base profile 
   "scale": "100%",
   "leftCol": "35%",
   "titleScale": "95%",
-  "detailsScale": "95%",
-  "nowScale": "115%",
-  "nextUpHeaderScale": "100%",
-  "nextUpTitleScale": "100%",
+  "detailsScale": "100%",
+  "nowScale": "140%",
+  "nextUpHeaderScale": "140%",
+  "nextUpTitleScale": "130%",
   "mgmtContinuity": true
 }
 ```
@@ -185,10 +185,10 @@ The app is currently configured with the **Harmonic Proportional** base profile 
   - `--proto-scale`: `1.0` (Global scale factor)
   - `--proto-left-col`: `35%` (Left column width in landscape grid)
   - `--proto-title-scale`: `0.95` (Title heading size multiplier)
-  - `--proto-details-scale`: `0.95` (Details body font multiplier)
-  - `--proto-now-scale`: `1.15` (NOW heading & system clock scale multiplier)
-  - `--proto-nextup-header-scale`: `1.0` (Next Up header and time multiplier)
-  - `--proto-nextup-title-scale`: `1.0` (Next Up title text multiplier)
+  - `--proto-details-scale`: `1.0` (Details body font multiplier)
+  - `--proto-now-scale`: `1.4` (NOW heading & system clock scale multiplier)
+  - `--proto-nextup-header-scale`: `1.4` (Next Up header and time multiplier)
+  - `--proto-nextup-title-scale`: `1.3` (Next Up title text multiplier)
   - `--proto-nextup-scale`: `0.95` (Legacy Next Up card multiplier)
 - **Management View Continuity (`body.proto-mgmt-continuity`)**: Active by default. Aligns Management View column width, card borders, and timeline row font sizing with the presentation styling.
 - **Dynamic Text Pagination**: `renderPresentationTextPages()` uses computed style font sizing and line height to guarantee accurate page splits across all scales.
