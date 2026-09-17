@@ -72,10 +72,34 @@ Over hundreds of iterations, multiple AI coding sessions suffered from recurring
   - **Playing / Unpaused State:** The TV presentation is autonomous and is the primary Source of Truth, driven by its local wall clock. Whenever it advances to a new agenda milestone, it broadcasts `RECEIVER_STATUS` to the phone controller so an awake phone immediately mirrors the active topic.
   - **Interaction / Paused State:** When an intentional user action occurs on the phone controller (tapping a side tab, clicking next/prev, or toggling pause), both the TV and phone transition to `isPlaying: false`. In this paused state, the phone controller is authoritative, and the TV presentation faithfully follows every manual navigation step.
   - **Unpausing / Resuming:** Resuming playback restores the TV presentation as the autonomous authority on wall-clock time.
-- **Screen Wake Lock Delegation:** When actively casting, the phone explicitly bypasses/releases its screen wake lock so the mobile device can sleep normally in the user's pocket to conserve battery. The TV presentation receiver independently maintains its own keep-alive.
-- **Non-Clobbering Status Exchange (`REQUEST_STATUS` & `RECEIVER_STATUS`):** When a sleeping or backgrounded controller wakes up, or when the user performs a pull-down refresh while casting, the phone controller sends `REQUEST_STATUS` to the TV. The TV responds with `RECEIVER_STATUS` containing its active index, play state, and active tab. This prevents stale controller state from resetting the live presentation.
+- **Pocket Independence & Battery Preservation:**
+  - When actively casting, the phone intentionally releases its screen wake lock so the device can sleep naturally in the user's pocket.
+  - The TV presentation receiver independently maintains its own keep-alive (`disableIdleTimeout = true`).
+  - **Android PWA Setting:** The user should set the installed Chrome app's battery usage to **"Unrestricted"** (instead of "Optimized"). While mobile OSs still pause background WebSockets when the screen turns off, "Unrestricted" prevents Android from killing the Chrome tab process in RAM, allowing instant wake-up without full-page reloads.
+- **Silent Auto-Rejoin on Wake:**
+  - When the phone is unlocked (`visibilitychange === 'visible'`), it silently probes the Cast connection and requests live position (`REQUEST_STATUS`).
+  - Under W3C Presentation API, `reconnect(savedSessionId)` runs programmatically without requiring user gestures.
+  - Under Google Cast SDK, `autoJoinPolicy: ORIGIN_SCOPED` re-attaches to the existing running TV session without reloading or interrupting the TV screen.
+- **Ghost State Purging & Permanent Disconnect Detection:**
+  - If the TV is powered off, or the user leaves the venue/Wi-Fi, the app **must never pretend it is still connected**.
+  - **Triggers:** `CAST_STATE_CHANGED` (`NO_DEVICES_AVAILABLE`), `SESSION_STATE_CHANGED` (`NO_SESSION`, `SESSION_ENDED`, `SESSION_START_FAILED`), action errors in `sendMessage`, and a 3-second probe timeout automatically clear `isCasting = false` and wipe stored session IDs.
 - **Receiver Kiosk Experience:** In presentation-only / receiver view (`?view=presentation`), interactive controls (play/pause buttons, cast buttons, edit triggers) are stripped from the DOM. If paused by the controller, an unobtrusive non-interactive `⏸ Paused` status badge is displayed.
 - **Disabled Tab DOM Exclusion:** Disabled/unchecked side tabs are completely excluded from the presentation DOM so they do not show buttons or interfere with automated card cycling on either device.
+
+### 9. Management View Virtual Keyboard Bouncing Fix (`.is-editing`)
+- **The Problem:** On mobile devices, focusing an `<input>` or `<textarea>` caused the screen to wildly bounce and jitter on every keystroke.
+- **The Root Cause:** `body, html` had `scroll-snap-type: y mandatory; scroll-behavior: smooth;`. When the mobile soft keyboard opens and the user types, the browser automatically adjusts scroll position to keep the caret visible. The CSS scroll-snap engine immediately fought this adjustment, snapping back to align-start and animating the fight on every keystroke.
+- **The Rule:** An `.is-editing` class is toggled on `html` and `body` on `focusin`/`focusout` of any `INPUT` or `TEXTAREA`. When active, `scroll-snap-type: none !important;` and `scroll-behavior: auto !important;` are enforced, completely eliminating keyboard bouncing.
+
+### 10. Legacy Chromecast (2018 3rd Gen) Twemoji Polyfill
+- **The Problem:** The 2018 3rd Generation Chromecast runs Eureka OS, which lacks native OS color emoji glyphs. Emojis rendered as empty rectangular boxes ("tofu").
+- **The Rule:** Twemoji is loaded via CDN (`@twemoji/api`). Calling `twemoji.parse(document.body)` dynamically converts Unicode emojis to inline SVG/PNG images with zero local bundling or build steps.
+
+### 11. Side-Tab Emoji Stripping vs. Card Header Retention
+- **The Rule:** Side-tab pill buttons use `stripEmojis(tab.title)` so pills like `🚩 Announcements` display cleanly as `Announcements` on the vertical pill without rotated/misaligned emoji artifacts. The expanded card header (`.tab-content-area h2`) retains the full title with the emoji.
+
+### 12. Agenda Distillation (Lesson Plan vs. Presentation Display)
+- **The Rule:** Long-form troop agenda documents contain detailed facilitator guides, instructor lists, advancement requirements, and setup protocols. When converting them for the app, distill them into high-level, presenter-friendly bullet points suitable for quick ambient scanning on a shared screen.
 
 ---
 
@@ -151,7 +175,9 @@ The app is currently configured with the **Harmonic Proportional** base profile 
   "leftCol": "35%",
   "titleScale": "95%",
   "detailsScale": "95%",
-  "nextUpScale": "95%",
+  "nowScale": "115%",
+  "nextUpHeaderScale": "100%",
+  "nextUpTitleScale": "100%",
   "mgmtContinuity": true
 }
 ```
@@ -160,7 +186,10 @@ The app is currently configured with the **Harmonic Proportional** base profile 
   - `--proto-left-col`: `35%` (Left column width in landscape grid)
   - `--proto-title-scale`: `0.95` (Title heading size multiplier)
   - `--proto-details-scale`: `0.95` (Details body font multiplier)
-  - `--proto-nextup-scale`: `0.95` (Next Up card font/size multiplier)
+  - `--proto-now-scale`: `1.15` (NOW heading & system clock scale multiplier)
+  - `--proto-nextup-header-scale`: `1.0` (Next Up header and time multiplier)
+  - `--proto-nextup-title-scale`: `1.0` (Next Up title text multiplier)
+  - `--proto-nextup-scale`: `0.95` (Legacy Next Up card multiplier)
 - **Management View Continuity (`body.proto-mgmt-continuity`)**: Active by default. Aligns Management View column width, card borders, and timeline row font sizing with the presentation styling.
 - **Dynamic Text Pagination**: `renderPresentationTextPages()` uses computed style font sizing and line height to guarantee accurate page splits across all scales.
 - **Further Prototyping on Mobile**: The user can open `⚙️ Debug` on their phone to adjust sliders, test in landscape/portrait, or tap `📋 Copy Config` to export updated values.

@@ -30,14 +30,16 @@
     3. UI & LAYOUT
     - Viewport Integrity: Match the visible screen height. Account for mobile browser UI bars appearing/disappearing and avoid Android PWA rendering race conditions upon launch.
     - View Snapping: Vertical scroll locks to either the Presentation view or the Management view, never resting halfway between them.
+    - Keyboard Scroll-Snap Exemption: While editing text (`<input>`, `<textarea>`), `.is-editing` class MUST temporarily disable `scroll-snap-type` and smooth scrolling on `html`/`body` to prevent mobile soft keyboards from bouncing or jittering.
     - Button Accessibility: Buttons retain visible borders and high contrast.
     - Play/Pause Visibility: In standalone controller views, pause button defaults to semi-transparent (while playing) and "Resume" button defaults to opaque (while paused).
     - Responsive: Landscape mode uses a two-column grid. Portrait mode collapses into a stacked single-column flex layout.
-    - Mobile Input Stability: Input fields and textareas lock to a 16px base font size to prevent mobile browser auto-zoom, and `--vh` recalculation is suppressed while text editing is active to avoid keyboard open/close viewport bouncing.
+    - Mobile Input Stability: Input fields and textareas lock to a 16px base font size to prevent mobile browser auto-zoom.
     - Management Portrait Usability: Management view uses dedicated compact font sizes and tightened padding in portrait orientation to match the usability and ergonomics of landscape view.
 
     4. SIDE CARDS / TABS
     - Tab buttons: Displayed as vertical tabs anchored to the right edge.
+    - Tab Emoji Stripping: Vertical side-tab pills MUST strip emoji pictographs (`stripEmojis()`) so pill labels remain clean, compact, and unrotated. Card header titles retain full titles with emojis.
     - Rotation: The presentation cycles between the main agenda (shown longer) and enabled side cards (shown briefly).
     - Disabled Tabs: Unchecked / disabled side cards MUST NOT render tab buttons or card bodies in the presentation DOM on either controller or receiver. Only enabled tabs participate in rotation.
     - Sliding: Card content areas slide in from the right when activated, layering over the main agenda. Cycling back to agenda unslides them back out to the right.
@@ -58,13 +60,16 @@
     7. DEBUG PANEL
     - Fast Cycle: Replaces normal display duration with a rapid 5-second cycle for rapid visual testing of tab rotations and animations.
     - Monitor: Real-time read-out of the Screen Wake Lock API status (Active, Released, Failed, Unsupported).
+    - Scaling Sliders: Global, Left Column, Heading, Details, NOW & Clock, Next Up Header/Time, and Next Up Title scaling sliders.
     - Clear: Destructive button clears all local storage.
 
     8. PRESENTATION DISPLAY & SCALING
     - Landscape Scaling: Text and UI elements scale proportionally, looking harmonious and filling landscape screens of all resolutions.
+    - TV Details Viewport: Sized proportionally via `clamp(0.95rem, 3.8vh, 3.0rem)` to prevent excessive pagination blowouts on large TV displays.
+    - Twemoji Polyfill: Twemoji dynamically converts emoji characters to inline SVGs so legacy Cast devices (e.g. 2018 Chromecast 3rd Gen) without native OS emoji glyphs render emojis consistently without tofu boxes.
+    - Next Up Two-Line Layout: Next Up card splits into Line 1 (flex row: `NEXT UP` label + scheduled time) and Line 2 (agenda title, falling back to 'Adjournment').
     - Mobile Portrait Lock: In portrait mode, text sizing decouples from screen height to maintain a compact, readable layout.
     - Fluid Indentation: Padding and margins on lists scale proportionally with font size so bullets never push outside the visible container.
-    - Wrapping: Meeting title and agenda item titles wrap to multiple lines if needed. Next Up truncates to ellipses when required.
     - Scrollbars: Main horizontal and vertical scrollbars MUST be hidden on root and main containers.
     - Receiver Kiosk Mode: In presentation-only / receiver view (`?view=presentation`), interactive controls (play/pause, cast buttons) are omitted from the DOM. A non-interactive status badge (`⏸ Paused`) displays during pauses.
     - Controller Cast Indicator: Active casting on the controller displays an animated inward gradient glow with a breathing pulse around the presentation container.
@@ -77,12 +82,13 @@
       * Autonomous TV (Unpaused): When playback is active (`isPlaying: true`), the TV receiver presentation is the autonomous Source of Truth running on local wall-clock time. Milestone advances broadcast to the controller in real-time.
       * Authoritative Phone (Paused): When intentional navigation or pause occurs on the controller, both TV and controller enter paused mode (`isPlaying: false`). The controller is authoritative over milestone position and tab views; the TV mirrors the controller until resumed.
       * Resume: Resuming playback restores the TV presentation as autonomous timekeeper.
-    - Non-Clobbering Sync & Reconnect:
-      * Controller reconnection or page refresh MUST NOT reset or clobber the TV presentation state.
-      * Controllers issue `REQUEST_STATUS` upon session start or visibility restore; receivers respond with `RECEIVER_STATUS` containing current index, playing state, and active tab.
+    - Pocket Independence & Silent Auto-Rejoin:
+      * When phone screen locks or backgrounds in pocket, phone releases wake locks. The TV continues autonomously.
+      * Upon phone wake (`visibilitychange`), phone silently probes the Cast connection and syncs state (`REQUEST_STATUS`).
+    - Ghost State Purging & Permanent Disconnect Detection:
+      * If TV is powered off, or user leaves Wi-Fi (`NO_DEVICES_AVAILABLE`, probe timeout of 3s, or socket action error), phone immediately purges `isCasting = false` and clears cached session keys. The app never pretends to be casting when disconnected.
     - Autonomous Receiver: Receiver URLs (`?view=presentation&autoplay=1#agenda=...`) run autonomously on their own local wall clock without requiring an active sender.
-    - Controller Lifecycle: Disconnecting the phone session (`connection.close()` or Cast SDK disconnect) detaches the controller without terminating the TV presentation. Explicit stop commands receiver termination.
-    - Visuals: Cast icon reflects connection status. TV displays clean kiosk presentation.
+    - Controller Lifecycle: Disconnecting the phone session detaches the controller without terminating the TV presentation. Explicit stop commands receiver termination.
 ========================================== -->
     
     <!-- Link to the GitHub Pages specific manifest path -->
@@ -97,6 +103,7 @@
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
     <!-- Google Cast SDK (Dynamic: CAF Receiver v3 on Chromecast/TV, Web Sender on Phone/Desktop) -->
     <script>
@@ -200,6 +207,9 @@
             leftCol: 35,
             titleScale: 95,
             detailsScale: 95,
+            nowScale: 115,
+            nextUpHeaderScale: 100,
+            nextUpTitleScale: 100,
             nextUpScale: 95
         };
     </script>
@@ -253,6 +263,26 @@
             height: 100%; height: calc(var(--vh, 1vh) * 100); width: 100%; 
             overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; 
             scrollbar-width: none; -ms-overflow-style: none; /* Hide main scrollbar */
+        }
+        
+        /* Disable scroll-snap and smooth scrolling during input/textarea editing on mobile */
+        html.is-editing, body.is-editing {
+            scroll-snap-type: none !important;
+            scroll-behavior: auto !important;
+        }
+        .is-editing .management-view {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            scroll-snap-align: none !important;
+        }
+
+        /* Twemoji inline rendering */
+        img.emoji {
+            height: 1.15em;
+            width: 1.15em;
+            vertical-align: -0.15em;
+            display: inline-block;
         }
         
         .app-container { display: flex; flex-direction: column; width: 100%; scrollbar-width: none; }
@@ -418,24 +448,26 @@
         .status-panel::after { content: ""; position: absolute; right: 0; top: 0; height: calc(100% - 75px); width: 2px; background: var(--pico-muted-border-color); }
 
         .meeting-title-bar { background: #1e293b; color: #f8fafc; padding: 8px 12px; border-radius: 6px; font-size: calc(clamp(0.85rem, 3.5vh, 2.5rem) * var(--proto-scale, 1)); font-weight: 800; margin-bottom: 16px; white-space: normal; line-height: 1.3; }
-        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: calc(clamp(0.75rem, 2.5vh, 2rem) * var(--proto-scale, 1)); text-transform: uppercase; }
+        .current-meta { display: flex; align-items: center; color: #0284c7; font-weight: 800; font-size: calc(clamp(0.75rem, 2.5vh, 2rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); text-transform: uppercase; }
         .current-title { font-size: calc(clamp(1.2rem, 7vh, 6rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); font-weight: 900; line-height: 1.2; margin-top: 8px; word-wrap: break-word; }
         .current-time-box { font-size: calc(clamp(0.9rem, 4vh, 3.5rem) * var(--proto-scale, 1)); color: var(--pico-muted-color); margin-top: 4px; font-weight: 600; }
-        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: calc(clamp(0.7rem, 2.5vh, 2rem) * var(--proto-scale, 1)); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
+        .system-clock { background: var(--pico-card-background-color); padding: 2px 10px; border-radius: 20px; font-size: calc(clamp(0.7rem, 2.5vh, 2rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); font-weight: 700; color: #047857; border: 1.5px solid #059669; }
 
         .next-up-container { display: flex; align-items: center; gap: 8px; position: relative; z-index: 5; width: 100%; }
         .prev-btn { padding: 12px 14px; margin-bottom: 0; z-index: 10; font-size: calc(clamp(0.9rem, 3vh, 2rem) * var(--proto-scale, 1)); }
         @media (min-width: 769px) { .prev-btn { display: none !important; } }
         @media (max-width: 768px) and (orientation: landscape) { .prev-btn { display: none !important; } }
         
-        .next-up-card { flex-grow: 1; min-width: 0; padding: 12px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
+        .next-up-card { flex-grow: 1; min-width: 0; padding: 10px 12px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
         .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
-        .next-up-card.alert-active .next-label { color: var(--alert-lbl) !important; }
+        .next-up-card.alert-active .next-label, .next-up-card.alert-active .next-time { color: var(--alert-lbl) !important; }
         .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
 
         @keyframes alertPulse { 0% { transform: scale(1); } 50% { transform: scale(1.015); } 100% { transform: scale(1); } }
-        .next-label { font-size: calc(clamp(0.7rem, 2.2vh, 1.8rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
-        .next-title { font-size: calc(clamp(0.85rem, 3.5vh, 2.5rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); font-weight: 700; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; }
+        .next-header-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%; }
+        .next-label { font-size: calc(clamp(0.75rem, 2.6vh, 2.0rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); color: #7e22ce; font-weight: 800; text-transform: uppercase; }
+        .next-time { font-size: calc(clamp(0.75rem, 2.6vh, 2.0rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); color: #7e22ce; font-weight: 800; }
+        .next-title { font-size: calc(clamp(0.85rem, 3.2vh, 2.3rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.0)); font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 
         .dynamic-content-area { position: relative; height: 100%; width: 100%; overflow: hidden; }
         .details-panel { position: absolute; top: 0; left: 0; width: calc(100% - 35px); height: 100%; display: flex; flex-direction: column; overflow: hidden; z-index: 1; }
@@ -451,7 +483,7 @@
         .tab-content-area.dealt { transform: translateX(0); }
 
         .details-viewport { flex-grow: 1; overflow: hidden; position: relative; font-size: calc(clamp(0.95rem, 5vh, 4rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); line-height: 1.5; }
-        body.presentation-only .details-panel .details-viewport { font-size: calc(clamp(1.05rem, 5.5vh, 4.4rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
+        body.presentation-only .details-panel .details-viewport { font-size: calc(clamp(0.95rem, 3.8vh, 3.0rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
         .details-page { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
         .details-page.active { opacity: 1; transform: translateY(0); }
         .details-viewport ul { padding-left: 1.5em; margin-top: 0.5em; }
@@ -519,12 +551,12 @@
             
             /* Text Locks */
             .meeting-title-bar { font-size: calc(clamp(0.9rem, 3vw, 1.2rem) * var(--proto-scale, 1)); }
-            .current-meta { font-size: calc(clamp(0.8rem, 2vw, 1rem) * var(--proto-scale, 1)); }
+            .current-meta { font-size: calc(clamp(0.8rem, 2vw, 1rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
             .current-title { font-size: calc(clamp(1.8rem, 7vw, 2.5rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); }
             .current-time-box { font-size: calc(clamp(1rem, 4vw, 1.4rem) * var(--proto-scale, 1)); }
-            .system-clock { font-size: calc(clamp(0.75rem, 2vw, 0.9rem) * var(--proto-scale, 1)); }
-            .next-label { font-size: calc(clamp(0.7rem, 2vw, 0.85rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
-            .next-title { font-size: calc(clamp(0.9rem, 3vw, 1.2rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
+            .system-clock { font-size: calc(clamp(0.75rem, 2vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
+            .next-label, .next-time { font-size: calc(clamp(0.75rem, 2.2vw, 0.95rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); }
+            .next-title { font-size: calc(clamp(0.85rem, 2.8vw, 1.15rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.0)); }
             .details-viewport { font-size: calc(clamp(1.25rem, 5.2vw, 1.6rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
             .tab-content-area h2 { font-size: calc(clamp(1.3rem, 6vw, 1.8rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)) !important; margin-bottom: 8px !important; }
             .vertical-tab { font-size: calc(1rem * var(--proto-scale, 1)); padding: 16px 8px; }
@@ -553,12 +585,12 @@
         /* MOBILE LANDSCAPE SCALING LOCK (Reverts to safe vw bounds for short phone screens) */
         @media (max-height: 600px) and (orientation: landscape) {
             .meeting-title-bar { font-size: calc(clamp(0.85rem, 1.5vw, 1.1rem) * var(--proto-scale, 1)); margin-bottom: 12px; }
-            .current-meta { font-size: calc(clamp(0.75rem, 1.5vw, 0.9rem) * var(--proto-scale, 1)); }
+            .current-meta { font-size: calc(clamp(0.75rem, 1.5vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
             .current-title { font-size: calc(clamp(1.2rem, 3vw, 2.2rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); margin-top: 6px; }
             .current-time-box { font-size: calc(clamp(0.9rem, 1.8vw, 1.2rem) * var(--proto-scale, 1)); }
-            .system-clock { font-size: calc(clamp(0.7rem, 1.2vw, 0.85rem) * var(--proto-scale, 1)); }
-            .next-label { font-size: calc(clamp(0.7rem, 1.2vw, 0.8rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
-            .next-title { font-size: calc(clamp(0.85rem, 1.8vw, 1.1rem) * var(--proto-scale, 1) * var(--proto-nextup-scale, 1)); }
+            .system-clock { font-size: calc(clamp(0.7rem, 1.2vw, 0.85rem) * var(--proto-scale, 1) * var(--proto-now-scale, 1.15)); }
+            .next-label, .next-time { font-size: calc(clamp(0.72rem, 1.4vw, 0.9rem) * var(--proto-scale, 1) * var(--proto-nextup-header-scale, 1.0)); }
+            .next-title { font-size: calc(clamp(0.8rem, 1.6vw, 1.05rem) * var(--proto-scale, 1) * var(--proto-nextup-title-scale, 1.0)); }
             .details-viewport { font-size: calc(clamp(1.1rem, 2.3vw, 1.45rem) * var(--proto-scale, 1) * var(--proto-details-scale, 1)); }
             .tab-content-area h2 { font-size: calc(clamp(1.2rem, 3vw, 1.8rem) * var(--proto-scale, 1) * var(--proto-title-scale, 1)); }
             .vertical-tab { font-size: calc(0.9rem * var(--proto-scale, 1)); padding: 16px 8px; }
@@ -635,7 +667,7 @@
                         :style="`background-color: ${tab.color};`"
                         @click.stop="userClickedTab(tab.id)">
                     <div class="tab-progress" :style="getTabProgressStyle(tab.id)"></div>
-                    <span class="tab-text" style="position:relative; z-index:2;" x-text="tab.title"></span>
+                    <span class="tab-text" style="position:relative; z-index:2;" x-text="stripEmojis(tab.title)"></span>
                 </button>
             </template>
         </div>
@@ -660,11 +692,11 @@
                 <nav class="next-up-container">
                     <button class="outline secondary prev-btn" @click.stop="shiftItem(-1)" title="Previous Topic">◀</button>
                     <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click.stop="shiftItem(1)" title="Advance to Next Topic">
-                        <div class="next-label">Next Up</div>
-                        <div class="next-title">
-                            <span x-text="nextItem ? nextItem.time : ''"></span>
-                            <span x-text="nextItem ? ' - ' + nextItem.title : 'Adjournment / Session Closed'"></span>
+                        <div class="next-header-row">
+                            <span class="next-label">Next Up</span>
+                            <span class="next-time" x-show="nextItem" x-text="nextItem ? nextItem.time : ''"></span>
                         </div>
+                        <div class="next-title" x-text="nextItem ? nextItem.title : 'Adjournment'"></div>
                     </article>
                 </nav>
             </header>
@@ -808,23 +840,46 @@
             </div>
             <button aria-label="Close" class="close" @click="$refs.castModal.close()" style="margin: 0; padding: 4px 8px;"></button>
         </header>
-        <p style="font-size: 0.85rem; color: var(--pico-muted-color); margin-bottom: 16px;">
-            The presentation is running independently on your TV screen. You can disconnect your phone without stopping the display.
-        </p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button class="primary" @click="pushAgendaToCast()">
-                🔄 Push Updated Agenda to TV
-            </button>
-            <button class="secondary" @click="disconnectPhone()">
-                🔌 Disconnect Phone (Keep TV Running)
-            </button>
-            <button style="background-color: #ef4444; border-color: #dc2626; color: white;" @click="stopCast()">
-                🛑 Stop Casting
-            </button>
-            <button class="outline secondary" style="font-size: 0.8rem; padding: 6px; margin-top: 4px;" @click="copyKioskURL()">
-                🔗 Copy Direct TV / Kiosk Link
-            </button>
-        </div>
+        <template x-if="isCasting">
+            <div>
+                <p style="font-size: 0.85rem; color: var(--pico-muted-color); margin-bottom: 16px;">
+                    Connected to TV. The presentation is running independently on your TV screen. You can disconnect your phone without stopping the display.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="primary" @click="pushAgendaToCast()">
+                        🔄 Push Updated Agenda to TV
+                    </button>
+                    <button class="secondary outline" @click="requestCastStatus()">
+                        ⚡ Sync Position from TV
+                    </button>
+                    <button class="secondary" @click="disconnectPhone()">
+                        🔌 Disconnect Phone (Keep TV Running)
+                    </button>
+                    <button style="background-color: #ef4444; border-color: #dc2626; color: white;" @click="stopCast()">
+                        🛑 Stop Casting
+                    </button>
+                    <button class="outline secondary" style="font-size: 0.8rem; padding: 6px; margin-top: 4px;" @click="copyKioskURL()">
+                        🔗 Copy Direct TV / Kiosk Link
+                    </button>
+                </div>
+            </div>
+        </template>
+        
+        <template x-if="!isCasting">
+            <div>
+                <p style="font-size: 0.85rem; color: var(--pico-muted-color); margin-bottom: 16px;">
+                    Not currently connected to a TV screen.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="primary" @click="$refs.castModal.close(); handleCastButtonClick()">
+                        ⚡ Cast to TV
+                    </button>
+                    <button class="outline secondary" style="font-size: 0.8rem; padding: 6px; margin-top: 4px;" @click="copyKioskURL()">
+                        🔗 Copy Direct TV / Kiosk Link
+                    </button>
+                </div>
+            </div>
+        </template>
         <footer style="margin-top: 14px; text-align: right;">
             <button class="outline secondary" style="padding: 4px 14px; font-size: 0.85rem;" @click="$refs.castModal.close()">Close</button>
         </footer>
@@ -868,8 +923,17 @@
                     </label>
                 </div>
 
-                <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Card Scale: <strong x-text="proto.nextUpScale + '%'"></strong>
-                    <input type="range" min="80" max="135" step="1" x-model.number="proto.nextUpScale" @input="applyProtoStyles()">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">NOW & Clock: <strong x-text="proto.nowScale + '%'"></strong>
+                        <input type="range" min="80" max="140" step="1" x-model.number="proto.nowScale" @input="applyProtoStyles()">
+                    </label>
+                    <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Header/Time: <strong x-text="proto.nextUpHeaderScale + '%'"></strong>
+                        <input type="range" min="80" max="140" step="1" x-model.number="proto.nextUpHeaderScale" @input="applyProtoStyles()">
+                    </label>
+                </div>
+
+                <label style="font-size: 0.75rem; margin-bottom: 0;">Next Up Title: <strong x-text="proto.nextUpTitleScale + '%'"></strong>
+                    <input type="range" min="70" max="130" step="1" x-model.number="proto.nextUpTitleScale" @input="applyProtoStyles()">
                 </label>
 
                 <div style="display: flex; gap: 8px; margin-top: 6px;">
@@ -943,8 +1007,24 @@ window.__onGCastApiAvailable = function(isAvailable) {
                             setTimeout(() => app.sendStateToCast(), 800);
                             setTimeout(() => app.sendStateToCast(), 2000);
                         }
-                    } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED) {
-                        app.isCasting = false;
+                    } else if (event.sessionState === cast.framework.SessionState.SESSION_ENDED ||
+                               event.sessionState === cast.framework.SessionState.SESSION_START_FAILED ||
+                               event.sessionState === cast.framework.SessionState.NO_SESSION) {
+                        app.handleCastDisconnected(true);
+                    } else if (event.sessionState === cast.framework.SessionState.SESSION_SUSPENDED) {
+                        app.handleCastDisconnected(false);
+                    }
+                }
+            );
+
+            castContext.addEventListener(
+                cast.framework.CastContextEventType.CAST_STATE_CHANGED,
+                (event) => {
+                    const app = window.__meetingAppInstance;
+                    if (!app) return;
+                    if (event.castState === cast.framework.CastState.NO_DEVICES_AVAILABLE) {
+                        // User left venue/Wi-Fi or TV powered down: purge ghost state
+                        app.handleCastDisconnected(true);
                     }
                 }
             );
@@ -997,6 +1077,9 @@ function meetingApp() {
             root.style.setProperty('--proto-left-col', `${this.proto.leftCol}%`);
             root.style.setProperty('--proto-title-scale', this.proto.titleScale / 100);
             root.style.setProperty('--proto-details-scale', this.proto.detailsScale / 100);
+            root.style.setProperty('--proto-now-scale', (this.proto.nowScale || 115) / 100);
+            root.style.setProperty('--proto-nextup-header-scale', (this.proto.nextUpHeaderScale || 100) / 100);
+            root.style.setProperty('--proto-nextup-title-scale', (this.proto.nextUpTitleScale || 100) / 100);
             root.style.setProperty('--proto-nextup-scale', this.proto.nextUpScale / 100);
             
             try {
@@ -1017,7 +1100,9 @@ function meetingApp() {
                 leftCol: `${this.proto.leftCol}%`,
                 titleScale: `${this.proto.titleScale}%`,
                 detailsScale: `${this.proto.detailsScale}%`,
-                nextUpScale: `${this.proto.nextUpScale}%`
+                nowScale: `${this.proto.nowScale || 115}%`,
+                nextUpHeaderScale: `${this.proto.nextUpHeaderScale || 100}%`,
+                nextUpTitleScale: `${this.proto.nextUpTitleScale || 100}%`
             }, null, 2);
             this.copyToClipboard(summary, "Scale settings copied to clipboard!\n\n" + summary);
         },
@@ -1154,14 +1239,29 @@ function meetingApp() {
             setTimeout(() => { setViewportHeight(); this.renderPresentationTextPages(); }, 300);
             setTimeout(() => { setViewportHeight(); this.renderPresentationTextPages(); }, 800);
             
-            // Re-sync with TV on return if casting, otherwise re-acquire wake lock
+            // Mobile virtual keyboard focus handlers: disable scroll-snap to prevent bouncing
+            window.addEventListener('focusin', (e) => {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                    document.documentElement.classList.add('is-editing');
+                    document.body.classList.add('is-editing');
+                }
+            });
+            window.addEventListener('focusout', (e) => {
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                    document.documentElement.classList.remove('is-editing');
+                    document.body.classList.remove('is-editing');
+                }
+            });
+
+            // Network offline listener: immediately drop casting state
+            window.addEventListener('offline', () => {
+                this.handleCastDisconnected(false);
+            });
+
+            // Silent Auto-Rejoin and health check on wake
             document.addEventListener('visibilitychange', async () => {
                 if (document.visibilityState === 'visible') {
-                    if (this.isCasting) {
-                        this.requestCastStatus();
-                    } else {
-                        await this.requestWakeLock();
-                    }
+                    await this.handleAppWake();
                 }
             });
 
@@ -1289,6 +1389,7 @@ function meetingApp() {
                     this.visibleTabs = this.visibleTabs.filter(id => id !== targetId);
                     this.visibleTabs.push(targetId);
                 }
+                setTimeout(() => this.triggerTwemojiParse(), 50);
             }
         },
 
@@ -1650,6 +1751,7 @@ function meetingApp() {
                     pgs[a].classList.remove('active'); a = (a + 1) % pgs.length; pgs[a].classList.add('active');
                 }, APP_CONFIG.timing.carouselInterval);
             }
+            this.triggerTwemojiParse();
         },
 
         async loadInitialAgenda() {
@@ -1850,6 +1952,7 @@ function meetingApp() {
                     this.switchTabTo(null);
                     this.syncEditorInputs();
                     this.renderPresentationTextPages();
+                    this.triggerTwemojiParse();
                     if (data.isPlaying !== undefined) {
                         this.isPlaying = !!data.isPlaying;
                         if (this.isPlaying) this.displayTime = 0;
@@ -1876,6 +1979,7 @@ function meetingApp() {
             if (data.type === 'SWITCH_TAB') {
                 const target = data.activeTabId !== undefined ? data.activeTabId : (data.tabId === 'agenda' ? null : data.tabId);
                 this.setActiveTab(target, false);
+                this.triggerTwemojiParse();
                 if (data.isPlaying !== undefined) {
                     this.isPlaying = !!data.isPlaying;
                     if (this.isPlaying) this.displayTime = 0;
@@ -1914,12 +2018,81 @@ function meetingApp() {
             this.buildDisplaySequence();
             this.syncEditorInputs();
             this.renderPresentationTextPages();
+            this.triggerTwemojiParse();
 
             if (isFirstLoad) {
                 this.currentIndex = this.getScheduledAgendaIndex();
                 this.resumeAuto();
             } else if (this.currentIndex >= this.agenda.length) {
                 this.currentIndex = Math.max(0, this.agenda.length - 1);
+            }
+        },
+
+        stripEmojis(str) {
+            if (!str) return '';
+            return str
+                .replace(/\d[\uFE00-\uFE0F]?\u20E3/gu, '')
+                .replace(/[\uFE00-\uFE0F]/gu, '')
+                .replace(/\p{Extended_Pictographic}/gu, '')
+                .trim();
+        },
+
+        triggerTwemojiParse() {
+            if (window.twemoji) {
+                try { window.twemoji.parse(document.body); } catch(e) {}
+            }
+        },
+
+        handleCastDisconnected(purge = false) {
+            this.isCasting = false;
+            this.castConnection = null;
+            if (this._probeTimeout) {
+                clearTimeout(this._probeTimeout);
+                this._probeTimeout = null;
+            }
+            if (purge) {
+                localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
+            }
+        },
+
+        async handleAppWake() {
+            const savedId = localStorage.getItem(APP_CONFIG.storage.castSessionKey);
+            
+            if (this.isCasting || savedId) {
+                if (this._probeTimeout) clearTimeout(this._probeTimeout);
+                this._probeTimeout = setTimeout(() => {
+                    console.log("Cast wake probe timed out (TV unreachable or off). Dropping cast state.");
+                    this.handleCastDisconnected(true);
+                }, 3000);
+
+                // Priority 1: Check Google Cast SDK session
+                if (window.cast && cast.framework && cast.framework.CastContext) {
+                    try {
+                        const session = cast.framework.CastContext.getInstance().getCurrentSession();
+                        if (session) {
+                            this.isCasting = true;
+                            this.attachSenderCastListener(session);
+                            this.requestCastStatus();
+                            return;
+                        }
+                    } catch(e) {}
+                }
+
+                // Priority 2: Check Presentation API reconnect
+                if (savedId && this.presentationRequest && this.presentationRequest.reconnect) {
+                    try {
+                        const conn = await this.presentationRequest.reconnect(savedId);
+                        this.setupCastConnection(conn, true);
+                        return;
+                    } catch(e) {
+                        console.log("Presentation reconnect failed:", e);
+                        this.handleCastDisconnected(true);
+                    }
+                } else if (!this.isCasting) {
+                    this.handleCastDisconnected(true);
+                }
+            } else {
+                await this.requestWakeLock();
             }
         },
 
@@ -1931,16 +2104,23 @@ function meetingApp() {
                     const session = cast.framework.CastContext.getInstance().getCurrentSession();
                     if (session) {
                         session.sendMessage(APP_CONFIG.cast.namespace, payload)
-                            .catch(err => console.warn("Cast sendMessage error:", err));
+                            .catch(err => {
+                                console.warn("Cast sendMessage error:", err);
+                                this.handleCastDisconnected(true);
+                            });
                     }
-                } catch(e) {}
+                } catch(e) {
+                    this.handleCastDisconnected(true);
+                }
             }
 
             // Also send via PresentationConnection if active
             if (this.castConnection && this.castConnection.state === 'connected') {
                 try {
                     this.castConnection.send(JSON.stringify(payload));
-                } catch(e) {}
+                } catch(e) {
+                    this.handleCastDisconnected(true);
+                }
             }
         },
 
@@ -1985,6 +2165,11 @@ function meetingApp() {
 
         handleReceiverStatus(data) {
             if (!data || data.type !== 'RECEIVER_STATUS') return;
+            if (this._probeTimeout) {
+                clearTimeout(this._probeTimeout);
+                this._probeTimeout = null;
+            }
+            this.isCasting = true;
             if (typeof data.index === 'number' && data.index >= 0 && data.index < this.agenda.length) {
                 this.currentIndex = data.index;
             }
@@ -2000,6 +2185,7 @@ function meetingApp() {
             }
             this.syncEditorInputs();
             this.renderPresentationTextPages();
+            this.triggerTwemojiParse();
         },
 
         getReceiverStatusPayload() {
@@ -2099,13 +2285,10 @@ function meetingApp() {
                 }
             };
             conn.onclose = () => {
-                this.castConnection = null;
-                this.isCasting = false;
+                this.handleCastDisconnected(false);
             };
             conn.onterminate = () => {
-                this.castConnection = null;
-                this.isCasting = false;
-                localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
+                this.handleCastDisconnected(true);
             };
         },
 
@@ -2171,10 +2354,7 @@ function meetingApp() {
                 } catch(e) {}
                 this.castConnection = null;
             }
-            this.isCasting = false;
-            if (terminateReceiver) {
-                localStorage.removeItem(APP_CONFIG.storage.castSessionKey);
-            }
+            this.handleCastDisconnected(terminateReceiver);
             if (this.$refs.castModal) this.$refs.castModal.close();
         },
 
