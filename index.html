@@ -18,6 +18,8 @@
     - Active: Intentional navigation (clicking a tab, using next/prev) pauses.
     - Auto-Resume: Returning to the current timeline item auto unpauses.
     - Time Sync: If unpaused, presentation auto-advances at the next real-time milestone.
+    - Approaching Milestone Pulse: 1 minute (60 seconds) prior to the next scheduled agenda milestone, the Next Up card pulses in size (alertPulse animation) regardless of whether playback is playing or paused, alerting participants to upcoming transitions.
+    - First Slide Backwards Alert: Navigating backwards while on the first agenda item toggles an orange alert style and continuous size pulse on the Next Up card.
     - Swipe Nav: Swiping left/right on the presentation view MUST shift to the prev/next agenda item.
     - Keyboard Nav: Left and Right arrow keys navigate to prev/next.
 
@@ -59,6 +61,7 @@
 
     7. DEBUG PANEL
     - Fast Cycle: Replaces normal display duration with a rapid 5-second cycle for rapid visual testing of tab rotations and animations.
+    - 1-Min Pulse Simulation: Debug checkbox toggles simulated approaching pulse on Next Up card for instant UI verification, syncing to cast receiver.
     - Monitor: Real-time read-out of the Screen Wake Lock API status (Active, Released, Failed, Unsupported).
     - Scaling Sliders: Global, Left Column, Heading, Details, NOW & Clock, Next Up Header/Time, and Next Up Title scaling sliders.
     - Live TV Sync: When casting, slider movements and default resets stream in real-time (`SET_PROTO`) to the casted TV presentation for live visual tuning.
@@ -465,6 +468,7 @@
         @media (max-width: 768px) and (orientation: landscape) { .prev-btn { display: none !important; } }
         
         .next-up-card { flex-grow: 1; min-width: 0; padding: 10px 12px; border-radius: 8px; border-left: 5px solid #7e22ce !important; border: 1px solid var(--pico-muted-border-color); cursor: pointer; transition: all 0.3s ease; margin-bottom: 0; }
+        .next-up-card.pulse-active { animation: alertPulse 1.5s infinite ease-in-out; }
         .next-up-card.alert-active { background: var(--alert-bg) !important; border-color: var(--alert-border) !important; box-shadow: 0 0 12px rgba(249, 115, 22, 0.15) !important; animation: alertPulse 1.5s infinite ease-in-out; }
         .next-up-card.alert-active .next-label, .next-up-card.alert-active .next-time { color: var(--alert-lbl) !important; }
         .next-up-card.alert-active .next-title { color: var(--alert-txt) !important; }
@@ -697,7 +701,7 @@
                 
                 <nav class="next-up-container">
                     <button class="outline secondary prev-btn" @click.stop="shiftItem(-1)" title="Previous Topic">◀</button>
-                    <article class="next-up-card" :class="{ 'alert-active': isAlertActive }" @click.stop="shiftItem(1)" title="Advance to Next Topic">
+                    <article class="next-up-card" :class="{ 'alert-active': isAlertActive, 'pulse-active': isNextItemApproaching || isAlertActive }" @click.stop="shiftItem(1)" title="Advance to Next Topic">
                         <div class="next-header-row">
                             <span class="next-label">Next Up</span>
                             <span class="next-time" x-show="nextItem" x-text="nextItem ? nextItem.time : ''"></span>
@@ -958,6 +962,10 @@
                 <input type="checkbox" x-model="isCasting"> 
                 Simulate Cast Active (Preview Inward Glow)
             </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 8px;">
+                <input type="checkbox" x-model="simulateApproaching" @change="syncApproachingToCast()"> 
+                Simulate 1-Min Auto-Advance Pulse (Next Up)
+            </label>
         </fieldset>
         
         <fieldset style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--pico-muted-border-color);">
@@ -1043,6 +1051,7 @@ window.__onGCastApiAvailable = function(isAvailable) {
 function meetingApp() {
     return {
         meetingTitle: '', agenda: [], currentIndex: 0, isAlertActive: false,
+        isNextItemApproaching: false, simulateApproaching: false,
         isDark: true, sysClockText: '--:--:-- --', lastCheckedMilestoneTime: '', historyStack: [],
         editTime: '', editTitle: '', editDetails: '', editEnabled: true, importText: '', lastUpdatedText: '', isRefreshing: false,
 
@@ -1214,6 +1223,7 @@ function meetingApp() {
             if (!isNaN(modDate) && modDate.getFullYear() > 1970) this.lastUpdatedText = modDate.toLocaleString();
 
             this.evaluateAutomatedTimeTrigger(this.getTimeString());
+            this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
             this.syncEditorInputs();
             this.renderPresentationTextPages();
             
@@ -1633,6 +1643,27 @@ function meetingApp() {
             this.sysClockText = this.getTimeString(new Date(), true);
             const check = this.getTimeString(new Date(), false);
             if (check !== this.lastCheckedMilestoneTime) this.evaluateAutomatedTimeTrigger(check);
+            this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
+        },
+        checkNextItemApproaching() {
+            if (!this.nextItem || !this.nextItem.time) return false;
+            const m = this.nextItem.time.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (!m) return false;
+            const nextMins = (m[1] % 12 + (/PM/i.test(m[3]) ? 12 : 0)) * 60 + +m[2];
+            const nextTotalSecs = nextMins * 60;
+            const now = new Date();
+            const currentTotalSecs = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            let diffSecs = nextTotalSecs - currentTotalSecs;
+            if (diffSecs < -43200) diffSecs += 86400;
+            else if (diffSecs > 43200) diffSecs -= 86400;
+            return diffSecs > 0 && diffSecs <= 60;
+        },
+        syncApproachingToCast() {
+            this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
+            this.sendCastAction({
+                type: 'SET_APPROACHING',
+                approaching: this.simulateApproaching
+            });
         },
         parseToMinutes(ts) {
             let m = ts.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -1646,6 +1677,7 @@ function meetingApp() {
                 this.lastCheckedMilestoneTime = currentWallTime; 
                 this.currentIndex = matched; 
                 this.isAlertActive = false;
+                this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
                 this.syncEditorInputs(); 
                 this.renderPresentationTextPages();
                 if (this.isPresentationOnly) {
@@ -1670,6 +1702,7 @@ function meetingApp() {
             this.editingMode = 'agenda';
             this.currentIndex = idx; 
             this.isAlertActive = false; 
+            this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
             this.switchTabTo(null);
             this.syncEditorInputs(); 
             this.renderPresentationTextPages(); 
@@ -1999,6 +2032,13 @@ function meetingApp() {
                 return;
             }
 
+            // Remote Control: Simulate Approaching Pulse Sync
+            if (data.type === 'SET_APPROACHING') {
+                this.simulateApproaching = !!data.approaching;
+                this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
+                return;
+            }
+
             // Sync theme
             if (data.theme) {
                 this.isDark = (data.theme === 'dark');
@@ -2011,6 +2051,7 @@ function meetingApp() {
                 if (typeof data.index === 'number' && data.index >= 0 && data.index < this.agenda.length) {
                     this.currentIndex = data.index;
                     this.isAlertActive = !!data.isAlert;
+                    this.isNextItemApproaching = this.simulateApproaching || this.checkNextItemApproaching();
                     this.switchTabTo(null);
                     this.syncEditorInputs();
                     this.renderPresentationTextPages();
@@ -2255,6 +2296,9 @@ function meetingApp() {
             if (data.isAlert !== undefined) {
                 this.isAlertActive = !!data.isAlert;
             }
+            if (data.isApproaching !== undefined) {
+                this.isNextItemApproaching = !!data.isApproaching;
+            }
             this.syncEditorInputs();
             this.renderPresentationTextPages();
             this.triggerTwemojiParse();
@@ -2266,7 +2310,8 @@ function meetingApp() {
                 index: this.currentIndex,
                 isPlaying: this.isPlaying,
                 activeTabId: this.activeTabId,
-                isAlert: this.isAlertActive
+                isAlert: this.isAlertActive,
+                isApproaching: this.isNextItemApproaching
             };
         },
 

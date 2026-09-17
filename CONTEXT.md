@@ -54,6 +54,7 @@ Over hundreds of iterations, multiple AI coding sessions suffered from recurring
 ### 5. Playback Auto-Advance vs. Manual Inspection
 - **Requirement:**
   - Real-time time sync: When playing, the app checks the system clock against agenda item scheduled times and auto-advances at real-time milestones.
+  - **Approaching Milestone Size Pulse:** Exactly 1 minute (60 seconds) prior to the next scheduled agenda milestone, the Next Up card pulses in size (`pulse-active` with `alertPulse` keyframes). This visual warning fires **regardless of whether playback is playing or paused** to signify real-world time relative to the schedule.
   - Intentional navigation (clicking a tab, swiping to another topic, clicking a timeline item) **pauses** auto-advancing.
   - Passive actions (viewing, scrolling down to manage) do **not** pause.
   - **Auto-Resume:** Navigating back to the currently scheduled timeline item **automatically unpauses** and resumes live auto-advance.
@@ -151,7 +152,8 @@ const APP_CONFIG = {
 - **Deck-Dealing Animation:** Enabled side cards slide in from the right edge (`translateX(0)`), overlaying the main agenda, and slide back out when returning to the agenda.
 - **Visual Cues:** Tab progress bars fill during the display cycle; a `@keyframes softTug` bounce triggers 3 seconds before transition as a visual notice.
 - **Remote Side-Tab Control:** Clicking the "Agenda" tab on a connected controller normalizes target to `null`/`agenda`, clears `visibleTabs` on both phone and TV, and applies direct DOM `.dealt` cleanup to immediately collapse side-cards on the TV.
-- **Debug Panel:** Includes a "Fast Cycle Simulation" (5s mode) accessible via the discreet `⚙️ Debug` link in the Management View to quickly test tab rotations.
+- **Approaching Milestone Pulse:** 60 seconds before an upcoming agenda milestone, the Next Up card pulses in size (`alertPulse`) across both controller and TV presentations. Can be tested manually in the Debug Panel via "Simulate 1-Min Auto-Advance Pulse (Next Up)".
+- **Debug Panel:** Includes "Fast Cycle Simulation" (5s mode), "Simulate 1-Min Auto-Advance Pulse", and real-time wake lock telemetry accessible via the discreet `⚙️ Debug` link in the Management View.
 
 ### Typography & Mobile Responsiveness
 - **Landscape Scaling:** Text and UI scale proportionally via `clamp()` and `vh` units so projector displays (low or high res) remain legible.
