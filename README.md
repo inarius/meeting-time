@@ -19,7 +19,7 @@ The app consists of two screens stacked vertically:
 
 Scroll down to the Agenda Manager to customize your meeting. `[ + Add ]`, edit, or  `[ Delete ]`.
 
-- **Formatting Notes:** In the **Detail Content** box:
+- **Formatting Notes:**
   - Type `- ` for a bullet point.
   - Type `-- ` for an indented sub-bullet.
   - Use `**bold**` or `*italics*` for emphasis.
@@ -41,8 +41,7 @@ Click `[ 📋 Import / Edit ]` to open the full agenda as plain text. Paste a ne
 
 ## Running the Meeting
 
-- The app monitors the real-world clock.
-- When the time reaches the next scheduled item (e.g., `07:20 PM`), the presentation automatically advances.
+- The app monitors the real-world clock. When the time reaches the next scheduled item, the presentation advances.
 - Tap `[ ⏸ Pause ]`, `[ ◀ Prev ]`, `[ Next ▶ ]`, or click any item on the timeline to take manual control.
 
 ---
@@ -68,4 +67,4 @@ You can wirelessly send the presentation to a TV or projector while using your p
 | `[ ↩ Undo ]` | Reverts the last edit or deletion. |
 | `[ Delete ]` | Removes the currently selected agenda item. |
 | `[ + Add ]` | Adds a new agenda topic. |
-| `[ Resume Auto ]`  Unpauses and syncs back to the live clock. |
+| `[ Resume Auto ]` | Unpauses and syncs back to the live clock. |
