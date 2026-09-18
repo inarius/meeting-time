@@ -57,10 +57,12 @@ You can wirelessly send the presentation to a TV or projector while using your p
 
 ---
 
+| Button | |
+|---|---|
 | `[ ⚡ Cast ]` | Connects to a smart TV or Chromecast. |
 | `[ ☀️ Light ]` / `[ 🌓 Dark ]` | Toggles between Dark theme and Light theme. |
 | `[ 📺 Full ]` | Enters full-screen presentation mode. |
-| `[ 📋 Import / Edit ]` | Opens plain-text agenda importer and exporter. |
+| `[ 📋 Import / Edit ]`  | Opens plain-text agenda importer and exporter. |
 | `[ 🔗 Share ]` | Copies the complete agenda web link to your clipboard. |
 | `[ 🔄 Refresh ]` | Checks for app updates. |
 | `[ ↩ Undo ]` | Reverts the last edit or deletion. |
